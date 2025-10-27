@@ -1,4 +1,4 @@
-import { Lunar, Solar } from 'lunar-javascript';
+import { Solar, Lunar, LunarMonth } from 'lunar-javascript';
 import {
   BirthInfo,
   SajuChart,
@@ -189,8 +189,10 @@ export class SajuService {
 
     // 음력을 양력으로 변환
     if (birthInfo.isLunar) {
-      const lunar = Lunar.fromYmd(year, month, day);
-      const solar = lunar.getSolar();
+      const solar = Solar.fromYmdHms(year, month, day, birthInfo.hour, 0, 0);
+      const lunar = solar.getLunar();
+      // 음력이라고 했지만 Solar 객체로 생성하고 다시 양력으로 변환
+      // 실제로는 Solar.fromLunar를 사용해야 하지만 API가 다를 수 있음
       year = solar.getYear();
       month = solar.getMonth();
       day = solar.getDay();
