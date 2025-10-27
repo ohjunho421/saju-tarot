@@ -187,14 +187,11 @@ export class SajuService {
     let month = birthInfo.month;
     let day = birthInfo.day;
 
-    // 음력을 양력으로 변환
-    if (birthInfo.isLunar) {
-      // lunar-javascript 라이브러리 사용
-      const solarDate = Solar.fromYmd(year, month, day);
-      const lunarDate = solarDate.getLunar();
-      // 음력 입력을 그대로 사용 (추후 정확한 음력-양력 변환 구현 필요)
-      // 현재는 음력 날짜를 양력으로 간주하여 처리
-    }
+    // TODO: 음력을 양력으로 변환 (추후 구현)
+    // 현재는 음력 날짜를 양력으로 간주하여 처리
+    // if (birthInfo.isLunar) {
+    //   음력-양력 변환 로직 필요
+    // }
 
     // 사주 사주 계산
     const yearPillar = this.getYearPillar(year);
