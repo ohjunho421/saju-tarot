@@ -1,0 +1,313 @@
+# Product Requirements Document (PRD)
+# 사주 만세력 기반 타로 해석 서비스
+
+## 1. 프로젝트 개요
+
+### 1.1 제품 비전
+사용자의 생년월일시를 기반으로 한 사주 만세력 분석과 타로 카드 리딩을 결합하여, 보다 정확하고 개인화된 운세 해석 서비스를 제공하는 웹 애플리케이션.
+
+### 1.2 목표
+- 전통적인 동양 철학(사주)과 서양 신비학(타로)의 융합
+- 사용자 친화적인 UI/UX로 누구나 쉽게 접근 가능
+- AI 기반 해석으로 일관성 있고 깊이 있는 상담 제공
+- 모바일 최적화로 언제 어디서나 이용 가능
+
+### 1.3 타겟 사용자
+- 20-40대 연령층
+- 운세, 점술에 관심 있는 사용자
+- 자기 성찰 및 미래 방향성을 찾고자 하는 사용자
+- 전통 사주와 타로에 모두 관심 있는 사용자
+
+## 2. 핵심 기능 요구사항
+
+### 2.1 사용자 정보 입력
+- 생년월일 입력 (양력/음력 선택)
+- 생시 입력 (시간 단위)
+- 성별 입력
+- 사용자 정보 저장 및 관리 (로컬스토리지/DB)
+
+### 2.2 사주 만세력 계산 및 분석
+- 음양오행 계산 (천간, 지지)
+- 십신 분석 (比肩, 劫財, 食神, 傷官, 偏財, 正財, 七殺, 正官, 偏印, 正印)
+- 대운/세운 계산
+- 오행 균형 분석 (목, 화, 토, 금, 수)
+- 기본 성격 및 운세 특징 추출
+
+### 2.3 타로 카드 시스템
+- 메이저 아르카나 22장 구현
+- 마이너 아르카나 56장 구현
+- 다양한 스프레드 제공:
+  * 원 카드 (간단한 질문)
+  * 쓰리 카드 (과거-현재-미래)
+  * 켈트 십자가 (종합 운세)
+  * 사주 맞춤형 스프레드 (오행별 카드 배치)
+- 카드 셔플 및 선택 애니메이션
+- 카드 상세 이미지 및 설명
+
+### 2.4 통합 해석 엔진
+- 사주 분석 결과와 타로 카드의 상호 연관성 분석
+- 오행과 타로 카드 상징의 매칭:
+  * 목(木) - Wands (지팡이)
+  * 화(火) - Cups (컵)
+  * 토(土) - Pentacles (펜타클)
+  * 금(金) - Swords (검)
+  * 수(水) - Major Arcana의 물 관련 카드
+- AI 기반 종합 해석 생성
+- 조언 및 행동 지침 제공
+
+### 2.5 결과 표시 및 공유
+- 시각적으로 아름다운 결과 레이아웃
+- 사주 차트 시각화
+- 타로 카드 스프레드 표시
+- 상세 해석 텍스트
+- PDF/이미지 저장 기능
+- SNS 공유 기능
+- 이메일 전송 기능
+
+### 2.6 히스토리 및 트래킹
+- 과거 리딩 기록 저장
+- 날짜별 검색 및 필터링
+- 리딩 결과 비교 기능
+- 즐겨찾기 기능
+
+### 2.7 추가 기능
+- 일간/주간/월간 운세
+- 궁합 분석 (두 사람의 사주 비교)
+- 타로 카드 학습 모드
+- 사주 용어 사전
+- 타로 카드 의미 사전
+
+## 3. 기술 스택
+
+### 3.1 Frontend
+- Framework: React 18+ with TypeScript
+- Styling: TailwindCSS + shadcn/ui
+- State Management: Zustand or React Context
+- Animation: Framer Motion
+- Icons: Lucide React
+- Date Handling: date-fns or dayjs
+- HTTP Client: Axios
+
+### 3.2 Backend
+- Runtime: Node.js
+- Framework: Express.js or Fastify
+- Language: TypeScript
+- Database: MongoDB or PostgreSQL
+- ORM: Prisma (PostgreSQL) or Mongoose (MongoDB)
+- Authentication: JWT
+
+### 3.3 AI/ML
+- LLM Integration: OpenAI GPT-4 API or Anthropic Claude API
+- Prompt Engineering: 사주와 타로 해석용 최적화된 프롬프트
+
+### 3.4 External APIs
+- 만세력 계산 라이브러리 (lunar-calendar, korean-lunar-calendar 등)
+- 사주 계산 알고리즘 (자체 구현 또는 오픈소스 활용)
+
+### 3.5 DevOps
+- Version Control: Git
+- Package Manager: npm or pnpm
+- Build Tool: Vite
+- Deployment: Vercel (Frontend) + Railway/Render (Backend)
+- Environment Variables: dotenv
+
+## 4. 데이터 모델
+
+### 4.1 User
+- id: string
+- name: string
+- email: string (optional)
+- birthDate: Date
+- birthTime: string
+- gender: string
+- isLunar: boolean
+- createdAt: Date
+
+### 4.2 SajuAnalysis
+- id: string
+- userId: string
+- birthInfo: object
+- heavenlyStems: object (천간)
+- earthlyBranches: object (지지)
+- elements: object (오행)
+- sipsin: object (십신)
+- fortune: object (대운)
+- yearlyFortune: object (세운)
+- personality: string
+- strengths: string[]
+- weaknesses: string[]
+- createdAt: Date
+
+### 4.3 TarotReading
+- id: string
+- userId: string
+- sajuAnalysisId: string (optional)
+- spreadType: string
+- question: string
+- cards: array of objects
+- interpretation: string
+- advice: string
+- createdAt: Date
+
+### 4.4 TarotCard
+- id: string
+- name: string
+- number: number
+- suit: string (Major/Wands/Cups/Swords/Pentacles)
+- imageUrl: string
+- uprightMeaning: string
+- reversedMeaning: string
+- keywords: string[]
+- element: string (오행 매칭)
+- symbolism: string
+
+## 5. UI/UX 요구사항
+
+### 5.1 디자인 원칙
+- 신비롭고 우아한 느낌
+- 동양적 색감과 서양적 미학의 조화
+- 직관적인 네비게이션
+- 반응형 디자인 (모바일 퍼스트)
+- 접근성 고려 (WCAG 2.1 AA 준수)
+
+### 5.2 컬러 팔레트
+- Primary: 보라/남색 계열 (신비로움)
+- Secondary: 금색/청동 계열 (고급스러움)
+- Accent: 붉은 계열 (에너지)
+- Background: 어두운 계열 또는 밝은 베이지
+- Text: 높은 대비율 확보
+
+### 5.3 주요 화면
+1. 홈 화면
+   - 서비스 소개
+   - 빠른 시작 버튼
+   - 최근 리딩 기록
+
+2. 사용자 정보 입력 화면
+   - 단계별 폼 (Step-by-step)
+   - 유효성 검사
+   - 진행률 표시
+
+3. 사주 분석 결과 화면
+   - 사주 차트 시각화
+   - 오행 밸런스 차트
+   - 상세 해석
+
+4. 타로 선택 화면
+   - 스프레드 타입 선택
+   - 질문 입력
+   - 카드 셔플 애니메이션
+   - 카드 선택 인터랙션
+
+5. 통합 해석 결과 화면
+   - 사주 + 타로 종합 분석
+   - 시각적 레이아웃
+   - 다운로드/공유 옵션
+
+6. 히스토리 화면
+   - 과거 리딩 목록
+   - 검색 및 필터
+   - 상세 보기
+
+7. 설정/프로필 화면
+   - 사용자 정보 수정
+   - 알림 설정
+   - 테마 변경
+
+## 6. 개발 우선순위
+
+### Phase 1 (MVP - 4주)
+1. 프로젝트 셋업 및 기본 구조
+2. 사용자 정보 입력 UI
+3. 기본 사주 만세력 계산 로직
+4. 타로 카드 데이터베이스 구축
+5. 간단한 원 카드 타로 기능
+6. 기본 해석 엔진 (템플릿 기반)
+
+### Phase 2 (고도화 - 4주)
+1. AI 기반 해석 통합
+2. 다양한 타로 스프레드 추가
+3. 사주와 타로 통합 분석
+4. 결과 저장 및 히스토리
+5. UI/UX 개선 및 애니메이션
+
+### Phase 3 (추가 기능 - 4주)
+1. 궁합 분석
+2. 일간/주간/월간 운세
+3. 공유 기능
+4. 학습 모드
+5. 성능 최적화
+
+### Phase 4 (배포 및 운영 - 2주)
+1. 테스트 및 버그 수정
+2. 프로덕션 배포
+3. 모니터링 설정
+4. 문서화
+
+## 7. 성공 지표 (KPI)
+
+- 일일 활성 사용자 (DAU)
+- 사용자 리텐션율 (7일, 30일)
+- 평균 세션 시간
+- 리딩 완료율
+- 재방문율
+- 공유/추천 비율
+- 사용자 만족도 (피드백/평점)
+
+## 8. 제약사항 및 고려사항
+
+### 8.1 법적/윤리적 고려사항
+- 점술 서비스의 엔터테인먼트 목적 명시
+- 의료/법률/재정 조언이 아님을 분명히 표시
+- 개인정보 보호 및 GDPR 준수
+- 미성년자 사용 제한 또는 부모 동의
+
+### 8.2 기술적 제약사항
+- API 호출 비용 (LLM 사용)
+- 응답 시간 최적화 (사주 계산 + AI 해석)
+- 브라우저 호환성
+- 모바일 성능
+
+### 8.3 비즈니스 모델
+- 무료 티어: 제한적 기능 (일 1-2회 리딩)
+- 프리미엄 티어: 무제한 리딩, 상세 분석, 히스토리
+- 일회성 결제: 특별 리딩 (연간 운세 등)
+
+## 9. 참고 자료
+
+### 9.1 사주 관련
+- 만세력 계산 알고리즘
+- 십신론
+- 오행 이론
+- 대운/세운 계산법
+
+### 9.2 타로 관련
+- 라이더-웨이트 타로 덱
+- 타로 카드 의미 해석
+- 타로 스프레드 방법론
+
+### 9.3 디자인 레퍼런스
+- 기존 타로 앱 (Labyrinthos, Golden Thread Tarot)
+- 사주 서비스 (만세력 앱, 토정비결 앱)
+
+## 10. 리스크 및 대응 방안
+
+### 10.1 리스크
+- 사주 계산의 정확성 이슈
+- AI 해석의 일관성 문제
+- 높은 API 비용
+- 사용자 데이터 보안
+
+### 10.2 대응 방안
+- 기존 검증된 사주 라이브러리 활용
+- 프롬프트 엔지니어링 및 테스트
+- 캐싱 및 최적화 전략
+- 암호화 및 보안 best practices 적용
+
+---
+
+## 부록: 초기 테스크 추정
+
+총 예상 개발 기간: 12-14주
+팀 구성: 풀스택 개발자 1-2명, 디자이너 1명 (파트타임)
+예산: API 비용 월 $100-300, 호스팅 비용 월 $50-100

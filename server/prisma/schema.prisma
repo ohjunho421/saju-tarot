@@ -1,0 +1,42 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  birthInfo     Json     // BirthInfo 객체 저장
+  sajuAnalysis  Json     // SajuAnalysis 객체 저장
+  createdAt     DateTime @default(now())
+  lastLoginAt   DateTime?
+  readings      Reading[]
+
+  @@index([email])
+}
+
+model Reading {
+  id                      String   @id @default(cuid())
+  userId                  String
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question                String
+  spreadType              String   // 'one-card' | 'three-card' | 'celtic-cross' | 'saju-custom'
+  drawnCards              Json     // DrawnCard[] 배열 저장
+  interpretation          String
+  elementalHarmony        String
+  personalizedAdvice      String
+  adviceCardInterpretation String?
+  aiProvider              String?  // 'gemini' | 'claude'
+  createdAt               DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
