@@ -264,14 +264,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 value={registerData.birthInfo.hour}
                 onChange={(e) => setRegisterData({
                   ...registerData,
-                  birthInfo: { ...registerData.birthInfo, hour: parseInt(e.target.value) }
+                  birthInfo: { ...registerData.birthInfo, hour: parseInt(e.target.value) || 12 }
                 })}
                 className="input-field mb-2 text-white"
                 style={{ color: 'white' }}
-                required
               >
-                <option value="" className="text-gray-800">시간 선택</option>
-                <option value={12} className="text-gray-800">⏰ 모름 (기본값: 낮 12시)</option>
+                <option value="" className="text-gray-800">모름 (기본값: 낮 12시)</option>
                 <option value={0} className="text-gray-800">자시 (子時) - 밤 11:30 ~ 새벽 1:30</option>
                 <option value={2} className="text-gray-800">축시 (丑時) - 새벽 1:30 ~ 3:30</option>
                 <option value={4} className="text-gray-800">인시 (寅時) - 새벽 3:30 ~ 5:30</option>
