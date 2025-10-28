@@ -1,4 +1,4 @@
-import { Solar, Lunar } from 'lunar-javascript';
+const { Solar, Lunar } = require('lunar-javascript');
 import {
   BirthInfo,
   SajuChart,
@@ -162,11 +162,11 @@ export class SajuService {
       
       if (birthInfo.isLunar) {
         // 음력을 양력으로 변환
-        const lunar: any = new (Lunar as any)(birthInfo.year, birthInfo.month, birthInfo.day, 0, 0, 0);
+        const lunar: any = Lunar.fromYmd(birthInfo.year, birthInfo.month, birthInfo.day);
         solar = lunar.getSolar();
       } else {
         // 양력 그대로 사용
-        solar = new (Solar as any)(birthInfo.year, birthInfo.month, birthInfo.day, birthInfo.hour, 0, 0);
+        solar = Solar.fromYmdHms(birthInfo.year, birthInfo.month, birthInfo.day, birthInfo.hour, 0, 0);
       }
       
       // lunar-javascript 라이브러리로 정확한 사주 계산
