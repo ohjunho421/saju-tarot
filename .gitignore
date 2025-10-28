@@ -18,7 +18,6 @@ node_modules/
 *.db
 *.db-journal
 server/prisma/dev.db
-server/prisma/migrations
 
 # Build output
 dist
