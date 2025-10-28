@@ -106,7 +106,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
           <span>🔮</span>
           <span>카드가 말해주는 이야기</span>
         </h2>
-        <div className="text-white/90 leading-relaxed text-lg whitespace-pre-wrap">
+        <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep" style={{ wordBreak: 'keep-all' }}>
           {integrated}
         </div>
       </div>
@@ -117,7 +117,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
           <span>🌊</span>
           <span>오행의 흐름</span>
         </h2>
-        <div className="text-white/90 leading-relaxed text-lg whitespace-pre-wrap">
+        <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep" style={{ wordBreak: 'keep-all' }}>
           {elementalHarmony}
         </div>
       </div>
@@ -128,7 +128,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
           <span>💡</span>
           <span>실천할 수 있는 조언</span>
         </h2>
-        <div className="text-white/90 leading-relaxed text-lg whitespace-pre-wrap">
+        <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep" style={{ wordBreak: 'keep-all' }}>
           {personalizedAdvice}
         </div>
       </div>
@@ -140,7 +140,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
             <span className="text-mystical-gold">✨</span>
             조언 카드의 메시지
           </h2>
-          <div className="text-white/90 leading-relaxed text-lg whitespace-pre-wrap">
+          <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep" style={{ wordBreak: 'keep-all' }}>
             {adviceCardInterpretation}
           </div>
         </div>

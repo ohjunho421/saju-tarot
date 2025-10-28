@@ -105,11 +105,11 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
             </div>
           </div>
 
-          {/* 생시 */}
+          {/* 생시 - 12지지 기반 */}
           <div>
             <label className="flex items-center gap-2 mb-3 text-lg font-semibold">
               <Clock className="w-5 h-5" />
-              태어난 시간
+              태어난 시간 (시진)
             </label>
             <select
               value={formData.hour}
@@ -118,14 +118,21 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
               required
             >
               <option value="">시간 선택</option>
-              {Array.from({ length: 24 }, (_, i) => (
-                <option key={i} value={i}>
-                  {i}시 ({i < 12 ? '오전' : '오후'} {i % 12 || 12}시)
-                </option>
-              ))}
+              <option value={0}>자시 (子時) - 밤 11:30 ~ 새벽 1:30</option>
+              <option value={2}>축시 (丑時) - 새벽 1:30 ~ 3:30</option>
+              <option value={4}>인시 (寅時) - 새벽 3:30 ~ 5:30</option>
+              <option value={6}>묘시 (卯時) - 아침 5:30 ~ 7:30</option>
+              <option value={8}>진시 (辰時) - 아침 7:30 ~ 9:30</option>
+              <option value={10}>사시 (巳時) - 오전 9:30 ~ 11:30</option>
+              <option value={12}>오시 (午時) - 낮 11:30 ~ 오후 1:30</option>
+              <option value={14}>미시 (未時) - 오후 1:30 ~ 3:30</option>
+              <option value={16}>신시 (申時) - 오후 3:30 ~ 5:30</option>
+              <option value={18}>유시 (酉時) - 저녁 5:30 ~ 7:30</option>
+              <option value={20}>술시 (戌時) - 저녁 7:30 ~ 9:30</option>
+              <option value={22}>해시 (亥時) - 밤 9:30 ~ 11:30</option>
             </select>
             <p className="text-xs text-white/50 mt-2">
-              * 정확한 사주 분석을 위해 태어난 시간을 정확히 입력해주세요
+              💡 정확한 시간을 모르신다면, 대략적인 시간대를 선택해주세요
             </p>
           </div>
 
