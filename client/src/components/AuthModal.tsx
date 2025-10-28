@@ -29,7 +29,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       year: 1990,
       month: 1,
       day: 1,
-      hour: 0,
+      hour: 12,
       isLunar: false,
       gender: 'male' as 'male' | 'female'
     }
@@ -271,6 +271,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                 required
               >
                 <option value="" className="text-gray-800">시간 선택</option>
+                <option value={12} className="text-gray-800">⏰ 모름 (기본값: 낮 12시)</option>
                 <option value={0} className="text-gray-800">자시 (子時) - 밤 11:30 ~ 새벽 1:30</option>
                 <option value={2} className="text-gray-800">축시 (丑時) - 새벽 1:30 ~ 3:30</option>
                 <option value={4} className="text-gray-800">인시 (寅時) - 새벽 3:30 ~ 5:30</option>

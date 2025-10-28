@@ -118,6 +118,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
               required
             >
               <option value="">시간 선택</option>
+              <option value={12}>⏰ 모름 (기본값: 낮 12시)</option>
               <option value={0}>자시 (子時) - 밤 11:30 ~ 새벽 1:30</option>
               <option value={2}>축시 (丑時) - 새벽 1:30 ~ 3:30</option>
               <option value={4}>인시 (寅時) - 새벽 3:30 ~ 5:30</option>
@@ -132,7 +133,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
               <option value={22}>해시 (亥時) - 밤 9:30 ~ 11:30</option>
             </select>
             <p className="text-xs text-white/50 mt-2">
-              💡 정확한 시간을 모르신다면, 대략적인 시간대를 선택해주세요
+              💡 정확한 시간을 모르신다면 "모름"을 선택하거나, 대략적인 시간대를 선택해주세요
             </p>
           </div>
 
