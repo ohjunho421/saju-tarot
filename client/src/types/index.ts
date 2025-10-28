@@ -73,11 +73,12 @@ export interface DrawnCard {
 
 // 통합 리딩 타입
 export interface IntegratedReading {
+  readingId: string;
   sajuAnalysis: SajuAnalysis;
   drawnCards: DrawnCard[];
   spreadType: SpreadType;
-  question?: string;
-  integrated: string;
+  question: string;
+  interpretation: string;
   elementalHarmony: string;
   personalizedAdvice: string;
   adviceCardInterpretation?: string;
