@@ -258,8 +258,22 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
         throw new Error('AI 서비스를 사용할 수 없습니다.');
       }
 
+      // 디버깅: AI 응답 전체 로깅
+      console.log('=== AI 응답 전체 ===');
+      console.log(response);
+      console.log('=== AI 응답 끝 ===');
+
       // 응답 파싱
-      return this.parseAIResponse(response);
+      const parsed = this.parseAIResponse(response);
+      
+      // 디버깅: 파싱 결과 로깅
+      console.log('=== 파싱 결과 ===');
+      console.log('interpretation 길이:', parsed.interpretation.length);
+      console.log('elementalHarmony 길이:', parsed.elementalHarmony.length);
+      console.log('personalizedAdvice 길이:', parsed.personalizedAdvice.length);
+      console.log('=== 파싱 끝 ===');
+      
+      return parsed;
     } catch (error) {
       console.error('AI 해석 생성 오류:', error);
       throw new Error('AI 해석을 생성하는 중 오류가 발생했습니다.');

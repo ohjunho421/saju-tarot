@@ -373,7 +373,7 @@
         "description": "AI 프롬프트, 파싱 로직, 이미지 경로 등 전체 흐름을 처음부터 끝까지 재검증",
         "details": "1. AI 프롬프트가 올바른 섹션 이름으로 작성되어 있는지\n2. 파싱 로직이 해당 섹션을 찾을 수 있는지\n3. 이미지 URL 생성 로직 확인\n4. API 응답 구조 확인\n5. 프론트엔드가 올바르게 데이터를 받는지\n6. Railway 배포 상태 확인",
         "testStrategy": "",
-        "status": "pending",
+        "status": "in-progress",
         "dependencies": [],
         "priority": "high",
         "subtasks": [
@@ -446,7 +446,7 @@
     ],
     "metadata": {
       "created": "2025-10-27T15:16:35.981Z",
-      "updated": "2025-10-28T17:21:27.076Z",
+      "updated": "2025-10-28T17:33:05.670Z",
       "description": "Tasks for master context"
     }
   }
