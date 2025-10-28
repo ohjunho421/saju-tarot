@@ -11,7 +11,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
     year: 1990,
     month: 1,
     day: 1,
-    hour: 12,
+    hour: undefined,
     isLunar: false,
     gender: 'male'
   });
@@ -112,11 +112,11 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
               태어난 시간 (시진) <span className="text-sm text-white/60 ml-2">- 선택사항</span>
             </label>
             <select
-              value={formData.hour}
-              onChange={(e) => setFormData({ ...formData, hour: parseInt(e.target.value) || 12 })}
+              value={formData.hour ?? ''}
+              onChange={(e) => setFormData({ ...formData, hour: e.target.value ? parseInt(e.target.value) : undefined })}
               className="input-field"
             >
-              <option value="">모름 (기본값: 낮 12시)</option>
+              <option value="">모름 (시주 제외)</option>
               <option value={0}>자시 (子時) - 밤 11:30 ~ 새벽 1:30</option>
               <option value={2}>축시 (丑時) - 새벽 1:30 ~ 3:30</option>
               <option value={4}>인시 (寅時) - 새벽 3:30 ~ 5:30</option>
@@ -131,7 +131,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
               <option value={22}>해시 (亥時) - 밤 9:30 ~ 11:30</option>
             </select>
             <p className="text-xs text-white/50 mt-2">
-              💡 정확한 시간을 모르시면 공란으로 두시면 됩니다 (기본값: 낮 12시)
+              💡 정확한 시간을 모르시면 공란으로 두시면 됩니다 (시주는 제외되고 년주/월주/일주로만 분석)
             </p>
           </div>
 

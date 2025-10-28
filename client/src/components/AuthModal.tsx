@@ -29,7 +29,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       year: 1990,
       month: 1,
       day: 1,
-      hour: 12,
+      hour: undefined,
       isLunar: false,
       gender: 'male' as 'male' | 'female'
     }

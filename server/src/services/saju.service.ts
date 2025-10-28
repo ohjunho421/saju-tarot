@@ -155,10 +155,11 @@ export class SajuService {
     let yearPillar: SajuPillar;
     let monthPillar: SajuPillar;
     let dayPillar: SajuPillar;
-    let hourPillar: SajuPillar;
+    let hourPillar: SajuPillar | undefined;
     
     try {
       let solar: any;
+      const hour = birthInfo.hour ?? 12; // 시간이 없으면 12시 사용 (계산용)
       
       if (birthInfo.isLunar) {
         // 음력을 양력으로 변환
@@ -166,7 +167,7 @@ export class SajuService {
         solar = lunar.getSolar();
       } else {
         // 양력 그대로 사용
-        solar = Solar.fromYmdHms(birthInfo.year, birthInfo.month, birthInfo.day, birthInfo.hour, 0, 0);
+        solar = Solar.fromYmdHms(birthInfo.year, birthInfo.month, birthInfo.day, hour, 0, 0);
       }
       
       // lunar-javascript 라이브러리로 정확한 사주 계산
@@ -177,7 +178,11 @@ export class SajuService {
       yearPillar = this.getPillarFromGanZhi(eightChar.getYear());
       monthPillar = this.getPillarFromGanZhi(eightChar.getMonth());
       dayPillar = this.getPillarFromGanZhi(eightChar.getDay());
-      hourPillar = this.getPillarFromGanZhi(eightChar.getTime());
+      
+      // 시간 정보가 있을 때만 시주 계산
+      if (birthInfo.hour !== undefined && birthInfo.hour !== null) {
+        hourPillar = this.getPillarFromGanZhi(eightChar.getTime());
+      }
     } catch (error) {
       console.error('lunar-javascript 라이브러리 오류:', error);
       throw new Error('사주 계산 중 오류가 발생했습니다. 관리자에게 문의하세요.');
@@ -187,7 +192,7 @@ export class SajuService {
       year: yearPillar,
       month: monthPillar,
       day: dayPillar,
-      hour: hourPillar
+      ...(hourPillar && { hour: hourPillar }) // 시주가 있을 때만 포함
     };
 
     // 오행 균형
