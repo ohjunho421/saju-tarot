@@ -284,14 +284,16 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
       personalizedAdvice: ''
     };
 
-    // [질문에 대한 결론] + [사주와 타로 카드의 통합 해석] 합쳐서 interpretation으로
+    // [질문에 대한 결론] + [각 타로 카드의 상세 해석] 합쳐서 interpretation으로
     const conclusionMatch = response.match(/\[질문에 대한 결론\]\s*([\s\S]*?)(?=---|$)/i);
-    const integrationMatch = response.match(/\[사주와 타로 카드의 통합 해석\]\s*([\s\S]*?)(?=---|$)/i);
+    const cardDetailsMatch = response.match(/\[각 타로 카드의 상세 해석\]\s*([\s\S]*?)(?=---|$)/i);
     
-    if (conclusionMatch && integrationMatch) {
+    if (conclusionMatch && cardDetailsMatch) {
       const conclusion = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-      const integration = integrationMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-      sections.interpretation = `${conclusion}\n\n${integration}`;
+      const cardDetails = cardDetailsMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      sections.interpretation = `${conclusion}\n\n${cardDetails}`;
+    } else if (cardDetailsMatch) {
+      sections.interpretation = cardDetailsMatch[1].trim().replace(/^\[.*?\]\s*/, '');
     } else if (conclusionMatch) {
       sections.interpretation = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
     } else {

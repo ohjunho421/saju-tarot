@@ -295,7 +295,7 @@
         "description": "1. 타로카드 이미지가 표시되지 않는 문제\n2. 각 카드별 상세 설명(그림 의미, 사주 연결)이 생성되지 않는 문제",
         "details": "진단 필요 항목:\n1. 백엔드: 카드 데이터에 imageUrl이 포함되는지 확인\n2. 백엔드: AI 프롬프트가 각 카드별 설명을 생성하는지 확인\n3. 프론트엔드: API 응답에서 imageUrl을 받고 있는지 확인\n4. 프론트엔드: 카드 상세 섹션이 렌더링되는지 확인\n5. Railway 배포 상태 확인",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [],
         "priority": "high",
         "subtasks": [
@@ -351,15 +351,26 @@
               "22.4"
             ],
             "details": "1. Railway 배포 로그 확인\n2. 환경 변수 설정 검증(API 키, 서비스 URL 등)\n3. 이미지 저장소 접근 권한 확인\n4. CORS 설정 검증\n5. 프로덕션 빌드 프로세스 검토\n6. 캐싱 정책 확인 및 필요시 조정\n7. 배포 후 전체 기능 테스트 실행",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": "1. 프로덕션 환경에서 네트워크 요청 모니터링\n2. 실제 사용자 시나리오 테스트\n3. 다양한 기기 및 브라우저에서 테스트\n4. 로그 분석을 통한 오류 패턴 식별"
           }
         ]
+      },
+      {
+        "id": 23,
+        "title": "배포 후 실제 동작 검증 및 추가 디버깅",
+        "description": "Railway 배포 완료 후 실제로 이미지와 카드 설명이 제대로 나오는지 확인하고, 문제가 있으면 추가 수정",
+        "details": "1. Railway 배포 로그 확인\n2. 실제 프로덕션 환경에서 타로 리딩 테스트\n3. 브라우저 개발자 도구로 네트워크 요청 확인\n4. AI 응답에 카드 상세 설명이 포함되는지 확인\n5. 이미지 URL이 올바른지, 404가 아닌지 확인\n6. 문제 발견 시 즉시 수정",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-10-27T15:16:35.981Z",
-      "updated": "2025-10-28T17:10:27.909Z",
+      "updated": "2025-10-28T17:13:49.199Z",
       "description": "Tasks for master context"
     }
   }
