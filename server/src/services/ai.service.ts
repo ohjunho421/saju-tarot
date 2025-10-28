@@ -204,16 +204,24 @@ ${(() => {
 
 ---
 
-[사주와 타로 카드의 통합 해석]
-이제 당신의 만세력과 뽑은 카드들이 어떻게 연결되는지 자세히 풀어드릴게요. 
+[각 타로 카드의 상세 해석]
+이제 뽑으신 카드들을 하나씩 자세히 살펴볼게요. 당신은 ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})일간이고, ${sajuAnalysis.strongElements.join(', ')} 기운이 강하며 ${sajuAnalysis.weakElements.join(', ')} 기운이 약한 사주를 가지고 계세요.
 
-당신은 ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})일간이고, ${sajuAnalysis.strongElements.join(', ')} 기운이 강하며 ${sajuAnalysis.weakElements.join(', ')} 기운이 약해요. 
+${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
+  const direction = dc.isReversed ? '역방향' : '정방향';
+  const meaning = dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning;
+  return `
+**${i + 1}번째 카드: ${dc.positionMeaning} - ${dc.card.nameKo} (${direction})**
 
-뽑으신 카드들을 하나씩 살펴보면:
-${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => `
-- ${dc.positionMeaning}에 나온 ${dc.card.nameKo}는 ${dc.card.element ? dc.card.element + ' 기운을 가진 카드인데,' : ''} 당신의 사주와 만나면서 이런 의미를 갖게 돼요.`).join('\n')}
+이 카드는 "${meaning}"를 상징해요. ${dc.card.nameKo} 카드의 그림을 보면 [카드 이미지에서 보이는 주요 상징들을 설명하고], 이것은 [그 상징이 의미하는 바를 풀어서 설명]해요.
 
-각 카드가 당신의 일간과 오행 균형에 비추어 볼 때 어떤 구체적인 메시지를 전하는지 풀어서 설명해주세요. (500자 이상)
+${dc.positionMeaning} 자리에 이 카드가 나왔다는 것은, 당신의 ${sajuAnalysis.dayMasterElement} 일간과 만나면서 [사주의 오행과 카드의 의미가 어떻게 상호작용하는지 구체적으로 설명]하는 메시지를 주고 있어요.${dc.card.element ? ` 특히 이 카드는 ${dc.card.element} 기운을 가지고 있어서, 당신의 사주에서 ${sajuAnalysis.strongElements.includes(dc.card.element) ? '강한' : sajuAnalysis.weakElements.includes(dc.card.element) ? '약한' : ''} ${dc.card.element} 기운과 ${sajuAnalysis.strongElements.includes(dc.card.element) ? '더욱 강화되거나' : sajuAnalysis.weakElements.includes(dc.card.element) ? '보완될 수 있는' : '조화를 이루는'} 관계예요.` : ''}
+
+이 카드가 당신에게 전하는 핵심 메시지는 [카드의 의미를 사주와 연결하여 실제 삶에 적용할 수 있는 조언] 입니다. (각 카드당 200자 이상)
+`;
+}).join('\n')}
+
+위 카드들을 종합해서, 전체적인 흐름과 당신의 사주가 만나면서 만들어지는 이야기를 자연스럽게 이어서 설명해주세요. (200자 이상)
 
 ---
 
