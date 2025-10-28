@@ -261,9 +261,6 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
     personalizedAdvice: string;
     adviceCardInterpretation?: string;
   } {
-    // --- 로 구분된 섹션 추출
-    const parts = response.split('---').map(p => p.trim());
-    
     const sections: {
       interpretation: string;
       elementalHarmony: string;
@@ -275,28 +272,40 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
       personalizedAdvice: ''
     };
 
-    // [질문에 대한 답변] + [현재 상황과 흐름] 합쳐서 interpretation으로
-    const answerMatch = response.match(/\[질문에 대한 답변\]\s*([\s\S]*?)(?=---|$)/i);
-    const situationMatch = response.match(/\[현재 상황과 흐름\]\s*([\s\S]*?)(?=---|$)/i);
+    // [질문에 대한 결론] + [사주와 타로 카드의 통합 해석] 합쳐서 interpretation으로
+    const conclusionMatch = response.match(/\[질문에 대한 결론\]\s*([\s\S]*?)(?=---|$)/i);
+    const integrationMatch = response.match(/\[사주와 타로 카드의 통합 해석\]\s*([\s\S]*?)(?=---|$)/i);
     
-    if (answerMatch && situationMatch) {
-      const answer = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-      const situation = situationMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-      sections.interpretation = `${answer}\n\n${situation}`;
-    } else if (answerMatch) {
-      sections.interpretation = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+    if (conclusionMatch && integrationMatch) {
+      const conclusion = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      const integration = integrationMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      sections.interpretation = `${conclusion}\n\n${integration}`;
+    } else if (conclusionMatch) {
+      sections.interpretation = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
     } else {
-      // Fallback: 기존 형식 지원
-      const interpMatch = response.match(/\[카드가 말해주는 이야기\]\s*([\s\S]*?)(?=---|$)/i);
-      if (interpMatch) {
-        sections.interpretation = interpMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      // Fallback: 이전 형식 지원
+      const answerMatch = response.match(/\[질문에 대한 답변\]\s*([\s\S]*?)(?=---|$)/i);
+      const situationMatch = response.match(/\[현재 상황과 흐름\]\s*([\s\S]*?)(?=---|$)/i);
+      
+      if (answerMatch && situationMatch) {
+        const answer = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+        const situation = situationMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+        sections.interpretation = `${answer}\n\n${situation}`;
+      } else if (answerMatch) {
+        sections.interpretation = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
       }
     }
 
-    // [오행의 흐름] 추출
-    const harmonyMatch = response.match(/\[오행의 흐름\]\s*([\s\S]*?)(?=---|$)/i);
+    // [오행의 흐름과 현재 시기] 추출
+    const harmonyMatch = response.match(/\[오행의 흐름과 현재 시기\]\s*([\s\S]*?)(?=---|$)/i);
     if (harmonyMatch) {
       sections.elementalHarmony = harmonyMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+    } else {
+      // Fallback: 이전 형식
+      const oldHarmonyMatch = response.match(/\[오행의 흐름\]\s*([\s\S]*?)(?=---|$)/i);
+      if (oldHarmonyMatch) {
+        sections.elementalHarmony = oldHarmonyMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      }
     }
 
     // [실천할 수 있는 조언] 추출
@@ -312,11 +321,12 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
     }
 
     // Fallback: --- 로 나뉜 부분 사용
+    const parts = response.split('---').map(p => p.trim());
     if (!sections.interpretation && parts.length > 0) {
-      sections.interpretation = parts[0] || response;
-      sections.elementalHarmony = parts[1] || '오행의 흐름을 분석하고 있어요.';
-      sections.personalizedAdvice = parts[2] || '실천 가능한 조언을 준비하고 있어요.';
-      sections.adviceCardInterpretation = parts[3] || undefined;
+      sections.interpretation = parts[0] + '\n\n' + (parts[1] || '');
+      sections.elementalHarmony = parts[2] || '오행의 흐름을 분석하고 있어요.';
+      sections.personalizedAdvice = parts[3] || '실천 가능한 조언을 준비하고 있어요.';
+      sections.adviceCardInterpretation = parts[4] || undefined;
     }
 
     return sections;
