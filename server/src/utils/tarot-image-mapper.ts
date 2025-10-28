@@ -96,10 +96,13 @@ export function getTarotCardImageUrl(cardName: string): string {
     return ''; // 이미지 없음
   }
   
-  // 프로덕션 환경에서는 Railway 도메인 사용
-  const baseUrl = process.env.NODE_ENV === 'production'
-    ? (process.env.RAILWAY_STATIC_URL || process.env.PUBLIC_URL || 'https://saju-tarot-production.up.railway.app')
-    : 'http://localhost:3001';
+  // Railway에서 호스트 정보를 가져오거나 기본값 사용
+  // Railway는 자동으로 PORT와 환경변수를 제공하므로 상대 경로 사용이 더 안전
+  const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : (process.env.NODE_ENV === 'production' 
+        ? 'https://saju-tarot-production.up.railway.app'
+        : 'http://localhost:3001');
     
   return `${baseUrl}/tarot-images/${encodeURIComponent(filename)}`;
 }
