@@ -210,18 +210,22 @@ ${(() => {
 ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
   const direction = dc.isReversed ? '역방향' : '정방향';
   const meaning = dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning;
+  const keywords = dc.isReversed ? dc.card.reversedKeywords.join(', ') : dc.card.uprightKeywords.join(', ');
   return `
-**${i + 1}번째 카드: ${dc.positionMeaning} - ${dc.card.nameKo} (${direction})**
+${i + 1}번째 카드: ${dc.positionMeaning} - ${dc.card.nameKo} (${direction})
 
-이 카드는 "${meaning}"를 상징해요. ${dc.card.nameKo} 카드의 그림을 보면 [카드 이미지에서 보이는 주요 상징들을 설명하고], 이것은 [그 상징이 의미하는 바를 풀어서 설명]해요.
+먼저 이 카드의 의미는 "${meaning}"이에요. 키워드로는 ${keywords} 같은 것들이 있습니다.
 
-${dc.positionMeaning} 자리에 이 카드가 나왔다는 것은, 당신의 ${sajuAnalysis.dayMasterElement} 일간과 만나면서 [사주의 오행과 카드의 의미가 어떻게 상호작용하는지 구체적으로 설명]하는 메시지를 주고 있어요.${dc.card.element ? ` 특히 이 카드는 ${dc.card.element} 기운을 가지고 있어서, 당신의 사주에서 ${sajuAnalysis.strongElements.includes(dc.card.element) ? '강한' : sajuAnalysis.weakElements.includes(dc.card.element) ? '약한' : ''} ${dc.card.element} 기운과 ${sajuAnalysis.strongElements.includes(dc.card.element) ? '더욱 강화되거나' : sajuAnalysis.weakElements.includes(dc.card.element) ? '보완될 수 있는' : '조화를 이루는'} 관계예요.` : ''}
+${dc.card.nameKo} 카드의 그림을 자세히 보면 어떤 상징들이 그려져 있는지 설명하고, 그 상징들이 각각 무엇을 의미하는지 구체적으로 풀어주세요. 예를 들어 특정 인물, 사물, 배경, 색상 등이 어떤 메시지를 담고 있는지 이야기해주세요.
 
-이 카드가 당신에게 전하는 핵심 메시지는 [카드의 의미를 사주와 연결하여 실제 삶에 적용할 수 있는 조언] 입니다. (각 카드당 200자 이상)
+이 카드가 ${dc.positionMeaning} 자리에 나왔다는 것은 중요한 의미가 있어요. 당신의 ${sajuAnalysis.dayMasterElement} 일간과 연결해서 생각해보면, ${dc.card.element ? `이 카드의 ${dc.card.element} 기운이 당신 사주의 ${sajuAnalysis.strongElements.includes(dc.card.element) ? `강한 ${dc.card.element} 기운과 만나 더욱 증폭되는` : sajuAnalysis.weakElements.includes(dc.card.element) ? `약한 ${dc.card.element} 기운을 보완해주는` : `${dc.card.element} 기운과 조화를 이루는`} 형태로 작용하고 있어요. ` : ''}
+카드의 메시지와 당신의 사주 오행이 어떻게 상호작용하여 당신의 현재 상황이나 미래에 영향을 미치는지 구체적으로 설명해주세요.
+
+실제로 이 카드가 당신에게 전하는 메시지는, 일상생활에서 어떻게 받아들이고 행동해야 하는지까지 포함해서 알려주세요. (각 카드당 250자 이상)
 `;
 }).join('\n')}
 
-위 카드들을 종합해서, 전체적인 흐름과 당신의 사주가 만나면서 만들어지는 이야기를 자연스럽게 이어서 설명해주세요. (200자 이상)
+위에서 설명한 모든 카드들을 종합해서, 전체적인 흐름과 당신의 사주가 만나면서 만들어지는 하나의 큰 이야기를 자연스럽게 이어서 설명해주세요. 각 카드가 서로 어떻게 연결되고, 당신의 만세력과 어울려 어떤 전체적인 그림을 그리는지 보여주세요. (250자 이상)
 
 ---
 

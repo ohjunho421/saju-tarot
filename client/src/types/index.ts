@@ -3,7 +3,7 @@ export interface BirthInfo {
   year: number;
   month: number;
   day: number;
-  hour: number;
+  hour?: number; // 선택사항 - 모르는 경우 시주 제외
   isLunar: boolean;
   gender: 'male' | 'female';
 }
@@ -20,7 +20,7 @@ export interface SajuChart {
   year: SajuPillar;
   month: SajuPillar;
   day: SajuPillar;
-  hour: SajuPillar;
+  hour?: SajuPillar; // 선택사항 - 시간을 모르는 경우 없을 수 있음
 }
 
 export interface ElementBalance {
