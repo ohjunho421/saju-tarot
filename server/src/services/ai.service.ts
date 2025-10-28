@@ -199,8 +199,13 @@ ${(() => {
 - 괄호 () 안에 부가 설명을 넣는 것은 괜찮습니다
 각 섹션은 "---" 으로 구분해주세요.
 
-[카드가 말해주는 이야기]
-지금 ${dateContext.season}이고 절기로는 ${dateContext.jieqi} 시기예요. 뽑으신 카드들과 사주를 함께 보면, 지금 이 순간 당신에게 어떤 일이 일어나고 있는지 이야기해드릴게요. 현재 상황을 자연스럽게 설명해주세요. (300자 이상)
+[질문에 대한 답변]
+먼저 질문하신 "${question}"에 대해 직접적으로 답변드릴게요. 뽑으신 카드들이 이 질문에 대해 어떤 답을 주고 있는지 명확하고 이해하기 쉽게 설명해드리겠습니다. 긍정적이거나 부정적인 측면을 솔직하게 이야기하되, 희망과 방향을 제시해주세요. (400자 이상)
+
+---
+
+[현재 상황과 흐름]
+지금 ${dateContext.season}이고 절기로는 ${dateContext.jieqi} 시기예요. 뽑으신 카드들과 사주를 함께 보면, 현재 당신을 둘러싼 전체적인 상황과 에너지의 흐름이 보여요. 일상 언어로 쉽게 풀어서 설명해주세요. (250자 이상)
 
 ---
 
@@ -262,10 +267,22 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
       personalizedAdvice: ''
     };
 
-    // [카드가 말해주는 이야기] 추출
-    const interpMatch = response.match(/\[카드가 말해주는 이야기\]\s*([\s\S]*?)(?=---|$)/i);
-    if (interpMatch) {
-      sections.interpretation = interpMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+    // [질문에 대한 답변] + [현재 상황과 흐름] 합쳐서 interpretation으로
+    const answerMatch = response.match(/\[질문에 대한 답변\]\s*([\s\S]*?)(?=---|$)/i);
+    const situationMatch = response.match(/\[현재 상황과 흐름\]\s*([\s\S]*?)(?=---|$)/i);
+    
+    if (answerMatch && situationMatch) {
+      const answer = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      const situation = situationMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      sections.interpretation = `${answer}\n\n${situation}`;
+    } else if (answerMatch) {
+      sections.interpretation = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+    } else {
+      // Fallback: 기존 형식 지원
+      const interpMatch = response.match(/\[카드가 말해주는 이야기\]\s*([\s\S]*?)(?=---|$)/i);
+      if (interpMatch) {
+        sections.interpretation = interpMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      }
     }
 
     // [오행의 흐름] 추출
@@ -303,24 +320,37 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
     reading: any,
     chatHistory: Array<{ role: string; content: string }>
   ): Promise<string> {
-    const prompt = `당신은 타로와 사주에 정통한 친절한 상담사입니다.
+    const prompt = `당신은 타로와 사주 만세력에 정통한 친절한 상담사입니다.
 
-사용자가 받은 타로 리딩 결과:
-- 질문: ${reading.question || '없음'}
-- 뽑은 카드: ${reading.drawnCards?.map((dc: any) => `${dc.card.nameKo} (${dc.isReversed ? '역방향' : '정방향'})`).join(', ')}
-- 해석: ${reading.integrated}
+[사용자의 사주 정보]
+${reading.sajuAnalysis ? `
+- 일간: ${reading.sajuAnalysis.dayMaster} (${reading.sajuAnalysis.dayMasterElement})
+- 강한 오행: ${reading.sajuAnalysis.strongElements?.join(', ') || '정보 없음'}
+- 약한 오행: ${reading.sajuAnalysis.weakElements?.join(', ') || '정보 없음'}
+- 성격 특성: ${reading.sajuAnalysis.personality || '정보 없음'}
+` : '사주 정보 없음'}
 
-이전 대화 내용:
-${chatHistory.map(msg => `${msg.role === 'user' ? '사용자' : '상담사'}: ${msg.content}`).join('\n')}
+[타로 리딩 결과]
+- 원래 질문: ${reading.question || '없음'}
+- 뽑은 카드: ${reading.drawnCards?.map((dc: any) => `${dc.card.nameKo} (${dc.isReversed ? '역방향' : '정방향'}, ${dc.card.element || ''})`).join(', ')}
+- 종합 해석: ${reading.integrated || '정보 없음'}
+- 오행의 흐름: ${reading.elementalHarmony || '정보 없음'}
+- 실천 조언: ${reading.personalizedAdvice || '정보 없음'}
 
-사용자의 새로운 질문: ${question}
+[이전 대화]
+${chatHistory.slice(-3).map(msg => `${msg.role === 'user' ? '사용자' : '상담사'}: ${msg.content}`).join('\n')}
 
-⚠️ 중요한 규칙:
+[현재 질문]
+${question}
+
+⚠️ 중요한 답변 규칙:
 - 마크다운 문법을 절대 사용하지 마세요 (*, **, #, - 등 모두 금지)
-- 편안하고 친근한 말투로 답변하세요
-- 구체적이고 실용적인 조언을 제공하세요
-- 답변은 200자 내외로 간결하게 작성하세요
-- 질문이 리딩과 관련이 없다면 부드럽게 리딩 관련 질문을 유도하세요`;
+- 편안하고 친근한 "~해요", "~이에요" 말투 사용
+- 사용자의 사주와 타로 결과를 함께 고려해서 답변하세요
+- 구체적이고 실천 가능한 조언 제공
+- 답변은 250자 내외로 작성
+- 질문이 관련 없으면 부드럽게 리딩과 연결해서 답변하세요
+- 새로운 통찰이나 구체적인 예시를 들어주세요`;
 
     try {
       let response: string;

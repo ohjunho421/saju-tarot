@@ -47,7 +47,8 @@ export default function ChatBot({ reading }: ChatBotProps) {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/ai/chat', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

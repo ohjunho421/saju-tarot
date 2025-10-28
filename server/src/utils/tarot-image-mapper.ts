@@ -90,10 +90,16 @@ export const TAROT_IMAGE_MAP: Record<string, string> = {
 };
 
 // 이미지 URL 생성
-export function getTarotCardImageUrl(cardName: string, baseUrl: string = 'http://localhost:3001'): string {
+export function getTarotCardImageUrl(cardName: string): string {
   const filename = TAROT_IMAGE_MAP[cardName];
   if (!filename) {
     return ''; // 이미지 없음
   }
+  
+  // 프로덕션 환경에서는 Railway 도메인 사용
+  const baseUrl = process.env.NODE_ENV === 'production'
+    ? (process.env.PUBLIC_URL || 'https://your-railway-app.railway.app')
+    : 'http://localhost:3001';
+    
   return `${baseUrl}/tarot-images/${encodeURIComponent(filename)}`;
 }
