@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { BirthInfo } from '../types';
 import { authApi } from '../services/api';
 import { X, Mail, Lock, User, Calendar } from 'lucide-react';
 
