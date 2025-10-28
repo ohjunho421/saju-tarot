@@ -100,11 +100,83 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
         </div>
       )}
 
-      {/* 카드가 말해주는 이야기 */}
+      {/* 각 카드 상세 해석 */}
+      {mainCards.map(({ card, position, isReversed, positionMeaning }, index) => (
+        <div key={`card-detail-${position}`} className="card bg-gradient-to-br from-primary-600/10 to-purple-600/10 border-2 border-primary-500/30">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* 카드 이미지 */}
+            <div className="md:w-1/3">
+              <div className={`bg-white/5 rounded-lg p-4 border-2 border-primary-400/50 ${isReversed ? 'rotate-180' : ''}`}>
+                {card.imageUrl ? (
+                  <img 
+                    src={card.imageUrl} 
+                    alt={card.nameKo}
+                    className="w-full h-auto rounded-lg"
+                    onError={(e) => {
+                      console.error('이미지 로드 실패:', card.imageUrl);
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : (
+                  <div className="text-6xl text-center py-8">🎴</div>
+                )}
+                <div className={card.imageUrl ? 'hidden' : 'text-6xl text-center py-8'}>🎴</div>
+              </div>
+              <div className="text-center mt-4">
+                <p className="text-xl font-bold text-primary-300">{card.nameKo}</p>
+                <p className="text-sm text-white/60">{card.name}</p>
+                <p className="text-sm text-white/80 mt-2">{positionMeaning}</p>
+                {isReversed && (
+                  <p className="text-sm text-red-400 mt-1">역방향</p>
+                )}
+              </div>
+            </div>
+            
+            {/* 카드 설명 */}
+            <div className="md:w-2/3 space-y-4">
+              <div>
+                <h3 className="text-xl font-bold mb-3 text-primary-300">
+                  {index + 1}번째 카드: {positionMeaning}
+                </h3>
+              </div>
+              
+              <div className="bg-white/10 rounded-lg p-4">
+                <h4 className="font-semibold text-mystical-gold mb-2">카드의 의미</h4>
+                <p className="text-white/90 leading-relaxed">
+                  {isReversed ? card.reversedMeaning : card.uprightMeaning}
+                </p>
+              </div>
+              
+              <div className="bg-white/10 rounded-lg p-4">
+                <h4 className="font-semibold text-mystical-gold mb-2">키워드</h4>
+                <div className="flex flex-wrap gap-2">
+                  {(isReversed ? card.reversedKeywords : card.uprightKeywords).map((keyword, i) => (
+                    <span key={i} className="px-3 py-1 bg-primary-500/30 text-primary-200 rounded-full text-sm">
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              
+              {card.element && (
+                <div className="bg-white/10 rounded-lg p-4">
+                  <h4 className="font-semibold text-mystical-gold mb-2">오행</h4>
+                  <p className="text-white/90">
+                    이 카드는 <span className="text-primary-300 font-semibold">{card.element}</span> 기운을 가지고 있습니다.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* 통합 해석 */}
       <div className="card">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <span>🔮</span>
-          <span>카드가 말해주는 이야기</span>
+          <span>전체 카드 통합 해석</span>
         </h2>
         <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep" style={{ wordBreak: 'keep-all' }}>
           {integrated}
