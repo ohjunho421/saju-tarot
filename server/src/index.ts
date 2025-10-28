@@ -36,7 +36,7 @@ app.use(cors({
 app.use(express.json());
 
 // 타로 카드 이미지 제공
-app.use('/tarot-images', express.static(path.join(__dirname, '../타로카드')));
+app.use('/tarot-images', express.static(path.join(__dirname, '../public/tarot-images')));
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

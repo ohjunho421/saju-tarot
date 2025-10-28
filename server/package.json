@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npx prisma generate && tsc && npm run copy-images",
-    "copy-images": "node -e \"const fs=require('fs');const path=require('path');const src=path.join(__dirname,'..','타로카드');const dest=path.join(__dirname,'dist','타로카드');if(fs.existsSync(src)){fs.cpSync(src,dest,{recursive:true});console.log('✅ 타로카드 이미지 복사 완료');}\"",
+    "build": "npx prisma generate && tsc && npm run copy-public",
+    "copy-public": "node -e \"const fs=require('fs');const path=require('path');const src=path.join(__dirname,'public');const dest=path.join(__dirname,'dist','public');if(fs.existsSync(src)){fs.cpSync(src,dest,{recursive:true});console.log('✅ public 폴더 복사 완료');}\"",
     "start": "node dist/index.js",
     "postinstall": "npx prisma generate",
     "test": "jest"
