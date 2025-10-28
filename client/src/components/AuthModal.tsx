@@ -29,7 +29,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       year: 1990,
       month: 1,
       day: 1,
-      hour: 12,
+      hour: 0,
       isLunar: false,
       gender: 'male' as 'male' | 'female'
     }
@@ -266,12 +266,23 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   ...registerData,
                   birthInfo: { ...registerData.birthInfo, hour: parseInt(e.target.value) }
                 })}
-                className="input-field mb-2"
+                className="input-field mb-2 text-white"
+                style={{ color: 'white' }}
                 required
               >
-                {Array.from({ length: 24 }, (_, i) => (
-                  <option key={i} value={i}>{i}시</option>
-                ))}
+                <option value="" className="text-gray-800">시간 선택</option>
+                <option value={0} className="text-gray-800">자시 (子時) - 밤 11:30 ~ 새벽 1:30</option>
+                <option value={2} className="text-gray-800">축시 (丑時) - 새벽 1:30 ~ 3:30</option>
+                <option value={4} className="text-gray-800">인시 (寅時) - 새벽 3:30 ~ 5:30</option>
+                <option value={6} className="text-gray-800">묘시 (卯時) - 아침 5:30 ~ 7:30</option>
+                <option value={8} className="text-gray-800">진시 (辰時) - 아침 7:30 ~ 9:30</option>
+                <option value={10} className="text-gray-800">사시 (巳時) - 오전 9:30 ~ 11:30</option>
+                <option value={12} className="text-gray-800">오시 (午時) - 낮 11:30 ~ 오후 1:30</option>
+                <option value={14} className="text-gray-800">미시 (未時) - 오후 1:30 ~ 3:30</option>
+                <option value={16} className="text-gray-800">신시 (申時) - 오후 3:30 ~ 5:30</option>
+                <option value={18} className="text-gray-800">유시 (酉時) - 저녁 5:30 ~ 7:30</option>
+                <option value={20} className="text-gray-800">술시 (戌時) - 저녁 7:30 ~ 9:30</option>
+                <option value={22} className="text-gray-800">해시 (亥時) - 밤 9:30 ~ 11:30</option>
               </select>
 
               <div className="flex gap-2">
