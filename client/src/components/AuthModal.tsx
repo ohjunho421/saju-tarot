@@ -263,10 +263,10 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
               <select
                 value={registerData.birthInfo.hour ?? ''}
                 onChange={(e) => {
-                  const hourValue = e.target.value ? parseInt(e.target.value) : undefined;
+                  const hourValue: number | undefined = e.target.value ? parseInt(e.target.value) : undefined;
                   setRegisterData({
                     ...registerData,
-                    birthInfo: { ...registerData.birthInfo, hour: hourValue as number | undefined }
+                    birthInfo: { ...registerData.birthInfo, hour: hourValue }
                   });
                 }}
                 className="input-field mb-2 text-white"

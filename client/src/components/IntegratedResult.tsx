@@ -102,19 +102,9 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
 
       {/* AI가 생성한 각 카드 상세 해석 (그림 설명 + 사주 연결 포함) */}
       <div className="card bg-gradient-to-br from-primary-600/10 to-purple-600/10 border-2 border-primary-500/30">
-        <h2 className="section-title">🔮 카드가 말해주는 이야기</h2>
-        <div className="space-y-6">
-          <p className="text-white/90 leading-relaxed whitespace-pre-wrap">
-            {reading.integrated}
-          </p>
-        </div>
-      </div>
-
-      {/* 통합 해석 */}
-      <div className="card">
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
           <span>🔮</span>
-          <span>전체 카드 통합 해석</span>
+          <span>카드가 말해주는 이야기</span>
         </h2>
         <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep" style={{ wordBreak: 'keep-all' }}>
           {integrated}
