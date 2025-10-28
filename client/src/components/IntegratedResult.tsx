@@ -8,7 +8,7 @@ interface IntegratedResultProps {
 }
 
 export default function IntegratedResult({ reading, onReset }: IntegratedResultProps) {
-  const { drawnCards, integrated, elementalHarmony, personalizedAdvice, adviceCardInterpretation } = reading;
+  const { drawnCards, interpretation, elementalHarmony, personalizedAdvice, adviceCardInterpretation } = reading;
   
   // 조언 카드와 일반 카드 분리
   const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
@@ -107,7 +107,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
           <span>카드가 말해주는 이야기</span>
         </h2>
         <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep" style={{ wordBreak: 'keep-all' }}>
-          {integrated}
+          {interpretation}
         </div>
       </div>
 
