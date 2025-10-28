@@ -98,7 +98,7 @@ export function getTarotCardImageUrl(cardName: string): string {
   
   // 프로덕션 환경에서는 Railway 도메인 사용
   const baseUrl = process.env.NODE_ENV === 'production'
-    ? (process.env.PUBLIC_URL || 'https://your-railway-app.railway.app')
+    ? (process.env.RAILWAY_STATIC_URL || process.env.PUBLIC_URL || 'https://saju-tarot-production.up.railway.app')
     : 'http://localhost:3001';
     
   return `${baseUrl}/tarot-images/${encodeURIComponent(filename)}`;
