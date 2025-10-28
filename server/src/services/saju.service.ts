@@ -11,78 +11,47 @@ import {
 } from '../models/saju.model';
 
 export class SajuService {
-  // 간지 계산 - 년주
-  private getYearPillar(year: number): SajuPillar {
-    const stemIndex = (year - 4) % 10;
-    const branchIndex = (year - 4) % 12;
-    
-    const stems = Object.keys(HEAVENLY_STEMS);
-    const branches = Object.keys(EARTHLY_BRANCHES);
-    
-    const stem = stems[stemIndex];
-    const branch = branches[branchIndex];
-    
-    return {
-      heavenlyStem: stem,
-      earthlyBranch: branch,
-      element: HEAVENLY_STEMS[stem as keyof typeof HEAVENLY_STEMS].element as Element
+  // 간지를 한글로 변환하는 헬퍼 함수
+  private parseGanZhi(ganZhi: string): { stem: string; branch: string } {
+    const ganZhiMap: Record<string, { stem: string; branch: string }> = {
+      '甲子': { stem: '갑', branch: '자' }, '乙丑': { stem: '을', branch: '축' },
+      '丙寅': { stem: '병', branch: '인' }, '丁卯': { stem: '정', branch: '묘' },
+      '戊辰': { stem: '무', branch: '진' }, '己巳': { stem: '기', branch: '사' },
+      '庚午': { stem: '경', branch: '오' }, '辛未': { stem: '신', branch: '미' },
+      '壬申': { stem: '임', branch: '신' }, '癸酉': { stem: '계', branch: '유' },
+      '甲戌': { stem: '갑', branch: '술' }, '乙亥': { stem: '을', branch: '해' },
+      '丙子': { stem: '병', branch: '자' }, '丁丑': { stem: '정', branch: '축' },
+      '戊寅': { stem: '무', branch: '인' }, '己卯': { stem: '기', branch: '묘' },
+      '庚辰': { stem: '경', branch: '진' }, '辛巳': { stem: '신', branch: '사' },
+      '壬午': { stem: '임', branch: '오' }, '癸未': { stem: '계', branch: '미' },
+      '甲申': { stem: '갑', branch: '신' }, '乙酉': { stem: '을', branch: '유' },
+      '丙戌': { stem: '병', branch: '술' }, '丁亥': { stem: '정', branch: '해' },
+      '戊子': { stem: '무', branch: '자' }, '己丑': { stem: '기', branch: '축' },
+      '庚寅': { stem: '경', branch: '인' }, '辛卯': { stem: '신', branch: '묘' },
+      '壬辰': { stem: '임', branch: '진' }, '癸巳': { stem: '계', branch: '사' },
+      '甲午': { stem: '갑', branch: '오' }, '乙未': { stem: '을', branch: '미' },
+      '丙申': { stem: '병', branch: '신' }, '丁酉': { stem: '정', branch: '유' },
+      '戊戌': { stem: '무', branch: '술' }, '己亥': { stem: '기', branch: '해' },
+      '庚子': { stem: '경', branch: '자' }, '辛丑': { stem: '신', branch: '축' },
+      '壬寅': { stem: '임', branch: '인' }, '癸卯': { stem: '계', branch: '묘' },
+      '甲辰': { stem: '갑', branch: '진' }, '乙巳': { stem: '을', branch: '사' },
+      '丙午': { stem: '병', branch: '오' }, '丁未': { stem: '정', branch: '미' },
+      '戊申': { stem: '무', branch: '신' }, '己酉': { stem: '기', branch: '유' },
+      '庚戌': { stem: '경', branch: '술' }, '辛亥': { stem: '신', branch: '해' },
+      '壬子': { stem: '임', branch: '자' }, '癸丑': { stem: '계', branch: '축' },
+      '甲寅': { stem: '갑', branch: '인' }, '乙卯': { stem: '을', branch: '묘' },
+      '丙辰': { stem: '병', branch: '진' }, '丁巳': { stem: '정', branch: '사' },
+      '戊午': { stem: '무', branch: '오' }, '己未': { stem: '기', branch: '미' },
+      '庚申': { stem: '경', branch: '신' }, '辛酉': { stem: '신', branch: '유' },
+      '壬戌': { stem: '임', branch: '술' }, '癸亥': { stem: '계', branch: '해' }
     };
+    
+    return ganZhiMap[ganZhi] || { stem: '갑', branch: '자' };
   }
 
-  // 간지 계산 - 월주
-  private getMonthPillar(year: number, month: number): SajuPillar {
-    // 월주 계산은 년간과 월에 따라 결정
-    const yearStemIndex = (year - 4) % 10;
-    const monthStemIndex = (yearStemIndex * 2 + month) % 10;
-    const monthBranchIndex = (month + 1) % 12;
-    
-    const stems = Object.keys(HEAVENLY_STEMS);
-    const branches = Object.keys(EARTHLY_BRANCHES);
-    
-    const stem = stems[monthStemIndex];
-    const branch = branches[monthBranchIndex];
-    
-    return {
-      heavenlyStem: stem,
-      earthlyBranch: branch,
-      element: HEAVENLY_STEMS[stem as keyof typeof HEAVENLY_STEMS].element as Element
-    };
-  }
-
-  // 간지 계산 - 일주
-  private getDayPillar(year: number, month: number, day: number): SajuPillar {
-    // 일주는 절대 일수를 기준으로 60갑자 순환
-    const baseDate = new Date(1900, 0, 1);
-    const targetDate = new Date(year, month - 1, day);
-    const daysDiff = Math.floor((targetDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    const stemIndex = (daysDiff + 36) % 10; // 1900년 1월 1일 = 경진
-    const branchIndex = (daysDiff + 48) % 12;
-    
-    const stems = Object.keys(HEAVENLY_STEMS);
-    const branches = Object.keys(EARTHLY_BRANCHES);
-    
-    const stem = stems[stemIndex];
-    const branch = branches[branchIndex];
-    
-    return {
-      heavenlyStem: stem,
-      earthlyBranch: branch,
-      element: HEAVENLY_STEMS[stem as keyof typeof HEAVENLY_STEMS].element as Element
-    };
-  }
-
-  // 간지 계산 - 시주
-  private getHourPillar(dayStems: string, hour: number): SajuPillar {
-    const dayStemIndex = Object.keys(HEAVENLY_STEMS).indexOf(dayStems);
-    const hourBranchIndex = Math.floor((hour + 1) / 2) % 12;
-    const hourStemIndex = (dayStemIndex * 2 + hourBranchIndex) % 10;
-    
-    const stems = Object.keys(HEAVENLY_STEMS);
-    const branches = Object.keys(EARTHLY_BRANCHES);
-    
-    const stem = stems[hourStemIndex];
-    const branch = branches[hourBranchIndex];
+  // lunar-javascript 라이브러리를 사용한 정확한 사주 계산
+  private getPillarFromGanZhi(ganZhi: string): SajuPillar {
+    const { stem, branch } = this.parseGanZhi(ganZhi);
     
     return {
       heavenlyStem: stem,
@@ -183,21 +152,36 @@ export class SajuService {
 
   // 메인 사주 분석 함수
   public analyzeSaju(birthInfo: BirthInfo): SajuAnalysis {
-    let year = birthInfo.year;
-    let month = birthInfo.month;
-    let day = birthInfo.day;
-
-    // TODO: 음력을 양력으로 변환 (추후 구현)
-    // 현재는 음력 날짜를 양력으로 간주하여 처리
-    // if (birthInfo.isLunar) {
-    //   음력-양력 변환 로직 필요
-    // }
-
-    // 사주 사주 계산
-    const yearPillar = this.getYearPillar(year);
-    const monthPillar = this.getMonthPillar(year, month);
-    const dayPillar = this.getDayPillar(year, month, day);
-    const hourPillar = this.getHourPillar(dayPillar.heavenlyStem, birthInfo.hour);
+    let yearPillar: SajuPillar;
+    let monthPillar: SajuPillar;
+    let dayPillar: SajuPillar;
+    let hourPillar: SajuPillar;
+    
+    try {
+      let solar: any;
+      
+      if (birthInfo.isLunar) {
+        // 음력을 양력으로 변환
+        const lunar: any = new (Lunar as any)(birthInfo.year, birthInfo.month, birthInfo.day, 0, 0, 0);
+        solar = lunar.getSolar();
+      } else {
+        // 양력 그대로 사용
+        solar = new (Solar as any)(birthInfo.year, birthInfo.month, birthInfo.day, birthInfo.hour, 0, 0);
+      }
+      
+      // lunar-javascript 라이브러리로 정확한 사주 계산
+      const lunar = solar.getLunar();
+      const eightChar = lunar.getEightChar();
+      
+      // 사주 사주 계산
+      yearPillar = this.getPillarFromGanZhi(eightChar.getYear());
+      monthPillar = this.getPillarFromGanZhi(eightChar.getMonth());
+      dayPillar = this.getPillarFromGanZhi(eightChar.getDay());
+      hourPillar = this.getPillarFromGanZhi(eightChar.getTime());
+    } catch (error) {
+      console.error('lunar-javascript 라이브러리 오류:', error);
+      throw new Error('사주 계산 중 오류가 발생했습니다. 관리자에게 문의하세요.');
+    }
 
     const chart: SajuChart = {
       year: yearPillar,
