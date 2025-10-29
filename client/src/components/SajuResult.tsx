@@ -26,10 +26,16 @@ export default function SajuResult({ analysis }: SajuResultProps) {
         <h2 className="text-2xl font-bold mb-6 text-center">사주 만세력</h2>
         
         <div className="grid grid-cols-4 gap-4">
-          {Object.entries(chart).map(([pillar, data]) => (
-            <div key={pillar} className="text-center bg-white/5 rounded-lg p-4">
+          {/* 년주 → 월주 → 일주 → 시주 순서로 표시 */}
+          {[
+            { key: 'year', label: '년주', data: chart.year },
+            { key: 'month', label: '월주', data: chart.month },
+            { key: 'day', label: '일주', data: chart.day },
+            ...(chart.hour ? [{ key: 'hour', label: '시주', data: chart.hour }] : [])
+          ].map(({ key, label, data }) => (
+            <div key={key} className="text-center bg-white/5 rounded-lg p-4">
               <p className="text-sm text-white/60 mb-2">
-                {pillar === 'year' ? '년주' : pillar === 'month' ? '월주' : pillar === 'day' ? '일주' : '시주'}
+                {label}
               </p>
               <div className="text-3xl font-bold mb-1">
                 {data.heavenlyStem}
