@@ -82,6 +82,11 @@ function App() {
           <div className="absolute right-4 top-6">
             {isLoggedIn ? (
               <div className="flex items-center gap-2">
+                {userName && (
+                  <span className="text-sm text-white/80 mr-2">
+                    {userName}님
+                  </span>
+                )}
                 <button
                   onClick={() => setCurrentStep('mypage')}
                   className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
