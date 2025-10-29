@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { User, Calendar, LogOut, BookOpen, Trash2 } from 'lucide-react';
+import { User, Calendar, LogOut } from 'lucide-react';
 import type { SajuAnalysis, BirthInfo } from '../types';
-import { authApi, readingApi } from '../services/api';
+import { authApi } from '../services/api';
 import SajuResult from '../components/SajuResult';
 
 interface MyPageProps {
@@ -11,14 +11,11 @@ interface MyPageProps {
 
 export default function MyPage({ onLogout, onBack }: MyPageProps) {
   const [user, setUser] = useState<any>(null);
-  const [readings, setReadings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedReading, setSelectedReading] = useState<any>(null);
 
   useEffect(() => {
     loadUserInfo();
-    loadReadings();
   }, []);
 
   const loadUserInfo = async () => {
@@ -30,30 +27,6 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadReadings = async () => {
-    try {
-      const response = await readingApi.getUserReadings(10, 0);
-      setReadings(response.readings || []);
-    } catch (err) {
-      console.error('리딩 내역 로드 실패:', err);
-    }
-  };
-
-  const handleDeleteReading = async (id: string) => {
-    if (!confirm('이 리딩 기록을 삭제하시겠습니까?')) return;
-    
-    try {
-      await readingApi.deleteReading(id);
-      setReadings(readings.filter(r => r.id !== id));
-      if (selectedReading?.id === id) {
-        setSelectedReading(null);
-      }
-    } catch (err) {
-      alert('삭제에 실패했습니다');
-      console.error(err);
     }
   };
 
@@ -138,65 +111,6 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
 
       {/* 사주 만세력 해석 */}
       {sajuAnalysis && <SajuResult analysis={sajuAnalysis} />}
-
-      {/* 타로 리딩 내역 */}
-      {readings.length > 0 && (
-        <div className="card">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <BookOpen className="w-5 h-5" />
-            타로 리딩 내역
-          </h2>
-          <div className="space-y-3">
-            {readings.map((reading) => (
-              <div
-                key={reading.id}
-                className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer"
-                onClick={() => setSelectedReading(selectedReading?.id === reading.id ? null : reading)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-sm text-white/60">
-                        {new Date(reading.createdAt).toLocaleDateString('ko-KR', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
-                      <span className="px-2 py-0.5 bg-primary-600/30 rounded text-xs">
-                        {reading.spreadType === 'one-card' ? '원카드' :
-                         reading.spreadType === 'three-card' ? '쓰리카드' :
-                         reading.spreadType === 'celtic-cross' ? '켈트십자' : '사주맞춤'}
-                      </span>
-                    </div>
-                    <p className="font-semibold mb-2">{reading.question}</p>
-                    {selectedReading?.id === reading.id && (
-                      <div className="mt-3 pt-3 border-t border-white/10">
-                        <p className="text-sm text-white/80 whitespace-pre-wrap">
-                          {reading.interpretation.substring(0, 300)}
-                          {reading.interpretation.length > 300 && '...'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteReading(reading.id);
-                    }}
-                    className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
-                    title="삭제"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-400" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* 추가 정보 */}
       <div className="card bg-gradient-to-br from-primary-600/20 to-mystical-gold/20">

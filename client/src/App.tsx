@@ -5,11 +5,12 @@ import ReadingPage from './pages/ReadingPage';
 import IntegratedResult from './components/IntegratedResult';
 import AuthModal from './components/AuthModal';
 import MyPage from './pages/MyPage';
+import HistoryPage from './pages/HistoryPage';
 import { authApi } from './services/api';
-import { LogIn, LogOut, User } from 'lucide-react';
+import { LogIn, LogOut, User, BookOpen } from 'lucide-react';
 
 function App() {
-  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage'>('home');
+  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history'>('home');
   const [reading, setReading] = useState<IntegratedReading | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -80,13 +81,20 @@ function App() {
           {/* 로그인/로그아웃 버튼 */}
           <div className="absolute right-4 top-6">
             {isLoggedIn ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentStep('mypage')}
                   className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
                 >
                   <User className="w-4 h-4" />
-                  <span className="text-sm">{userName}님</span>
+                  <span className="text-sm">마이페이지</span>
+                </button>
+                <button
+                  onClick={() => setCurrentStep('history')}
+                  className="flex items-center gap-2 px-4 py-2 bg-mystical-gold/20 hover:bg-mystical-gold/30 rounded-lg transition-all"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="text-sm">히스토리</span>
                 </button>
                 <button
                   onClick={handleLogout}
@@ -131,6 +139,12 @@ function App() {
         {currentStep === 'mypage' && isLoggedIn && (
           <MyPage 
             onLogout={handleLogout}
+            onBack={handleReset}
+          />
+        )}
+
+        {currentStep === 'history' && isLoggedIn && (
+          <HistoryPage 
             onBack={handleReset}
           />
         )}
