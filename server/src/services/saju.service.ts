@@ -11,50 +11,6 @@ import {
 } from '../models/saju.model';
 
 export class SajuService {
-  // 한국식 시주 계산 (일간 기준)
-  private calculateKoreanTimeGanZhi(dayGanZhi: string, hour: number): string {
-    // 시지(時支) 결정: 한국 전통 방식 (정시 기준 전후 1시간)
-    const timeBranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-    let timeBranchIndex: number;
-    
-    // 한국 전통 시진: 청월당, 포스텔라 기준
-    // 각 시진은 홀수 시간부터 시작 (예: 辰時 = 7-9시가 아니라 5-7시 구간에서 6시가 辰時)
-    // 실제로는: 子(23-1), 丑(1-3), 寅(3-5), 卯(5시), 辰(6-8), 巳(8-10)... 로 추정
-    if (hour == 23 || hour == 0) timeBranchIndex = 0;  // 子 23-01시
-    else if (hour >= 1 && hour < 3) timeBranchIndex = 1;  // 丑 01-03시
-    else if (hour >= 3 && hour < 5) timeBranchIndex = 2;  // 寅 03-05시
-    else if (hour == 5) timeBranchIndex = 3;  // 卯 05시 (1시간만)
-    else if (hour >= 6 && hour < 8) timeBranchIndex = 4;  // 辰 06-08시
-    else if (hour >= 8 && hour < 10) timeBranchIndex = 5;  // 巳 08-10시
-    else if (hour >= 10 && hour < 12) timeBranchIndex = 6;  // 午 10-12시
-    else if (hour >= 12 && hour < 14) timeBranchIndex = 7;  // 未 12-14시
-    else if (hour >= 14 && hour < 16) timeBranchIndex = 8;  // 申 14-16시
-    else if (hour >= 16 && hour < 18) timeBranchIndex = 9;  // 酉 16-18시
-    else if (hour >= 18 && hour < 20) timeBranchIndex = 10; // 戌 18-20시
-    else timeBranchIndex = 11; // 亥 20-22시
-    
-    const timeBranch = timeBranches[timeBranchIndex];
-    
-    // 시간(時干) 계산: 일간에 따라 결정
-    const dayGan = dayGanZhi.charAt(0);
-    const timeGanTable: Record<string, string[]> = {
-      '甲': ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸', '甲', '乙'],
-      '乙': ['丙', '丁', '戊', '己', '庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁'],
-      '丙': ['戊', '己', '庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁', '戊', '己'],
-      '丁': ['庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁', '戊', '己', '庚', '辛'],
-      '戊': ['壬', '癸', '甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'],
-      '己': ['壬', '癸', '甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'],
-      '庚': ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸', '甲', '乙'],
-      '辛': ['丙', '丁', '戊', '己', '庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁'],
-      '壬': ['戊', '己', '庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁', '戊', '己'],
-      '癸': ['庚', '辛', '壬', '癸', '甲', '乙', '丙', '丁', '戊', '己', '庚', '辛']
-    };
-    
-    const timeGan = timeGanTable[dayGan]?.[timeBranchIndex] || '甲';
-    
-    return timeGan + timeBranch;
-  }
-
   // 간지를 한글로 변환하는 헬퍼 함수
   private parseGanZhi(ganZhi: string): { stem: string; branch: string } {
     const ganZhiMap: Record<string, { stem: string; branch: string }> = {
@@ -245,12 +201,9 @@ export class SajuService {
       monthPillar = this.getPillarFromGanZhi(eightChar.getMonth());
       dayPillar = this.getPillarFromGanZhi(eightChar.getDay());
       
-      // 시간 정보가 있을 때만 시주 계산 (한국식 계산법 사용)
+      // 시간 정보가 있을 때만 시주 계산
       if (birthInfo.hour !== undefined && birthInfo.hour !== null) {
-        const dayGanZhi = eightChar.getDay();
-        const koreanTimeGanZhi = this.calculateKoreanTimeGanZhi(dayGanZhi, birthInfo.hour);
-        hourPillar = this.getPillarFromGanZhi(koreanTimeGanZhi);
-        console.log(`시주 계산: 일주=${dayGanZhi}, 시간=${birthInfo.hour}시 → 시주=${koreanTimeGanZhi}`);
+        hourPillar = this.getPillarFromGanZhi(eightChar.getTime());
       }
     } catch (error) {
       console.error('lunar-javascript 라이브러리 오류:', error);
