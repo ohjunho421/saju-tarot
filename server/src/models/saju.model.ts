@@ -50,6 +50,7 @@ export interface BirthInfo {
   day: number;
   hour?: number; // 선택사항
   isLunar: boolean;
+  isLeapMonth?: boolean; // 윤달 여부 (음력일 때만 해당)
   gender: 'male' | 'female';
 }
 

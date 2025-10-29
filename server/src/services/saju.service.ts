@@ -162,8 +162,17 @@ export class SajuService {
       const hour = birthInfo.hour ?? 12; // 시간이 없으면 12시 사용 (계산용)
       
       if (birthInfo.isLunar) {
-        // 음력을 양력으로 변환
-        const lunar: any = Lunar.fromYmd(birthInfo.year, birthInfo.month, birthInfo.day);
+        // 음력을 양력으로 변환 (윤달 여부 포함)
+        const isLeapMonth = birthInfo.isLeapMonth || false;
+        const lunar: any = Lunar.fromYmd(
+          birthInfo.year, 
+          birthInfo.month, 
+          birthInfo.day,
+          hour,
+          0,
+          0,
+          isLeapMonth
+        );
         solar = lunar.getSolar();
       } else {
         // 양력 그대로 사용

@@ -13,6 +13,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
     day: 1,
     hour: undefined,
     isLunar: false,
+    isLeapMonth: false,
     gender: 'male'
   });
 
@@ -82,7 +83,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
             <div className="flex gap-4">
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, isLunar: false })}
+                onClick={() => setFormData({ ...formData, isLunar: false, isLeapMonth: false })}
                 className={`flex-1 py-3 px-6 rounded-lg border-2 transition-all ${
                   !formData.isLunar
                     ? 'bg-primary-600 border-primary-600 text-white'
@@ -103,6 +104,25 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
                 음력
               </button>
             </div>
+            
+            {/* 윤달 체크박스 (음력일 때만 표시) */}
+            {formData.isLunar && (
+              <div className="mt-4 flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/20">
+                <input
+                  type="checkbox"
+                  id="isLeapMonth"
+                  checked={formData.isLeapMonth || false}
+                  onChange={(e) => setFormData({ ...formData, isLeapMonth: e.target.checked })}
+                  className="w-5 h-5 rounded border-white/30 bg-white/10 text-primary-600 focus:ring-primary-500 focus:ring-offset-0"
+                />
+                <label htmlFor="isLeapMonth" className="text-white/90 cursor-pointer">
+                  윤달 (閏月) - 예: 윤3월, 윤5월 등
+                  <span className="block text-sm text-white/60 mt-1">
+                    음력 생일이 윤달인 경우에만 체크해주세요
+                  </span>
+                </label>
+              </div>
+            )}
           </div>
 
           {/* 생시 - 12지지 기반 */}

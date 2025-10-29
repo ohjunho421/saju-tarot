@@ -31,6 +31,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       day: 1,
       hour: undefined as number | undefined,
       isLunar: false,
+      isLeapMonth: false,
       gender: 'male' as 'male' | 'female'
     }
   });
@@ -292,7 +293,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   type="button"
                   onClick={() => setRegisterData({
                     ...registerData,
-                    birthInfo: { ...registerData.birthInfo, isLunar: false }
+                    birthInfo: { ...registerData.birthInfo, isLunar: false, isLeapMonth: false }
                   })}
                   className={`flex-1 py-2 rounded-lg ${
                     !registerData.birthInfo.isLunar ? 'bg-primary-600' : 'bg-white/10'
@@ -313,6 +314,26 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   음력
                 </button>
               </div>
+              
+              {/* 윤달 체크박스 (음력일 때만 표시) */}
+              {registerData.birthInfo.isLunar && (
+                <div className="mt-2 flex items-center gap-2 p-2 bg-white/5 rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="registerIsLeapMonth"
+                    checked={registerData.birthInfo.isLeapMonth || false}
+                    onChange={(e) => setRegisterData({
+                      ...registerData,
+                      birthInfo: { ...registerData.birthInfo, isLeapMonth: e.target.checked }
+                    })}
+                    className="w-4 h-4 rounded border-white/30 bg-white/10 text-primary-600"
+                  />
+                  <label htmlFor="registerIsLeapMonth" className="text-sm text-white/90 cursor-pointer">
+                    윤달 (閏月)
+                    <span className="block text-xs text-white/60">음력 생일이 윤달인 경우 체크</span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <div>
