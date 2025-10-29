@@ -16,6 +16,7 @@ import tarotRoutes from './routes/tarot.routes';
 import interpretationRoutes from './routes/interpretation.routes';
 import authRoutes from './routes/auth.routes';
 import aiInterpretationRoutes from './routes/ai-interpretation.routes';
+import readingRoutes from './routes/reading.routes';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
@@ -49,6 +50,7 @@ app.use('/api/saju', sajuRoutes);
 app.use('/api/tarot', tarotRoutes);
 app.use('/api/interpretation', interpretationRoutes);
 app.use('/api/ai', aiInterpretationRoutes);
+app.use('/api/readings', readingRoutes);
 
 // Error handling
 app.use((err: Error, req: Request, res: Response, next: any) => {

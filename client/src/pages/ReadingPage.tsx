@@ -123,16 +123,20 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     const loadingMessage = step === 'birth' 
       ? '사주를 분석하고 있습니다...' 
       : step === 'cardSelection'
-        ? '타로 카드를 해석하고 있습니다...'
+        ? '✨ 타로 카드를 해석하고 있습니다...'
         : '🃏 카드를 섞고 있습니다...';
+    
+    const subMessage = step === 'birth'
+      ? '잠시만 기다려주세요'
+      : step === 'cardSelection'
+        ? 'AI가 카드의 의미를 깊이 분석하고 있습니다'
+        : '마음을 가라앉히고 질문에 집중하세요';
     
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="w-16 h-16 text-primary-400 animate-spin mb-4" />
         <p className="text-xl text-white/80">{loadingMessage}</p>
-        <p className="text-white/60 mt-2">
-          {step === 'tarot' || step === 'cardSelection' ? '마음을 가라앉히고 질문에 집중하세요' : '잠시만 기다려주세요'}
-        </p>
+        <p className="text-white/60 mt-2">{subMessage}</p>
       </div>
     );
   }

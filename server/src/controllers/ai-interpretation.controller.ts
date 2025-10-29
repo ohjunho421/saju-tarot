@@ -63,15 +63,36 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
+    // 최근 리딩 내역 조회 (컨텍스트용)
+    const recentReadings = await prisma.reading.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 3, // 최근 3개만
+      select: {
+        question: true,
+        spreadType: true,
+        createdAt: true,
+        interpretation: true
+      }
+    });
+
+    // 컨텍스트 생성
+    const previousContext = recentReadings.length > 0 ? recentReadings.map(r => ({
+      date: r.createdAt.toISOString().split('T')[0],
+      question: r.question,
+      summary: r.interpretation.substring(0, 150) + '...'
+    })) : null;
+
     // 타로 카드 뽑기 (조언 카드 포함 옵션)
     const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false);
 
-    // AI 기반 종합 해석
+    // AI 기반 종합 해석 (이전 컨텍스트 포함)
     const aiInterpretation = await aiService.generateAdvancedInterpretation(
       user.sajuAnalysis as any,
       drawnCards,
       spreadType,
-      question
+      question,
+      previousContext
     );
 
     // 리딩 결과 저장

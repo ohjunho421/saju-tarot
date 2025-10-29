@@ -143,7 +143,8 @@ JSON 형식으로 답변해주세요:
     sajuAnalysis: SajuAnalysis,
     drawnCards: DrawnCard[],
     spreadType: SpreadType,
-    question: string
+    question: string,
+    previousContext?: Array<{ date: string; question: string; summary: string }> | null
   ): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -154,6 +155,17 @@ JSON 형식으로 답변해주세요:
     const dateContext = DateHelper.getCurrentDateContext();
     const timingInfo = DateHelper.getTimingDescription(dateContext);
     const seasonalElement = DateHelper.getSeasonalElement(dateContext.season);
+
+    // 이전 리딩 컨텍스트 문자열 생성
+    const previousContextText = previousContext && previousContext.length > 0
+      ? `\n[이전 타로 리딩 기록]
+이 사용자는 과거에 다음과 같은 고민을 하신 적이 있습니다:
+${previousContext.map((ctx, i) => `${i + 1}. [${ctx.date}] "${ctx.question}"
+   → ${ctx.summary}`).join('\n')}
+
+이전 고민의 흐름과 연결성을 고려하여, 지금의 질문이 과거 고민의 연장선상에 있는지 또는 새로운 국면인지 파악해주세요.
+`
+      : '';
 
     const prompt = `
 당신은 동양 철학과 서양 신비학에 정통한 전문가입니다. 사주 만세력 분석과 타로 카드를 종합하여 깊이 있는 해석을 제공해주세요.
@@ -167,8 +179,8 @@ ${timingInfo}
 - 강한 오행: ${sajuAnalysis.strongElements.join(', ')}
 - 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
 - 성격: ${sajuAnalysis.personality}
-
-[사용자 질문]
+${previousContextText}
+[현재 질문]
 "${question}"
 
 [뽑힌 타로 카드 (${spreadType})]

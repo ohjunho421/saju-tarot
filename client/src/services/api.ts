@@ -136,4 +136,25 @@ export const interpretationApi = {
   },
 };
 
+// 리딩 내역 API
+export const readingApi = {
+  // 리딩 내역 조회
+  getUserReadings: async (limit = 10, offset = 0) => {
+    const response = await api.get('/readings', { params: { limit, offset } });
+    return response.data;
+  },
+
+  // 특정 리딩 상세 조회
+  getReadingById: async (id: string) => {
+    const response = await api.get(`/readings/${id}`);
+    return response.data;
+  },
+
+  // 리딩 삭제
+  deleteReading: async (id: string) => {
+    const response = await api.delete(`/readings/${id}`);
+    return response.data;
+  },
+};
+
 export default api;
