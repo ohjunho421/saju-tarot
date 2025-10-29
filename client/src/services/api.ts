@@ -8,7 +8,41 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // CORS 요청 시 credentials 포함
 });
+
+// Request 인터셉터: 모든 요청에 토큰 자동 추가
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response 인터셉터: 401 에러 시 자동 로그아웃
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // 토큰이 만료되었거나 유효하지 않음
+      console.warn('인증 오류: 토큰이 유효하지 않습니다.');
+      localStorage.removeItem('token');
+      delete api.defaults.headers.common['Authorization'];
+      // 로그인 페이지가 아닌 경우에만 리다이렉트
+      if (!window.location.pathname.includes('/login')) {
+        // 현재 페이지 새로고침하여 로그아웃 상태 반영
+        window.location.reload();
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // 인증 토큰 관리
 export const setAuthToken = (token: string | null) => {

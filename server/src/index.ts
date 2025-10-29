@@ -26,13 +26,14 @@ app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? [
         'https://saju-tarot.vercel.app',
-        'https://*.vercel.app',
+        'https://client-7ymxtycg4-rorarions-projects.vercel.app',
         /\.vercel\.app$/
       ]
     : ['http://localhost:5173', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Authorization']
 }));
 app.use(express.json());
 
