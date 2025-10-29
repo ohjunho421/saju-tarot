@@ -15,30 +15,37 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('🔐 API 요청:', config.url);
+    console.log('🔑 토큰:', token ? `${token.substring(0, 20)}...` : '없음');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ Authorization 헤더 추가됨');
+    } else {
+      console.warn('⚠️ 토큰이 없습니다!');
     }
     return config;
   },
   (error) => {
+    console.error('❌ Request 인터셉터 에러:', error);
     return Promise.reject(error);
   }
 );
 
-// Response 인터셉터: 401 에러 시 자동 로그아웃
+// Response 인터셉터: 에러 로깅
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API 응답 성공:', response.config.url, response.status);
+    return response;
+  },
   (error) => {
+    console.error('❌ API 응답 에러:', error.config?.url, error.response?.status);
+    console.error('에러 상세:', error.response?.data);
+    
     if (error.response?.status === 401) {
-      // 토큰이 만료되었거나 유효하지 않음
-      console.warn('인증 오류: 토큰이 유효하지 않습니다.');
-      localStorage.removeItem('token');
-      delete api.defaults.headers.common['Authorization'];
-      // 로그인 페이지가 아닌 경우에만 리다이렉트
-      if (!window.location.pathname.includes('/login')) {
-        // 현재 페이지 새로고침하여 로그아웃 상태 반영
-        window.location.reload();
-      }
+      console.error('🔒 인증 실패: 401 Unauthorized');
+      console.error('현재 토큰:', localStorage.getItem('token') ? '있음' : '없음');
+      console.error('요청 헤더:', error.config?.headers);
+      // 자동 로그아웃 제거 - 디버깅을 위해
     }
     return Promise.reject(error);
   }

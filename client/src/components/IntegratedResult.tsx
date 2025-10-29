@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { IntegratedReading } from '../types';
 import { RotateCcw } from 'lucide-react';
 import ChatBot from './ChatBot';
@@ -8,7 +9,36 @@ interface IntegratedResultProps {
 }
 
 export default function IntegratedResult({ reading, onReset }: IntegratedResultProps) {
-  const { drawnCards, interpretation, elementalHarmony, personalizedAdvice, adviceCardInterpretation } = reading;
+  const { drawnCards, interpretation, elementalHarmony, personalizedAdvice, adviceCardInterpretation, question, spreadType } = reading;
+  
+  // localStorage에 히스토리 저장
+  useEffect(() => {
+    try {
+      const historyItem = {
+        id: reading.readingId || Date.now().toString(),
+        question,
+        spreadType,
+        drawnCards,
+        interpretation,
+        elementalHarmony,
+        personalizedAdvice,
+        adviceCardInterpretation,
+        createdAt: new Date().toISOString(),
+      };
+      
+      // 기존 히스토리 가져오기
+      const savedHistory = localStorage.getItem('tarot_history');
+      const history = savedHistory ? JSON.parse(savedHistory) : [];
+      
+      // 새 항목을 맨 앞에 추가 (최신순)
+      const updatedHistory = [historyItem, ...history].slice(0, 50); // 최대 50개까지만 저장
+      
+      localStorage.setItem('tarot_history', JSON.stringify(updatedHistory));
+      console.log('✅ 히스토리 저장 완료:', historyItem);
+    } catch (err) {
+      console.error('❌ 히스토리 저장 실패:', err);
+    }
+  }, [reading]);
   
   // 조언 카드와 일반 카드 분리
   const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');

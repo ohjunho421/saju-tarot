@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Trash2, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
-import { readingApi } from '../services/api';
 
 interface HistoryPageProps {
   onBack: () => void;
@@ -18,22 +17,29 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
 
   const loadReadings = async () => {
     try {
-      const response = await readingApi.getUserReadings(20, 0);
-      setReadings(response.readings || []);
+      // localStorage에서 히스토리 불러오기
+      const savedHistory = localStorage.getItem('tarot_history');
+      if (savedHistory) {
+        const history = JSON.parse(savedHistory);
+        setReadings(history);
+      } else {
+        setReadings([]);
+      }
     } catch (err: any) {
-      setError(err.message || '리딩 내역을 불러올 수 없습니다');
-      console.error('리딩 내역 로드 실패:', err);
+      setError('히스토리를 불러올 수 없습니다');
+      console.error('히스토리 로드 실패:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteReading = async (id: string) => {
+  const handleDeleteReading = (id: string) => {
     if (!confirm('이 리딩 기록을 삭제하시겠습니까?')) return;
     
     try {
-      await readingApi.deleteReading(id);
-      setReadings(readings.filter(r => r.id !== id));
+      const newReadings = readings.filter(r => r.id !== id);
+      setReadings(newReadings);
+      localStorage.setItem('tarot_history', JSON.stringify(newReadings));
       if (expandedId === id) {
         setExpandedId(null);
       }
