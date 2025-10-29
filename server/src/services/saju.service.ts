@@ -162,17 +162,30 @@ export class SajuService {
       const hour = birthInfo.hour ?? 12; // 시간이 없으면 12시 사용 (계산용)
       
       if (birthInfo.isLunar) {
-        // 음력을 양력으로 변환 (윤달 여부 포함)
-        const isLeapMonth = birthInfo.isLeapMonth || false;
-        const lunar: any = Lunar.fromYmd(
-          birthInfo.year, 
-          birthInfo.month, 
-          birthInfo.day,
-          hour,
-          0,
-          0,
-          isLeapMonth
-        );
+        // 음력을 양력으로 변환 (윤달 자동 인식)
+        let lunar: any;
+        
+        // 사용자가 명시적으로 윤달을 선택한 경우
+        if (birthInfo.isLeapMonth === true) {
+          lunar = Lunar.fromYmd(birthInfo.year, birthInfo.month, birthInfo.day, hour, 0, 0, true);
+        } 
+        // 사용자가 평달을 명시적으로 선택했거나 선택 안 한 경우
+        else {
+          try {
+            // 먼저 평달로 시도
+            lunar = Lunar.fromYmd(birthInfo.year, birthInfo.month, birthInfo.day, hour, 0, 0, false);
+          } catch (error) {
+            // 평달에 해당 날짜가 없으면 윤달로 시도 (자동 인식)
+            try {
+              console.log(`평달에 ${birthInfo.year}년 ${birthInfo.month}월 ${birthInfo.day}일이 없어 윤달로 자동 인식`);
+              lunar = Lunar.fromYmd(birthInfo.year, birthInfo.month, birthInfo.day, hour, 0, 0, true);
+            } catch (leapError) {
+              // 윤달에도 없으면 원래 에러 발생
+              throw error;
+            }
+          }
+        }
+        
         solar = lunar.getSolar();
       } else {
         // 양력 그대로 사용

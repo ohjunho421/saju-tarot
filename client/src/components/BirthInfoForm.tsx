@@ -107,20 +107,25 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
             
             {/* 윤달 체크박스 (음력일 때만 표시) */}
             {formData.isLunar && (
-              <div className="mt-4 flex items-center gap-3 p-3 bg-white/5 rounded-lg border border-white/20">
-                <input
-                  type="checkbox"
-                  id="isLeapMonth"
-                  checked={formData.isLeapMonth || false}
-                  onChange={(e) => setFormData({ ...formData, isLeapMonth: e.target.checked })}
-                  className="w-5 h-5 rounded border-white/30 bg-white/10 text-primary-600 focus:ring-primary-500 focus:ring-offset-0"
-                />
-                <label htmlFor="isLeapMonth" className="text-white/90 cursor-pointer">
-                  윤달 (閏月) - 예: 윤3월, 윤5월 등
-                  <span className="block text-sm text-white/60 mt-1">
-                    음력 생일이 윤달인 경우에만 체크해주세요
-                  </span>
-                </label>
+              <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/20">
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="isLeapMonth"
+                    checked={formData.isLeapMonth || false}
+                    onChange={(e) => setFormData({ ...formData, isLeapMonth: e.target.checked })}
+                    className="w-5 h-5 mt-0.5 rounded border-white/30 bg-white/10 text-primary-600 focus:ring-primary-500 focus:ring-offset-0"
+                  />
+                  <label htmlFor="isLeapMonth" className="text-white/90 cursor-pointer flex-1">
+                    <span className="font-semibold">윤달 (閏月) - 예: 윤3월, 윤5월 등</span>
+                    <span className="block text-sm text-white/70 mt-1">
+                      생일이 윤달인지 확실히 아는 경우에만 체크해주세요.
+                    </span>
+                    <span className="block text-xs text-green-400 mt-1">
+                      💡 모르시면 비워두세요 - 자동으로 판단합니다
+                    </span>
+                  </label>
+                </div>
               </div>
             )}
           </div>
