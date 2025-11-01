@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { SpreadType, DrawnCard } from '../types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CardSelectionProps {
   spreadType: SpreadType;
@@ -28,10 +28,23 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
+  const [currentScroll, setCurrentScroll] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   // 카드 덱 생성 (78장)
   const totalDeckSize = 78;
   const deckCards = Array.from({ length: totalDeckSize }, (_, i) => i);
+
+  // 모바일 체크
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleCardClick = (index: number) => {
     if (isRevealing || selectedCards.includes(index)) return;
@@ -67,6 +80,18 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
     });
   };
 
+  // 스크롤 함수
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollContainerRef.current) return;
+    const scrollAmount = 200;
+    const newScroll = direction === 'left' 
+      ? Math.max(0, currentScroll - scrollAmount)
+      : Math.min(scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth, currentScroll + scrollAmount);
+    
+    scrollContainerRef.current.scrollTo({ left: newScroll, behavior: 'smooth' });
+    setCurrentScroll(newScroll);
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4">
       {/* 안내 메시지 */}
@@ -99,108 +124,121 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         )}
       </div>
 
-      {/* 카드 덱 */}
+      {/* 카드 덱 - U자형 스프레드 */}
       <div className="relative">
-        {/* 배경 카드들 (선택되지 않은 카드) */}
-        <div className="grid grid-cols-10 md:grid-cols-13 gap-2 mb-8 opacity-30">
-          {deckCards.slice(0, 52).map((_, index) => (
-            <div
-              key={`bg-${index}`}
-              className="aspect-[2/3] bg-gradient-to-br from-purple-900/50 to-indigo-900/50 rounded-lg border border-white/20"
-            />
-          ))}
-        </div>
+        {/* 스크롤 버튼 */}
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-purple-800/80 p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors"
+          aria-label="이전 카드"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-purple-800/80 p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors"
+          aria-label="다음 카드"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
 
-        {/* 선택 가능한 카드들 */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-6xl">
-          <div 
-            className="grid gap-4"
-            style={{
-              gridTemplateColumns: `repeat(${Math.min(totalDeckSize, 13)}, minmax(0, 1fr))`
-            }}
-          >
+        {/* U자형 카드 배치 */}
+        <div 
+          ref={scrollContainerRef}
+          className="overflow-x-auto overflow-y-hidden hide-scrollbar pb-8"
+          style={{ 
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          <div className={`flex gap-4 ${isMobile ? 'px-12' : 'px-16'}`} style={{ minWidth: 'max-content' }}>
             {deckCards.map((cardIndex) => {
               const isSelected = selectedCards.includes(cardIndex);
               const isRevealed = revealedCards.has(cardIndex);
               const selectionOrder = selectedCards.indexOf(cardIndex);
-
+              const position = cardIndex % totalDeckSize;
+              
+              // U자형 배치를 위한 각도와 위치 계산 (데스크톱에서 더 큰 곡선)
+              const angle = (position / totalDeckSize) * Math.PI - Math.PI / 2;
+              const radius = isMobile ? 50 : 80;
+              const translateY = Math.sin(angle) * radius;
+                
               return (
                 <button
                   key={cardIndex}
                   onClick={() => handleCardClick(cardIndex)}
                   disabled={isRevealing || (isSelected && !isRevealed)}
                   className={`
-                    aspect-[2/3] rounded-lg transition-all duration-500 relative
-                    ${isSelected ? 'scale-110 z-10' : 'hover:scale-105 hover:-translate-y-2'}
+                    flex-shrink-0 ${isMobile ? 'w-24' : 'w-32 md:w-36'} aspect-[2/3] rounded-lg transition-all duration-500 relative
+                    ${isSelected ? 'scale-110 z-10' : 'hover:scale-105'}
                     ${isRevealed ? 'animate-flip' : ''}
                     ${!isSelected && !isRevealing ? 'cursor-pointer' : 'cursor-default'}
                   `}
                   style={{
                     transformStyle: 'preserve-3d',
-                    transform: isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                    transform: `${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'} translateY(${translateY}px)`,
+                    scrollSnapAlign: 'center'
                   }}
                 >
-                  {/* 카드 뒷면 */}
-                  <div className={`
-                    absolute inset-0 rounded-lg
-                    bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900
-                    border-2 ${isSelected ? 'border-mystical-gold shadow-[0_0_30px_rgba(218,165,32,0.5)]' : 'border-purple-400/50'}
-                    flex items-center justify-center
-                    backface-hidden
-                  `}>
-                    {/* 카드 뒷면 무늬 */}
-                    <div className="relative w-full h-full p-2">
-                      <div className="w-full h-full border-2 border-mystical-gold/30 rounded flex items-center justify-center">
-                        <div className="text-center">
-                          <Sparkles className="w-8 h-8 text-mystical-gold/50 mx-auto mb-2" />
-                          <div className="w-12 h-12 border-2 border-mystical-gold/30 rounded-full mx-auto" />
+                    {/* 카드 뒷면 */}
+                    <div className={`
+                      absolute inset-0 rounded-lg
+                      bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900
+                      border-2 ${isSelected ? 'border-mystical-gold shadow-[0_0_30px_rgba(218,165,32,0.5)]' : 'border-purple-400/50'}
+                      flex items-center justify-center
+                      backface-hidden
+                    `}>
+                      <div className="relative w-full h-full p-2">
+                        <div className="w-full h-full border-2 border-mystical-gold/30 rounded flex items-center justify-center">
+                          <div className="text-center">
+                            <Sparkles className="w-6 h-6 text-mystical-gold/50 mx-auto mb-1" />
+                            <div className="w-8 h-8 border-2 border-mystical-gold/30 rounded-full mx-auto" />
+                          </div>
                         </div>
                       </div>
+                      
+                      {isSelected && !isRevealed && (
+                        <div className="absolute top-1 right-1 w-6 h-6 bg-mystical-gold rounded-full flex items-center justify-center text-xs font-bold text-purple-900">
+                          {selectionOrder + 1}
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* 선택 순서 표시 */}
-                    {isSelected && !isRevealed && (
-                      <div className="absolute top-2 right-2 w-8 h-8 bg-mystical-gold rounded-full flex items-center justify-center text-sm font-bold text-purple-900">
-                        {selectionOrder + 1}
+
+                    {/* 카드 앞면 */}
+                    {isRevealed && drawnCards && (
+                      <div 
+                        className="absolute inset-0 rounded-lg bg-white flex flex-col items-center justify-center p-1 backface-hidden overflow-hidden"
+                        style={{ transform: 'rotateY(180deg)' }}
+                      >
+                        {(() => {
+                          const cardData = drawnCards[selectionOrder];
+                          if (!cardData) return <div className="text-4xl">🎴</div>;
+                          
+                          return (
+                            <>
+                              {cardData.card.imageUrl ? (
+                                <img 
+                                  src={cardData.card.imageUrl}
+                                  alt={cardData.card.nameKo}
+                                  className={`w-full h-full object-contain ${cardData.isReversed ? 'rotate-180' : ''}`}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                              ) : null}
+                              <div className={cardData.card.imageUrl ? 'hidden' : 'flex flex-col items-center justify-center h-full'}>
+                                <div className="text-4xl mb-1">🎴</div>
+                                <p className="text-xs font-bold text-purple-900 text-center">{cardData.card.nameKo}</p>
+                                {cardData.isReversed && (
+                                  <p className="text-xs text-red-600">역방향</p>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
-                  </div>
-
-                  {/* 카드 앞면 (실제 카드 이미지) */}
-                  {isRevealed && drawnCards && (
-                    <div 
-                      className="absolute inset-0 rounded-lg bg-white flex flex-col items-center justify-center p-2 backface-hidden overflow-hidden"
-                      style={{ transform: 'rotateY(180deg)' }}
-                    >
-                      {(() => {
-                        const cardData = drawnCards[selectionOrder];
-                        if (!cardData) return <div className="text-6xl">🎴</div>;
-                        
-                        return (
-                          <>
-                            {cardData.card.imageUrl ? (
-                              <img 
-                                src={cardData.card.imageUrl}
-                                alt={cardData.card.nameKo}
-                                className={`w-full h-full object-contain ${cardData.isReversed ? 'rotate-180' : ''}`}
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                            ) : null}
-                            <div className={cardData.card.imageUrl ? 'hidden' : 'flex flex-col items-center justify-center h-full'}>
-                              <div className="text-6xl mb-2">🎴</div>
-                              <p className="text-sm font-bold text-purple-900 text-center">{cardData.card.nameKo}</p>
-                              {cardData.isReversed && (
-                                <p className="text-xs text-red-600 mt-1">역방향</p>
-                              )}
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  )}
                 </button>
               );
             })}
@@ -209,6 +247,14 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       </div>
 
       <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
         @keyframes flip {
           0% { transform: rotateY(0deg); }
           100% { transform: rotateY(180deg); }

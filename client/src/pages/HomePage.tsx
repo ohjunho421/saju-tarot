@@ -6,26 +6,26 @@ interface HomePageProps {
 
 export default function HomePage({ onStart }: HomePageProps) {
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-4">
       {/* Hero Section */}
-      <div className="text-center mb-12">
-        <div className="flex justify-center gap-6 mb-6">
-          <Star className="w-12 h-12 text-mystical-gold animate-pulse" />
-          <Moon className="w-16 h-16 text-primary-400" />
-          <Sparkles className="w-12 h-12 text-mystical-bronze animate-pulse" />
+      <div className="text-center mb-8 md:mb-12">
+        <div className="flex justify-center gap-4 md:gap-6 mb-4 md:mb-6">
+          <Star className="w-10 h-10 md:w-12 md:h-12 text-mystical-gold animate-pulse" />
+          <Moon className="w-12 h-12 md:w-16 md:h-16 text-primary-400" />
+          <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-mystical-bronze animate-pulse" />
         </div>
         
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">
+        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4 px-4">
           당신의 운명을 탐험하세요
         </h2>
-        <p className="text-xl text-white/80 max-w-2xl mx-auto">
+        <p className="text-base md:text-lg lg:text-xl text-white/80 max-w-2xl mx-auto px-4">
           사주 만세력 분석과 타로 카드의 신비로운 조화로
           당신의 과거, 현재, 미래를 들여다봅니다.
         </p>
       </div>
 
       {/* Features */}
-      <div className="grid md:grid-cols-3 gap-6 mb-12">
+      <div className="grid md:grid-cols-3 gap-4 md:gap-6 mb-8 md:mb-12">
         <div className="card text-center">
           <div className="text-4xl mb-3">🔮</div>
           <h3 className="text-xl font-semibold mb-2">사주 만세력</h3>
@@ -52,20 +52,20 @@ export default function HomePage({ onStart }: HomePageProps) {
       </div>
 
       {/* CTA */}
-      <div className="text-center">
+      <div className="text-center px-4">
         <button
           onClick={onStart}
-          className="btn-primary text-lg px-12 py-4 transform hover:scale-105"
+          className="btn-primary text-base md:text-lg px-8 md:px-12 py-3 md:py-4 transform hover:scale-105 w-full md:w-auto"
         >
           운세 보러 가기
         </button>
-        <p className="text-white/50 text-sm mt-4">
+        <p className="text-white/50 text-xs md:text-sm mt-3 md:mt-4">
           * 정확한 해석을 위해 생년월일시를 정확히 입력해주세요
         </p>
       </div>
 
       {/* How it works */}
-      <div className="mt-16 card">
+      <div className="mt-12 md:mt-16 card">
         <h3 className="text-2xl font-semibold mb-6 text-center">이용 방법</h3>
         <div className="space-y-4">
           <div className="flex items-start gap-4">

@@ -1,5 +1,6 @@
 import type { SajuAnalysis } from '../types';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import ElementGuide from './ElementGuide';
 
 interface SajuResultProps {
   analysis: SajuAnalysis;
@@ -20,12 +21,12 @@ export default function SajuResult({ analysis }: SajuResultProps) {
   const total = Object.values(elementBalance).reduce((sum, val) => sum + val, 0);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 px-4">
       {/* 사주 차트 */}
       <div className="card">
-        <h2 className="text-2xl font-bold mb-6 text-center">사주 만세력</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-center">사주 만세력</h2>
         
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-2 md:gap-4">
           {/* 년주 → 월주 → 일주 → 시주 순서로 표시 */}
           {[
             { key: 'year', label: '년주', data: chart.year },
@@ -33,35 +34,35 @@ export default function SajuResult({ analysis }: SajuResultProps) {
             { key: 'day', label: '일주', data: chart.day },
             ...(chart.hour ? [{ key: 'hour', label: '시주', data: chart.hour }] : [])
           ].map(({ key, label, data }) => (
-            <div key={key} className="text-center bg-white/5 rounded-lg p-4">
-              <p className="text-sm text-white/60 mb-2">
+            <div key={key} className="text-center bg-white/5 rounded-lg p-2 md:p-4">
+              <p className="text-xs md:text-sm text-white/60 mb-1 md:mb-2">
                 {label}
               </p>
-              <div className="text-3xl font-bold mb-1">
+              <div className="text-2xl md:text-3xl font-bold mb-1">
                 {data.heavenlyStem}
               </div>
-              <div className="text-2xl mb-2">
+              <div className="text-xl md:text-2xl mb-1 md:mb-2">
                 {data.earthlyBranch}
               </div>
-              <div className={`text-sm ${elementColors[data.element]}`}>
+              <div className={`text-xs md:text-sm ${elementColors[data.element]}`}>
                 {data.element}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-lg">
+        <div className="mt-4 md:mt-6 text-center">
+          <p className="text-base md:text-lg">
             <span className="text-white/70">일간(Day Master):</span>{' '}
-            <span className="text-2xl font-bold text-mystical-gold">{dayMaster}</span>{' '}
-            <span className={`text-xl ${elementColors[dayMasterElement]}`}>({dayMasterElement})</span>
+            <span className="text-xl md:text-2xl font-bold text-mystical-gold">{dayMaster}</span>{' '}
+            <span className={`text-lg md:text-xl ${elementColors[dayMasterElement]}`}>({dayMasterElement})</span>
           </p>
         </div>
       </div>
 
       {/* 오행 균형 */}
       <div className="card">
-        <h3 className="text-xl font-bold mb-4">오행 균형</h3>
+        <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4">오행 균형</h3>
         
         <div className="space-y-3">
           {Object.entries(elementBalance).map(([element, value]) => {
@@ -122,10 +123,10 @@ export default function SajuResult({ analysis }: SajuResultProps) {
 
       {/* 성격 분석 */}
       <div className="card">
-        <h3 className="text-xl font-bold mb-4">성격 분석</h3>
-        <p className="text-lg leading-relaxed mb-6">{personality}</p>
+        <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4">성격 분석</h3>
+        <p className="text-base md:text-lg leading-relaxed mb-4 md:mb-6">{personality}</p>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-4 md:gap-6">
           <div>
             <h4 className="font-semibold mb-3 text-green-400">강점</h4>
             <ul className="space-y-2">
@@ -153,6 +154,9 @@ export default function SajuResult({ analysis }: SajuResultProps) {
           )}
         </div>
       </div>
+
+      {/* 오행 가이드 */}
+      <ElementGuide />
     </div>
   );
 }

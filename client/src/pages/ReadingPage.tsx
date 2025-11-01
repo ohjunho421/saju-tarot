@@ -172,33 +172,33 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   return (
     <div>
       {/* 진행 표시 */}
-      <div className="mb-8">
-        <div className="flex justify-center items-center gap-4">
-          <div className={`flex items-center gap-2 ${step === 'birth' ? 'text-primary-400' : 'text-white/50'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+      <div className="mb-6 md:mb-8 px-4">
+        <div className="flex justify-center items-center gap-2 md:gap-4">
+          <div className={`flex items-center gap-1 md:gap-2 ${step === 'birth' ? 'text-primary-400' : 'text-white/50'}`}>
+            <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-sm md:text-base ${
               step !== 'birth' ? 'bg-primary-600' : 'bg-white/20'
             }`}>
               {step !== 'birth' ? '✓' : '1'}
             </div>
-            <span>생년월일시</span>
+            <span className="text-xs md:text-base">생년월일시</span>
           </div>
-          <div className="w-16 h-1 bg-white/20 rounded" />
-          <div className={`flex items-center gap-2 ${step === 'saju' ? 'text-primary-400' : step === 'tarot' ? 'text-white/50' : 'text-white/30'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+          <div className="w-8 md:w-16 h-1 bg-white/20 rounded" />
+          <div className={`flex items-center gap-1 md:gap-2 ${step === 'saju' ? 'text-primary-400' : step === 'tarot' ? 'text-white/50' : 'text-white/30'}`}>
+            <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-sm md:text-base ${
               step === 'tarot' ? 'bg-primary-600' : step === 'saju' ? 'bg-white/20' : 'bg-white/10'
             }`}>
               {step === 'tarot' ? '✓' : '2'}
             </div>
-            <span>사주 분석</span>
+            <span className="text-xs md:text-base">사주 분석</span>
           </div>
-          <div className="w-16 h-1 bg-white/20 rounded" />
-          <div className={`flex items-center gap-2 ${step === 'tarot' ? 'text-primary-400' : 'text-white/30'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+          <div className="w-8 md:w-16 h-1 bg-white/20 rounded" />
+          <div className={`flex items-center gap-1 md:gap-2 ${step === 'tarot' ? 'text-primary-400' : 'text-white/30'}`}>
+            <div className={`w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center font-bold text-sm md:text-base ${
               step === 'tarot' ? 'bg-white/20' : 'bg-white/10'
             }`}>
               3
             </div>
-            <span>타로 리딩</span>
+            <span className="text-xs md:text-base">타로 리딩</span>
           </div>
         </div>
       </div>

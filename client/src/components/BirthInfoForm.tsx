@@ -23,11 +23,11 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-4">
       <div className="card">
-        <h2 className="text-2xl font-bold mb-6 text-center">생년월일시 입력</h2>
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-center">생년월일시 입력</h2>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
           {/* 생년월일 */}
           <div>
             <label className="flex items-center gap-2 mb-3 text-lg font-semibold">
@@ -79,12 +79,12 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
 
           {/* 음력/양력 선택 */}
           <div>
-            <label className="block mb-3 text-lg font-semibold">음력/양력</label>
-            <div className="flex gap-4">
+            <label className="block mb-3 text-base md:text-lg font-semibold">음력/양력</label>
+            <div className="flex gap-3 md:gap-4">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, isLunar: false, isLeapMonth: false })}
-                className={`flex-1 py-3 px-6 rounded-lg border-2 transition-all ${
+                className={`flex-1 py-3 md:py-3 px-4 md:px-6 rounded-lg border-2 transition-all text-sm md:text-base ${
                   !formData.isLunar
                     ? 'bg-primary-600 border-primary-600 text-white'
                     : 'bg-white/5 border-white/30 text-white/70 hover:border-white/50'
@@ -95,7 +95,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, isLunar: true })}
-                className={`flex-1 py-3 px-6 rounded-lg border-2 transition-all ${
+                className={`flex-1 py-3 md:py-3 px-4 md:px-6 rounded-lg border-2 transition-all text-sm md:text-base ${
                   formData.isLunar
                     ? 'bg-primary-600 border-primary-600 text-white'
                     : 'bg-white/5 border-white/30 text-white/70 hover:border-white/50'
@@ -162,12 +162,12 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
 
           {/* 성별 */}
           <div>
-            <label className="block mb-3 text-lg font-semibold">성별</label>
-            <div className="flex gap-4">
+            <label className="block mb-3 text-base md:text-lg font-semibold">성별</label>
+            <div className="flex gap-3 md:gap-4">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, gender: 'male' })}
-                className={`flex-1 py-3 px-6 rounded-lg border-2 transition-all ${
+                className={`flex-1 py-3 md:py-3 px-4 md:px-6 rounded-lg border-2 transition-all text-sm md:text-base ${
                   formData.gender === 'male'
                     ? 'bg-primary-600 border-primary-600 text-white'
                     : 'bg-white/5 border-white/30 text-white/70 hover:border-white/50'
@@ -178,7 +178,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, gender: 'female' })}
-                className={`flex-1 py-3 px-6 rounded-lg border-2 transition-all ${
+                className={`flex-1 py-3 md:py-3 px-4 md:px-6 rounded-lg border-2 transition-all text-sm md:text-base ${
                   formData.gender === 'female'
                     ? 'bg-primary-600 border-primary-600 text-white'
                     : 'bg-white/5 border-white/30 text-white/70 hover:border-white/50'
@@ -192,7 +192,7 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
           {/* 제출 버튼 */}
           <button
             type="submit"
-            className="w-full btn-primary text-lg py-4"
+            className="w-full btn-primary text-base md:text-lg py-3 md:py-4"
           >
             사주 분석 시작
           </button>

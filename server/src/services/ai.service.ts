@@ -168,88 +168,43 @@ ${previousContext.map((ctx, i) => `${i + 1}. [${ctx.date}] "${ctx.question}"
       : '';
 
     const prompt = `
-당신은 동양 철학과 서양 신비학에 정통한 전문가입니다. 사주 만세력 분석과 타로 카드를 종합하여 깊이 있는 해석을 제공해주세요.
+동양 철학과 타로를 융합한 전문가로서 친근하게 해석해주세요.
 
-[현재 시점 정보]
-${timingInfo}
-계절적 특성: ${seasonalElement}
-
-[사용자 정보]
-- 일간: ${sajuAnalysis.dayMaster} (${sajuAnalysis.dayMasterElement})
-- 강한 오행: ${sajuAnalysis.strongElements.join(', ')}
-- 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
-- 성격: ${sajuAnalysis.personality}
+[사용자]
+일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement}), 강한 오행: ${sajuAnalysis.strongElements.join(', ')}, 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
 ${previousContextText}
-[현재 질문]
-"${question}"
+[질문] "${question}"
 
-[뽑힌 타로 카드 (${spreadType})]
-${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => `
-${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo} (${dc.card.name})
-   - ${dc.isReversed ? '역방향' : '정방향'}
-   - 의미: ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}
-   - 오행: ${dc.card.element || '없음'}
-`).join('\n')}
+[카드]
+${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => 
+  `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(${dc.isReversed ? '역' : '정'}) - ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}`
+).join('\n')}
+${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? 
+  `\n조언: ${drawnCards.find(dc => dc.positionMeaning === '조언 카드')!.card.nameKo}(${drawnCards.find(dc => dc.positionMeaning === '조언 카드')!.isReversed ? '역' : '정'})` : ''}
 
-${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? `
-[추가 조언 카드]
-${(() => {
-  const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
-  if (!adviceCard) return '';
-  return `${adviceCard.card.nameKo} (${adviceCard.card.name}) - ${adviceCard.isReversed ? '역방향' : '정방향'}
-   의미: ${adviceCard.isReversed ? adviceCard.card.reversedMeaning : adviceCard.card.uprightMeaning}
-   오행: ${adviceCard.card.element || '없음'}`;
-})()}
-` : ''}
-
-편안하고 친근한 말투로 다음 ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '다섯' : '네'} 부분을 나누어 설명해주세요.
-
-⚠️ 중요한 규칙:
-- 마크다운 문법을 절대 사용하지 마세요 (*, **, #, - 등 모두 금지)
-- 강조하고 싶은 내용도 일반 텍스트로 작성하세요
-- 리스트를 만들 때는 "첫째,", "둘째," 또는 "그리고" 같은 자연스러운 연결어를 사용하세요
-- 괄호 () 안에 부가 설명을 넣는 것은 괜찮습니다
-각 섹션은 "---" 으로 구분해주세요.
+⚠️ 규칙: 마크다운 금지(*, **, #, - 등), "---"로 섹션 구분
 
 [질문에 대한 결론]
-"${question}" 이 질문에 대한 답을 먼저 명확하게 요약해드릴게요. 뽑으신 카드들과 당신의 사주(일간: ${sajuAnalysis.dayMaster})를 종합해보면, 이 상황에 대한 답은 한마디로 이렇습니다. 긍정적이든 부정적이든 솔직하게 핵심만 먼저 이야기해주세요. (150~200자)
+질문에 대한 핵심 답을 먼저 명확히 요약 (150~200자)
 
 ---
 
 [각 타로 카드의 상세 해석]
-이제 뽑으신 카드들을 하나씩 자세히 살펴볼게요. 당신은 ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})일간이고, ${sajuAnalysis.strongElements.join(', ')} 기운이 강하며 ${sajuAnalysis.weakElements.join(', ')} 기운이 약한 사주를 가지고 계세요.
-
-${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
-  const direction = dc.isReversed ? '역방향' : '정방향';
-  const meaning = dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning;
-  const keywords = dc.isReversed ? dc.card.reversedKeywords.join(', ') : dc.card.uprightKeywords.join(', ');
-  return `
-${i + 1}번째 카드: ${dc.positionMeaning} - ${dc.card.nameKo} (${direction})
-
-먼저 이 카드의 의미는 "${meaning}"이에요. 키워드로는 ${keywords} 같은 것들이 있습니다.
-
-${dc.card.nameKo} 카드의 그림을 자세히 보면 어떤 상징들이 그려져 있는지 설명하고, 그 상징들이 각각 무엇을 의미하는지 구체적으로 풀어주세요. 예를 들어 특정 인물, 사물, 배경, 색상 등이 어떤 메시지를 담고 있는지 이야기해주세요.
-
-이 카드가 ${dc.positionMeaning} 자리에 나왔다는 것은 중요한 의미가 있어요. 당신의 ${sajuAnalysis.dayMasterElement} 일간과 연결해서 생각해보면, ${dc.card.element ? `이 카드의 ${dc.card.element} 기운이 당신 사주의 ${sajuAnalysis.strongElements.includes(dc.card.element) ? `강한 ${dc.card.element} 기운과 만나 더욱 증폭되는` : sajuAnalysis.weakElements.includes(dc.card.element) ? `약한 ${dc.card.element} 기운을 보완해주는` : `${dc.card.element} 기운과 조화를 이루는`} 형태로 작용하고 있어요. ` : ''}
-카드의 메시지와 당신의 사주 오행이 어떻게 상호작용하여 당신의 현재 상황이나 미래에 영향을 미치는지 구체적으로 설명해주세요.
-
-실제로 이 카드가 당신에게 전하는 메시지는, 일상생활에서 어떻게 받아들이고 행동해야 하는지까지 포함해서 알려주세요. (각 카드당 250자 이상)
-`;
-}).join('\n')}
-
-위에서 설명한 모든 카드들을 종합해서, 전체적인 흐름과 당신의 사주가 만나면서 만들어지는 하나의 큰 이야기를 자연스럽게 이어서 설명해주세요. 각 카드가 서로 어떻게 연결되고, 당신의 만세력과 어울려 어떤 전체적인 그림을 그리는지 보여주세요. (250자 이상)
+${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => 
+  `${i + 1}. ${dc.card.nameKo}: 카드 상징 설명 → 사주 오행과의 연결 → 실천 메시지 (200자)`
+).join('\n')}
+전체 카드의 흐름과 사주의 조화 설명 (200자)
 
 ---
 
 [오행의 흐름과 현재 시기]
-지금 ${dateContext.season}이고 절기로는 ${dateContext.jieqi} 시기라 ${seasonalElement} 기운이 흐르고 있어요. 이 계절의 에너지가 당신의 사주와 만나면서, 그리고 뽑은 타로 카드들의 오행과 어울려서 지금 어떤 흐름이 만들어지고 있는지 쉽게 설명해주세요. (250자 이상)
+${dateContext.season}, ${dateContext.jieqi} 시기의 ${seasonalElement} 기운과 사주, 카드의 조화 설명 (200자)
 
 ---
 
 [실천할 수 있는 조언]
-${dateContext.month}월인 지금, 당신의 ${sajuAnalysis.dayMasterElement} 일간과 뽑은 카드들의 메시지를 토대로 실제로 해볼 수 있는 구체적인 방법들을 알려드릴게요. 당신의 강한 오행(${sajuAnalysis.strongElements.join(', ')})을 활용하고 약한 오행(${sajuAnalysis.weakElements.join(', ')})을 보완하는 실천 방법을 포함해서, 일상에서 바로 시도해볼 수 있는 것들로 알려주세요. (250자 이상)
-
-${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조언 카드의 메시지]\n특별히 뽑으신 조언 카드가 지금 이 시기에 꼭 전하고 싶은 이야기가 있어요. 카드가 건네는 따뜻한 조언을 들어보세요. (150자 이상)' : ''}
+${dateContext.month}월 현재 강한 오행 활용 + 약한 오행 보완 구체적 방법 (200자)
+${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조언 카드의 메시지]\n조언 카드의 핵심 메시지 (150자)' : ''}
 `;
 
     try {
@@ -262,7 +217,7 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 2048,
+          max_tokens: 4096,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
