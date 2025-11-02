@@ -145,22 +145,22 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         {/* U자형 카드 배치 */}
         <div 
           ref={scrollContainerRef}
-          className="overflow-x-auto overflow-y-hidden hide-scrollbar pb-8"
+          className="overflow-x-auto overflow-y-hidden hide-scrollbar py-12 md:py-16"
           style={{ 
             scrollSnapType: 'x mandatory',
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          <div className={`flex gap-4 ${isMobile ? 'px-12' : 'px-16'}`} style={{ minWidth: 'max-content' }}>
+          <div className={`flex ${isMobile ? 'px-12' : 'px-16'}`} style={{ minWidth: 'max-content', gap: '0' }}>
             {deckCards.map((cardIndex) => {
               const isSelected = selectedCards.includes(cardIndex);
               const isRevealed = revealedCards.has(cardIndex);
               const selectionOrder = selectedCards.indexOf(cardIndex);
               const position = cardIndex % totalDeckSize;
               
-              // U자형 배치를 위한 각도와 위치 계산 (데스크톱에서 더 큰 곡선)
+              // U자형 배치를 위한 각도와 위치 계산 - 더 강한 곡선
               const angle = (position / totalDeckSize) * Math.PI - Math.PI / 2;
-              const radius = isMobile ? 50 : 80;
+              const radius = isMobile ? 120 : 150;
               const translateY = Math.sin(angle) * radius;
                 
               return (
@@ -170,14 +170,15 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                   disabled={isRevealing || (isSelected && !isRevealed)}
                   className={`
                     flex-shrink-0 ${isMobile ? 'w-24' : 'w-32 md:w-36'} aspect-[2/3] rounded-lg transition-all duration-500 relative
-                    ${isSelected ? 'scale-110 z-10' : 'hover:scale-105'}
+                    ${isSelected ? 'scale-110 z-20' : 'hover:scale-105 hover:z-10'}
                     ${isRevealed ? 'animate-flip' : ''}
                     ${!isSelected && !isRevealing ? 'cursor-pointer' : 'cursor-default'}
                   `}
                   style={{
                     transformStyle: 'preserve-3d',
                     transform: `${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'} translateY(${translateY}px)`,
-                    scrollSnapAlign: 'center'
+                    scrollSnapAlign: 'center',
+                    marginLeft: cardIndex === 0 ? '0' : '-1.5rem'
                   }}
                 >
                     {/* 카드 뒷면 */}

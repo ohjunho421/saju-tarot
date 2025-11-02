@@ -69,60 +69,64 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      <header className="py-6 px-4 border-b border-white/20">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="text-center flex-1">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-mystical-gold via-primary-400 to-mystical-bronze bg-clip-text text-transparent">
-              사주 만세력 타로
-            </h1>
-            <p className="text-white/70 mt-2">동양 철학과 서양 신비학의 만남</p>
-          </div>
-          
-          {/* 로그인/로그아웃 버튼 */}
-          <div className="absolute right-4 top-6">
-            {isLoggedIn ? (
-              <div className="flex items-center gap-2">
-                {userName && (
-                  <span className="text-sm text-white/80 mr-2">
-                    {userName}님
-                  </span>
-                )}
+      <header className="py-4 md:py-6 px-4 border-b border-white/20">
+        <div className="container mx-auto">
+          {/* 모바일: 세로 레이아웃, 데스크톱: 가로 레이아웃 */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* 타이틀 */}
+            <div className="text-center md:text-left md:flex-1">
+              <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-mystical-gold via-primary-400 to-mystical-bronze bg-clip-text text-transparent">
+                사주 만세력 타로
+              </h1>
+              <p className="text-xs md:text-sm text-white/70 mt-1 md:mt-2">동양 철학과 서양 신비학의 만남</p>
+            </div>
+            
+            {/* 로그인/로그아웃 버튼 */}
+            <div className="flex items-center justify-center md:justify-end gap-2">
+              {isLoggedIn ? (
+                <>
+                  {userName && (
+                    <span className="text-xs md:text-sm text-white/80">
+                      {userName}님
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setCurrentStep('mypage')}
+                    className="flex items-center gap-1 px-2 md:px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+                  >
+                    <User className="w-4 h-4" />
+                    <span className="text-xs md:text-sm hidden sm:inline">마이페이지</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep('history')}
+                    className="flex items-center gap-1 px-2 md:px-4 py-2 bg-mystical-gold/20 hover:bg-mystical-gold/30 rounded-lg transition-all"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span className="text-xs md:text-sm hidden sm:inline">히스토리</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-1 px-2 md:px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-all"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-xs md:text-sm hidden sm:inline">로그아웃</span>
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={() => setCurrentStep('mypage')}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+                  onClick={() => setShowAuthModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-all"
                 >
-                  <User className="w-4 h-4" />
-                  <span className="text-sm">마이페이지</span>
+                  <LogIn className="w-4 h-4" />
+                  <span className="text-xs md:text-sm">로그인</span>
                 </button>
-                <button
-                  onClick={() => setCurrentStep('history')}
-                  className="flex items-center gap-2 px-4 py-2 bg-mystical-gold/20 hover:bg-mystical-gold/30 rounded-lg transition-all"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span className="text-sm">히스토리</span>
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg transition-all"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="text-sm">로그아웃</span>
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-all"
-              >
-                <LogIn className="w-4 h-4" />
-                <span className="text-sm">로그인</span>
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4 md:py-8">
         {currentStep === 'home' && (
           <HomePage onStart={handleStartReading} />
         )}
