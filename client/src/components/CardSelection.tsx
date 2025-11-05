@@ -332,12 +332,12 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
           ref={fanContainerRef}
           className="relative mx-auto"
           style={{ 
-            height: isMobile ? '400px' : '480px',
+            height: isMobile ? '380px' : '450px',
             maxWidth: '100%',
-            paddingTop: isMobile ? '40px' : '60px'
+            paddingTop: isMobile ? '20px' : '30px'
           }}
         >
-          <div className="absolute inset-0 flex items-end justify-center">
+          <div className="absolute inset-0 flex items-center justify-center">
             {deckCards.map((cardIndex) => {
               const isSelected = selectedCards.includes(cardIndex);
               
@@ -353,35 +353,30 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
               const halfVisible = Math.floor(visibleCardCount / 2);
               if (Math.abs(offsetFromCenter) > halfVisible) return null;
               
-              // 카드 간 간격
-              const cardSpacing = isMobile ? 24 : 32;
+              // 카드 인덱스를 0부터 시작하도록 정규화
+              const cardSeqIndex = offsetFromCenter + halfVisible; // 0 to visibleCardCount
+              const progress = cardSeqIndex / (visibleCardCount - 1); // 0 to 1
               
-              // X 위치: 왼쪽에서 오른쪽으로
-              const x = offsetFromCenter * cardSpacing;
-              
-              // 카드 순서를 왼쪽(-halfVisible)부터 오른쪽(+halfVisible)까지로 정규화
-              // -halfVisible = 0 (왼쪽 시작), +halfVisible = 1 (오른쪽 끝)
-              const cardSequence = (offsetFromCenter + halfVisible) / (halfVisible * 2); // 0 to 1
-              
-              // U자 형태지만 왼쪽이 낮고 오른쪽이 높게
-              // 왼쪽 시작점을 낮게, 중간을 거쳐, 오른쪽을 높게
-              const radius = isMobile ? 300 : 400;
-              
-              // 각도를 왼쪽 낮은 위치에서 오른쪽 높은 위치로
-              const startAngle = 220; // 왼쪽 아래
-              const endAngle = 50;    // 오른쪽 위
-              const currentAngle = startAngle - (startAngle - endAngle) * cardSequence;
+              // 비대칭 U자: 왼쪽 낮음(180도) → 오른쪽 높음(90도)
+              // 원호를 따라 배치
+              const startAngle = 180; // 왼쪽 아래
+              const endAngle = 90;    // 오른쪽 위 (수직)
+              const currentAngle = startAngle - (startAngle - endAngle) * progress;
               const angleRad = (currentAngle * Math.PI) / 180;
               
-              // Y 좌표 계산 (원호를 따라)
-              const y = Math.sin(angleRad) * radius - radius * 0.2;
+              // 화면 크기에 따른 반지름
+              const radius = isMobile ? 250 : 350;
               
-              // 스케일과 투명도
+              // 원호를 따라 X, Y 위치 계산
+              const x = Math.cos(angleRad) * radius;
+              const y = Math.sin(angleRad) * radius;
+              
+              // 중앙에서 멀어질수록 작아지는 효과
               const distanceFromCenter = Math.abs(offsetFromCenter);
-              const scale = 1 - (distanceFromCenter / visibleCardCount) * 0.2;
+              const scale = 1 - (distanceFromCenter / visibleCardCount) * 0.25;
               const opacity = 0.75 + (1 - distanceFromCenter / visibleCardCount) * 0.25;
               
-              // 카드 회전 (곡선 접선 방향)
+              // 카드 회전 (원호 접선 방향)
               const cardRotation = -(currentAngle - 90);
               
               return (
@@ -397,9 +392,10 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                     transform: `translate(${x}px, ${y}px) scale(${scale}) rotate(${cardRotation}deg)`,
                     opacity: opacity,
                     left: '50%',
-                    bottom: '20px',
+                    top: '50%',
                     marginLeft: isMobile ? '-32px' : '-40px',
-                    transformOrigin: 'center bottom',
+                    marginTop: isMobile ? '-60px' : '-75px',
+                    transformOrigin: 'center center',
                     zIndex: Math.floor(10 - Math.abs(offsetFromCenter))
                   }}
                 >
