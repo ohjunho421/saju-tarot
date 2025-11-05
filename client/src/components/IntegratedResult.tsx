@@ -14,8 +14,8 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
   // 아코디언 상태 관리
   const [expandedSections, setExpandedSections] = useState({
     summary: true,
-    cards: false,
-    interpretation: false,
+    cards: true, // 카드를 기본으로 펼쳐서 보여줌
+    interpretation: true, // 해석도 기본으로 펼쳐서 보여줌
     harmony: false,
     advice: false,
     adviceCard: false
@@ -103,13 +103,16 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
         )}
       </div>
 
-      {/* 뽑힌 타로 카드 */}
-      <div className="card">
+      {/* 뽑힌 타로 카드 - 확대된 영역 */}
+      <div className="card bg-gradient-to-br from-purple-600/10 to-indigo-600/10 border-2 border-purple-500/30">
         <button
           onClick={() => toggleSection('cards')}
           className="w-full flex items-center justify-between mb-4 md:mb-6"
         >
-          <h2 className="text-xl md:text-2xl font-bold">타로 카드</h2>
+          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            <span>🎴</span>
+            <span>선택한 타로 카드</span>
+          </h2>
           {expandedSections.cards ? (
             <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
           ) : (
@@ -117,31 +120,34 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
           )}
         </button>
         {expandedSections.cards && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 animate-slideDown">
-            {mainCards.map(({ card, position, isReversed, positionMeaning }) => (
-              <div key={position} className="text-center">
-                <div className={`bg-white/5 rounded-lg p-4 mb-2 border-2 border-white/20 overflow-hidden ${isReversed ? 'rotate-180' : ''}`}>
-                  {card.imageUrl ? (
-                    <img 
-                      src={card.imageUrl} 
-                      alt={card.nameKo}
-                      className="w-full h-auto rounded-lg mb-2"
-                      onError={(e) => {
-                        // 이미지 로드 실패 시 대체 이모지 표시
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  <div className={card.imageUrl ? 'hidden' : 'text-4xl mb-2'}>🎴</div>
-                  <p className="text-sm font-semibold">{card.nameKo}</p>
+          <div className="max-h-[600px] overflow-y-auto">
+            <div className="flex flex-wrap justify-center gap-4 md:gap-6 animate-slideDown p-4">
+              {mainCards.map(({ card, position, isReversed, positionMeaning }) => (
+                <div key={position} className="flex flex-col items-center w-40 md:w-48">
+                  <div className={`bg-gradient-to-br from-white/10 to-white/5 rounded-xl p-4 md:p-6 mb-3 border-2 border-mystical-gold/30 shadow-lg hover:shadow-mystical-gold/20 transition-all hover:scale-105 ${isReversed ? 'rotate-180' : ''}`}>
+                    {card.imageUrl ? (
+                      <img 
+                        src={card.imageUrl} 
+                        alt={card.nameKo}
+                        className="w-full h-auto rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
+                      />
+                    ) : null}
+                    <div className={card.imageUrl ? 'hidden' : 'text-6xl md:text-7xl'}>🎴</div>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-base md:text-lg font-bold text-mystical-gold">{card.nameKo}</p>
+                    <p className="text-xs md:text-sm text-white/70">{positionMeaning}</p>
+                    {isReversed && (
+                      <p className="text-xs text-red-400 font-semibold">⚠️ 역방향</p>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-white/60">{positionMeaning}</p>
-                {isReversed && (
-                  <p className="text-xs text-red-400 mt-1">역방향</p>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </div>

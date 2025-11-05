@@ -18,8 +18,8 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [sajuAnalysis, setSajuAnalysis] = useState<SajuAnalysis | null>(null);
   const [selectedSpread, setSelectedSpread] = useState<SpreadType | null>(null);
   const [question, setQuestion] = useState<string>('');
-  const [includeAdviceCard, setIncludeAdviceCard] = useState(false);
   const [drawnCardsData, setDrawnCardsData] = useState<any>(null);
+  const [completeReading, setCompleteReading] = useState<IntegratedReading | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,23 +67,23 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean) => {
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
-    setIncludeAdviceCard(includeAdvice || false);
     
-    // 먼저 카드를 뽑아서 데이터를 준비
+    // 먼저 카드를 뽑고 해석을 완료
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      let tempReading;
+      let reading;
       
       if (token && userQuestion) {
         const { aiApi } = await import('../services/api');
-        tempReading = await aiApi.getAIReading(userQuestion, spreadType, includeAdvice);
+        reading = await aiApi.getAIReading(userQuestion, spreadType, includeAdvice);
       } else {
-        tempReading = await interpretationApi.getIntegrated(birthInfo!, spreadType, userQuestion);
+        reading = await interpretationApi.getIntegrated(birthInfo!, spreadType, userQuestion);
       }
       
-      // 뽑힌 카드 데이터 저장
-      setDrawnCardsData(tempReading.drawnCards);
+      // 완전한 리딩 결과 저장 (해석 포함)
+      setCompleteReading(reading);
+      setDrawnCardsData(reading.drawnCards);
       setStep('cardSelection');
     } catch (err) {
       setError(err instanceof Error ? err.message : '카드 데이터를 가져오는 중 오류가 발생했습니다.');
@@ -93,25 +93,16 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   };
 
   const handleCardSelectionComplete = async (_cardPositions: number[]) => {
-    if (!birthInfo || !selectedSpread || !drawnCardsData) return;
+    if (!completeReading) return;
 
-    // 사용자가 카드를 모두 선택 완료
+    // 사용자가 카드를 모두 선택 완료 - 이미 저장된 리딩 결과 사용
     setLoading(true);
     setError(null);
 
     try {
-      // 이미 뽑은 카드 데이터로 해석 요청
-      const token = localStorage.getItem('token');
-      let reading;
-      
-      if (token && question) {
-        const { aiApi } = await import('../services/api');
-        reading = await aiApi.getAIReading(question, selectedSpread, includeAdviceCard);
-      } else {
-        reading = await interpretationApi.getIntegrated(birthInfo, selectedSpread, question);
-      }
-      
-      onComplete(reading);
+      // 카드 선택 애니메이션 후 결과 표시를 위한 짧은 딜레이
+      await new Promise(resolve => setTimeout(resolve, 500));
+      onComplete(completeReading);
     } catch (err) {
       setError(err instanceof Error ? err.message : '타로 리딩 중 오류가 발생했습니다.');
     } finally {
