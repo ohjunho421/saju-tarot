@@ -164,11 +164,17 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
   // 부채꼴 회전 함수
   const rotateFan = (direction: 'left' | 'right') => {
     const steps = isMobile ? 2 : 3; // 한 번에 이동할 카드 수
-    setFanRotation(prev => 
-      direction === 'left' 
-        ? prev - steps
-        : prev + steps
-    );
+    
+    setFanRotation(prev => {
+      const newRotation = direction === 'left' ? prev - steps : prev + steps;
+      
+      // 회전 제한: 덱 크기의 절반을 넘지 않도록
+      const maxRotation = Math.floor(totalDeckSize / 2) - Math.floor(visibleCardCount / 2);
+      const minRotation = -maxRotation;
+      
+      // 범위 제한
+      return Math.max(minRotation, Math.min(maxRotation, newRotation));
+    });
   };
 
   // 마우스 휠 이벤트 처리
