@@ -353,25 +353,36 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
               const halfVisible = Math.floor(visibleCardCount / 2);
               if (Math.abs(offsetFromCenter) > halfVisible) return null;
               
-              // 한 방향 호(arc) 형태: 왼쪽에서 오른쪽으로 곡선
-              // 왼쪽은 낮게, 오른쪽으로 갈수록 높아지다가 다시 낮아지는 게 아니라
-              // 왼쪽이 낮고 가운데가 높고 오른쪽이 다시 낮은 형태 (하지만 비대칭)
-              const cardSpacing = isMobile ? 24 : 32; // 카드 간 간격
+              // 카드 간 간격
+              const cardSpacing = isMobile ? 24 : 32;
+              
+              // X 위치: 왼쪽에서 오른쪽으로
               const x = offsetFromCenter * cardSpacing;
               
-              // 포물선 형태의 y 좌표 (왼쪽부터 오른쪽으로 아치형)
-              const normalizedPos = offsetFromCenter / halfVisible; // -1 to 1
-              const archHeight = isMobile ? 60 : 80;
-              const y = -(1 - normalizedPos * normalizedPos) * archHeight; // 역포물선
+              // 카드 순서를 왼쪽(-halfVisible)부터 오른쪽(+halfVisible)까지로 정규화
+              // -halfVisible = 0 (왼쪽 시작), +halfVisible = 1 (오른쪽 끝)
+              const cardSequence = (offsetFromCenter + halfVisible) / (halfVisible * 2); // 0 to 1
               
-              // 중앙에서 멀어질수록 작아지는 효과
+              // U자 형태지만 왼쪽이 낮고 오른쪽이 높게
+              // 왼쪽 시작점을 낮게, 중간을 거쳐, 오른쪽을 높게
+              const radius = isMobile ? 300 : 400;
+              
+              // 각도를 왼쪽 낮은 위치에서 오른쪽 높은 위치로
+              const startAngle = 220; // 왼쪽 아래
+              const endAngle = 50;    // 오른쪽 위
+              const currentAngle = startAngle - (startAngle - endAngle) * cardSequence;
+              const angleRad = (currentAngle * Math.PI) / 180;
+              
+              // Y 좌표 계산 (원호를 따라)
+              const y = Math.sin(angleRad) * radius - radius * 0.2;
+              
+              // 스케일과 투명도
               const distanceFromCenter = Math.abs(offsetFromCenter);
               const scale = 1 - (distanceFromCenter / visibleCardCount) * 0.2;
               const opacity = 0.75 + (1 - distanceFromCenter / visibleCardCount) * 0.25;
               
-              // 카드 회전 (부채꼴 효과)
-              const rotationIntensity = isMobile ? 0.8 : 1.0;
-              const cardRotation = normalizedPos * 35 * rotationIntensity; // -35 to 35도
+              // 카드 회전 (곡선 접선 방향)
+              const cardRotation = -(currentAngle - 90);
               
               return (
                 <button
