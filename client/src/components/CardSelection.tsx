@@ -23,6 +23,69 @@ const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
   'saju-custom': '당신의 사주와 오행을 생각하며 다섯 장의 카드를 선택하세요.'
 };
 
+// 각 스프레드의 카드별 선택 안내 메시지
+const POSITION_GUIDANCE: Record<SpreadType, string[]> = {
+  'one-card': [
+    '질문에 대한 답을 구하며 카드를 선택하세요'
+  ],
+  'three-card': [
+    '과거를 떠올리며 첫 번째 카드를 선택하세요',
+    '현재 상황을 생각하며 두 번째 카드를 선택하세요',
+    '앞으로 다가올 미래를 생각하며 마지막 카드를 선택하세요'
+  ],
+  'celtic-cross': [
+    '현재 상황을 나타내는 카드를 선택하세요',
+    '현재의 도전과 장애물을 생각하며 선택하세요',
+    '의식적 목표를 떠올리며 선택하세요',
+    '과거의 기반을 생각하며 선택하세요',
+    '최근의 영향을 떠올리며 선택하세요',
+    '가까운 미래를 생각하며 선택하세요',
+    '당신 자신을 생각하며 선택하세요',
+    '주변 환경과 타인의 영향을 생각하며 선택하세요',
+    '희망과 두려움을 떠올리며 선택하세요',
+    '최종 결과를 생각하며 마지막 카드를 선택하세요'
+  ],
+  'saju-custom': [
+    '목(木) - 성장과 발전 에너지를 생각하며 선택하세요',
+    '화(火) - 열정과 활동 에너지를 생각하며 선택하세요',
+    '토(土) - 안정과 중심 에너지를 생각하며 선택하세요',
+    '금(金) - 수확과 결실 에너지를 생각하며 선택하세요',
+    '수(水) - 지혜와 유연성 에너지를 생각하며 선택하세요'
+  ]
+};
+
+// 스프레드별 카드 배치 위치 (x, y는 백분율 또는 상대 위치)
+type CardPosition = { x: number; y: number; rotation?: number };
+const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
+  'one-card': [
+    { x: 0, y: 0 }
+  ],
+  'three-card': [
+    { x: -150, y: 0 },
+    { x: 0, y: 0 },
+    { x: 150, y: 0 }
+  ],
+  'celtic-cross': [
+    { x: 0, y: 0 },           // 1. 현재
+    { x: 0, y: 0, rotation: 90 }, // 2. 장애물 (가로로)
+    { x: 0, y: -120 },         // 3. 목표
+    { x: 0, y: 120 },          // 4. 과거
+    { x: -120, y: 0 },         // 5. 최근
+    { x: 120, y: 0 },          // 6. 미래
+    { x: 240, y: 120 },        // 7. 자신
+    { x: 240, y: 0 },          // 8. 환경
+    { x: 240, y: -120 },       // 9. 희망/두려움
+    { x: 240, y: -240 }        // 10. 결과
+  ],
+  'saju-custom': [
+    { x: -200, y: 0 },   // 목
+    { x: -100, y: -80 }, // 화
+    { x: 0, y: 0 },      // 토 (중앙)
+    { x: 100, y: -80 },  // 금
+    { x: 200, y: 0 }     // 수
+  ]
+};
+
 export default function CardSelection({ spreadType, question, drawnCards, onComplete }: CardSelectionProps) {
   const totalCards = SPREAD_CARD_COUNTS[spreadType];
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -139,15 +202,20 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
           <h2 className="text-2xl font-bold mb-4 text-white">"{question}"</h2>
         )}
         
-        <p className="text-lg text-white/80 max-w-2xl mx-auto">
-          {GUIDANCE_MESSAGES[spreadType]}
-        </p>
-        
-        {selectedCards.length > 0 && selectedCards.length < totalCards && (
-          <p className="text-sm text-mystical-gold mt-4 animate-pulse">
-            🌟 직관을 믿고 다음 카드를 선택하세요
+        {selectedCards.length === 0 ? (
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+            {GUIDANCE_MESSAGES[spreadType]}
           </p>
-        )}
+        ) : selectedCards.length < totalCards ? (
+          <div className="mt-4">
+            <p className="text-base text-white/70 mb-2">
+              {selectedCards.length}번째 카드 선택
+            </p>
+            <p className="text-lg text-mystical-gold animate-pulse font-semibold">
+              🌟 {POSITION_GUIDANCE[spreadType][selectedCards.length]}
+            </p>
+          </div>
+        ) : null}
         
         {isRevealing && (
           <p className="text-sm text-mystical-gold mt-4 animate-pulse">
@@ -156,73 +224,79 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         )}
       </div>
 
-      {/* 선택된 카드 표시 영역 */}
+      {/* 선택된 카드 표시 영역 - 스프레드별 배치 */}
       {selectedCards.length > 0 && (
         <div className="mb-8">
-          <div className="flex flex-wrap justify-center gap-3 md:gap-4 p-4 bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30">
-            {selectedCards.map((cardIndex, idx) => {
-              const isRevealed = revealedCards.has(cardIndex);
-              return (
-                <div
-                  key={cardIndex}
-                  className={`relative transition-all duration-500 ${
-                    isRevealed ? 'animate-revealCard' : ''
-                  }`}
-                  style={{
-                    animationDelay: `${idx * 400}ms`
-                  }}
-                >
-                  <div 
-                    className={`${isMobile ? 'w-20' : 'w-24 md:w-28'} aspect-[2/3] rounded-lg transition-all duration-500`}
+          <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-8 md:p-12" style={{ minHeight: isMobile ? '300px' : '400px' }}>
+            <div className="relative" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {selectedCards.map((cardIndex, idx) => {
+                const isRevealed = revealedCards.has(cardIndex);
+                const layout = SPREAD_LAYOUTS[spreadType][idx];
+                const cardSize = isMobile ? 'w-16' : 'w-20 md:w-24';
+                
+                return (
+                  <div
+                    key={cardIndex}
+                    className={`absolute transition-all duration-500 ${
+                      isRevealed ? 'animate-revealCard' : ''
+                    }`}
                     style={{
-                      transformStyle: 'preserve-3d',
-                      transform: isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                      transform: `translate(${layout.x}px, ${layout.y}px)`,
+                      animationDelay: `${idx * 400}ms`
                     }}
                   >
-                    {/* 카드 뒷면 */}
-                    <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900 border-2 border-mystical-gold shadow-[0_0_20px_rgba(218,165,32,0.4)] flex items-center justify-center backface-hidden">
-                      <div className="relative w-full h-full p-2">
-                        <div className="w-full h-full border-2 border-mystical-gold/30 rounded flex items-center justify-center">
-                          <Sparkles className="w-6 h-6 text-mystical-gold/50" />
+                    <div 
+                      className={`${cardSize} aspect-[2/3] rounded-lg transition-all duration-500`}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transform: `${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'} rotate(${layout.rotation || 0}deg)`
+                      }}
+                    >
+                      {/* 카드 뒷면 */}
+                      <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900 border-2 border-mystical-gold shadow-[0_0_20px_rgba(218,165,32,0.4)] flex items-center justify-center backface-hidden">
+                        <div className="relative w-full h-full p-1.5 md:p-2">
+                          <div className="w-full h-full border-2 border-mystical-gold/30 rounded flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 md:w-6 md:h-6 text-mystical-gold/50" />
+                          </div>
+                        </div>
+                        <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1 w-5 h-5 md:w-6 md:h-6 bg-mystical-gold rounded-full flex items-center justify-center text-xs font-bold text-purple-900">
+                          {idx + 1}
                         </div>
                       </div>
-                      <div className="absolute top-1 right-1 w-6 h-6 bg-mystical-gold rounded-full flex items-center justify-center text-xs font-bold text-purple-900">
-                        {idx + 1}
-                      </div>
+                      
+                      {/* 카드 앞면 */}
+                      {isRevealed && drawnCards && (
+                        <div 
+                          className="absolute inset-0 rounded-lg bg-white flex items-center justify-center p-1 backface-hidden shadow-xl"
+                          style={{ transform: 'rotateY(180deg)' }}
+                        >
+                          {(() => {
+                            const cardData = drawnCards[idx];
+                            if (!cardData) return <div className="text-3xl md:text-4xl">🎴</div>;
+                            return (
+                              <>
+                                {cardData.card.imageUrl ? (
+                                  <img 
+                                    src={cardData.card.imageUrl}
+                                    alt={cardData.card.nameKo}
+                                    className={`w-full h-full object-contain rounded ${cardData.isReversed ? 'rotate-180' : ''}`}
+                                  />
+                                ) : (
+                                  <div className="text-center">
+                                    <div className="text-3xl md:text-4xl mb-1">🎴</div>
+                                    <p className="text-xs font-bold text-purple-900">{cardData.card.nameKo}</p>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* 카드 앞면 */}
-                    {isRevealed && drawnCards && (
-                      <div 
-                        className="absolute inset-0 rounded-lg bg-white flex items-center justify-center p-1 backface-hidden shadow-xl"
-                        style={{ transform: 'rotateY(180deg)' }}
-                      >
-                        {(() => {
-                          const cardData = drawnCards[idx];
-                          if (!cardData) return <div className="text-4xl">🎴</div>;
-                          return (
-                            <>
-                              {cardData.card.imageUrl ? (
-                                <img 
-                                  src={cardData.card.imageUrl}
-                                  alt={cardData.card.nameKo}
-                                  className={`w-full h-full object-contain rounded ${cardData.isReversed ? 'rotate-180' : ''}`}
-                                />
-                              ) : (
-                                <div className="text-center">
-                                  <div className="text-4xl mb-1">🎴</div>
-                                  <p className="text-xs font-bold text-purple-900">{cardData.card.nameKo}</p>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
-                      </div>
-                    )}
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -278,26 +352,28 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
               const halfVisible = Math.floor(visibleCardCount / 2);
               if (Math.abs(offsetFromCenter) > halfVisible) return null;
               
-              // 부채꼴 각도 계산 (120도 범위를 사용하여 더 넓게)
-              const maxAngle = isMobile ? 100 : 120; // 부채꼴 펼침 각도
-              const anglePerCard = maxAngle / visibleCardCount;
-              const angle = offsetFromCenter * anglePerCard;
+              // 한 방향 부채꼴 각도 계산 (왼쪽에서 오른쪽으로)
+              const maxAngle = isMobile ? 35 : 40; // 부채꼴 펼쳨 각도 (작게 하여 한쪽 방향)
+              const startAngle = -maxAngle; // 시작 각도
+              const angleRange = maxAngle * 2;
+              const anglePerCard = angleRange / (visibleCardCount - 1);
+              const angle = startAngle + (offsetFromCenter + Math.floor(visibleCardCount / 2)) * anglePerCard;
               const angleRad = (angle * Math.PI) / 180;
               
-              // 화면 크기에 따른 반지름 (더 길게)
-              const radius = isMobile ? 280 : 380;
+              // 화면 크기에 따른 반지름
+              const radius = isMobile ? 250 : 350;
               
-              // 부채꼴 위치 계산 (아래에서 위로 펼쳐짐)
+              // 한 방향 부채꼴 위치 계산
               const x = Math.sin(angleRad) * radius;
-              const y = -Math.cos(angleRad) * radius + radius; // 아래쪽 중심
+              const y = -Math.cos(angleRad) * radius + radius * 0.85; // 위쪽에서 아래로
               
               // 중앙에서 멀어질수록 작아지는 효과
               const distanceFromCenter = Math.abs(offsetFromCenter);
-              const scale = 1 - (distanceFromCenter / visibleCardCount) * 0.3;
-              const opacity = 0.7 + (1 - distanceFromCenter / visibleCardCount) * 0.3;
+              const scale = 1 - (distanceFromCenter / visibleCardCount) * 0.25;
+              const opacity = 0.75 + (1 - distanceFromCenter / visibleCardCount) * 0.25;
               
               // 카드 회전 (부채꼴 효과)
-              const cardRotation = angle * 0.7;
+              const cardRotation = angle * 0.8;
               
               return (
                 <button
