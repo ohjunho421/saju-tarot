@@ -357,25 +357,24 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
               const cardSeqIndex = offsetFromCenter + halfVisible; // 0 to visibleCardCount-1
               const progress = cardSeqIndex / (visibleCardCount - 1); // 0(왼쪽) to 1(오른쪽)
               
-              // U자 부채꼴: 왼쪽 낮음 → 중간 높음 → 오른쪽 낮음
-              // 각도를 왼쪽(-40도)에서 오른쪽(+40도)까지
+              // U자 부채꼴 형태 유지
               const maxAngle = isMobile ? 40 : 45;
-              const angle = -maxAngle + (progress * maxAngle * 2);
+              const angle = -maxAngle + (progress * maxAngle * 2); // -45 to +45 (U자)
               const angleRad = (angle * Math.PI) / 180;
               
-              // 부채꼴 중심에서의 반지름
+              // 부채꼴 반지름
               const radius = isMobile ? 280 : 360;
               
-              // 원호를 따라 X, Y 위치 계산
+              // U자 곡선 위치 계산
               const x = Math.sin(angleRad) * radius;
               const y = -Math.cos(angleRad) * radius + radius * 0.8;
               
-              // 중앙이 크고 양쪽이 작게
+              // 스케일과 투명도
               const distanceFromCenter = Math.abs(progress - 0.5);
-              const scale = 1.0 - distanceFromCenter * 0.3;
-              const opacity = 0.8 + (1 - distanceFromCenter * 2) * 0.2;
+              const scale = 1.0 - distanceFromCenter * 0.25;
+              const opacity = 0.85 + (1 - distanceFromCenter * 2) * 0.15;
               
-              // 카드 회전 (부채꼴 각도)
+              // 카드 회전
               const cardRotation = angle * 0.85;
               
               return (
