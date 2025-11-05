@@ -28,10 +28,10 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
-  const [wheelRotation, setWheelRotation] = useState(0);
-  const wheelContainerRef = useRef<HTMLDivElement>(null);
+  const [fanRotation, setFanRotation] = useState(0);
+  const fanContainerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [visibleCardCount, setVisibleCardCount] = useState(15); // 한 번에 보이는 카드 수
+  const [visibleCardCount, setVisibleCardCount] = useState(21); // 한 번에 보이는 카드 수 (부채꼴용)
 
   // 카드 덱 생성 (78장)
   const totalDeckSize = 78;
@@ -86,11 +86,11 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
     const updateVisibleCount = () => {
       const width = window.innerWidth;
       if (width < 640) {
-        setVisibleCardCount(9);
+        setVisibleCardCount(15); // 모바일: 15장
       } else if (width < 1024) {
-        setVisibleCardCount(13);
+        setVisibleCardCount(21); // 태블릿: 21장
       } else {
-        setVisibleCardCount(17);
+        setVisibleCardCount(27); // 데스크톱: 27장
       }
     };
     updateVisibleCount();
@@ -98,14 +98,13 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
     return () => window.removeEventListener('resize', updateVisibleCount);
   }, []);
 
-  // 휠 회전 함수
-  const rotateWheel = (direction: 'left' | 'right') => {
-    const rotationAmount = 360 / totalDeckSize; // 카드 하나당 회전 각도
-    const steps = isMobile ? 3 : 5; // 한 번에 회전할 카드 수
-    setWheelRotation(prev => 
+  // 부채꼴 회전 함수
+  const rotateFan = (direction: 'left' | 'right') => {
+    const steps = isMobile ? 2 : 3; // 한 번에 이동할 카드 수
+    setFanRotation(prev => 
       direction === 'left' 
-        ? prev + (rotationAmount * steps)
-        : prev - (rotationAmount * steps)
+        ? prev - steps
+        : prev + steps
     );
   };
 
@@ -115,10 +114,10 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       if (isRevealing) return;
       e.preventDefault();
       const direction = e.deltaY > 0 ? 'right' : 'left';
-      rotateWheel(direction);
+      rotateFan(direction);
     };
 
-    const container = wheelContainerRef.current;
+    const container = fanContainerRef.current;
     if (container) {
       container.addEventListener('wheel', handleWheel, { passive: false });
       return () => container.removeEventListener('wheel', handleWheel);
@@ -128,7 +127,7 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
   return (
     <div className="max-w-7xl mx-auto px-4">
       {/* 안내 메시지 */}
-      <div className="text-center mb-8">
+      <div className="text-center mb-6">
         <div className="inline-flex items-center gap-2 px-6 py-3 bg-mystical-gold/20 border border-mystical-gold/50 rounded-full mb-4">
           <Sparkles className="w-5 h-5 text-mystical-gold" />
           <span className="text-mystical-gold font-semibold">
@@ -157,149 +156,179 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         )}
       </div>
 
-      {/* 카드 휠 - U자형 회전 스프레드 */}
-      <div className="relative">
-        {/* 회전 버튼 */}
-        <button
-          onClick={() => rotateWheel('left')}
-          disabled={isRevealing}
-          className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-30 bg-purple-800/90 p-3 md:p-4 rounded-full shadow-2xl hover:bg-purple-700 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="왼쪽 회전"
-        >
-          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
-        </button>
-        <button
-          onClick={() => rotateWheel('right')}
-          disabled={isRevealing}
-          className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-30 bg-purple-800/90 p-3 md:p-4 rounded-full shadow-2xl hover:bg-purple-700 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="오른쪽 회전"
-        >
-          <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-        </button>
-
-        <div className="text-center text-sm text-white/60 mb-4">
-          💡 마우스 휠이나 버튼으로 카드를 회전시켜 보세요
-        </div>
-
-        {/* 회전 휠 카드 배치 */}
-        <div 
-          ref={wheelContainerRef}
-          className="relative mx-auto overflow-hidden"
-          style={{ 
-            height: isMobile ? '400px' : '500px',
-            maxWidth: '100%'
-          }}
-        >
-          <div className="absolute inset-0 flex items-center justify-center">
-            {deckCards.map((cardIndex) => {
-              const isSelected = selectedCards.includes(cardIndex);
+      {/* 선택된 카드 표시 영역 */}
+      {selectedCards.length > 0 && (
+        <div className="mb-8">
+          <div className="flex flex-wrap justify-center gap-3 md:gap-4 p-4 bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30">
+            {selectedCards.map((cardIndex, idx) => {
               const isRevealed = revealedCards.has(cardIndex);
-              const selectionOrder = selectedCards.indexOf(cardIndex);
-              
-              // 원형 배치를 위한 각도 계산 (회전 적용)
-              const baseAngle = (cardIndex / totalDeckSize) * 360;
-              const angle = baseAngle + wheelRotation;
-              const angleRad = (angle * Math.PI) / 180;
-              
-              // 화면 크기에 따른 반지름
-              const radius = isMobile ? 180 : 260;
-              
-              // 카드 위치 계산 (원형 배치)
-              const x = Math.sin(angleRad) * radius;
-              const y = -Math.cos(angleRad) * radius * 0.6; // 0.6을 곱해서 U자형으로
-              
-              // 중앙 근처의 카드만 표시 (가시성 최적화)
-              const normalizedAngle = ((angle % 360) + 360) % 360;
-              const isInVisibleRange = normalizedAngle < (180 * visibleCardCount / totalDeckSize) || 
-                                      normalizedAngle > (360 - 180 * visibleCardCount / totalDeckSize);
-              
-              if (!isInVisibleRange && !isSelected) return null;
-              
-              // 카드 크기 (거리에 따라 조정)
-              const distanceFromCenter = Math.abs(normalizedAngle - 180);
-              const scale = 1 - (distanceFromCenter / 360) * 0.4;
-              const opacity = isSelected ? 1 : 0.6 + scale * 0.4;
-              
               return (
-                <button
+                <div
                   key={cardIndex}
-                  onClick={() => handleCardClick(cardIndex)}
-                  disabled={isRevealing || (isSelected && !isRevealed)}
-                  className={`
-                    absolute ${isMobile ? 'w-20' : 'w-28 md:w-32'} aspect-[2/3] rounded-lg transition-all duration-300
-                    ${isSelected ? 'z-30 scale-110' : 'hover:scale-105 z-10'}
-                    ${isRevealed ? 'animate-flip' : ''}
-                    ${!isSelected && !isRevealing ? 'cursor-pointer' : 'cursor-default'}
-                  `}
+                  className={`relative transition-all duration-500 ${
+                    isRevealed ? 'animate-revealCard' : ''
+                  }`}
                   style={{
-                    transformStyle: 'preserve-3d',
-                    transform: `translate(${x}px, ${y}px) scale(${isSelected ? 1.1 : scale}) ${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'}`,
-                    opacity: opacity,
-                    left: '50%',
-                    top: '50%',
-                    marginLeft: isMobile ? '-40px' : '-56px',
-                    marginTop: isMobile ? '-60px' : '-84px'
+                    animationDelay: `${idx * 400}ms`
                   }}
                 >
+                  <div 
+                    className={`${isMobile ? 'w-20' : 'w-24 md:w-28'} aspect-[2/3] rounded-lg transition-all duration-500`}
+                    style={{
+                      transformStyle: 'preserve-3d',
+                      transform: isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                    }}
+                  >
                     {/* 카드 뒷면 */}
-                    <div className={`
-                      absolute inset-0 rounded-lg
-                      bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900
-                      border-2 ${isSelected ? 'border-mystical-gold shadow-[0_0_30px_rgba(218,165,32,0.6)]' : 'border-purple-400/50'}
-                      flex items-center justify-center
-                      backface-hidden
-                    `}>
-                      <div className="relative w-full h-full p-1.5 md:p-2">
+                    <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900 border-2 border-mystical-gold shadow-[0_0_20px_rgba(218,165,32,0.4)] flex items-center justify-center backface-hidden">
+                      <div className="relative w-full h-full p-2">
                         <div className="w-full h-full border-2 border-mystical-gold/30 rounded flex items-center justify-center">
-                          <div className="text-center">
-                            <Sparkles className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} text-mystical-gold/50 mx-auto mb-1`} />
-                            <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} border-2 border-mystical-gold/30 rounded-full mx-auto`} />
-                          </div>
+                          <Sparkles className="w-6 h-6 text-mystical-gold/50" />
                         </div>
                       </div>
-                      
-                      {isSelected && !isRevealed && (
-                        <div className="absolute top-1 right-1 w-5 h-5 md:w-6 md:h-6 bg-mystical-gold rounded-full flex items-center justify-center text-xs font-bold text-purple-900">
-                          {selectionOrder + 1}
-                        </div>
-                      )}
+                      <div className="absolute top-1 right-1 w-6 h-6 bg-mystical-gold rounded-full flex items-center justify-center text-xs font-bold text-purple-900">
+                        {idx + 1}
+                      </div>
                     </div>
-
+                    
                     {/* 카드 앞면 */}
                     {isRevealed && drawnCards && (
                       <div 
-                        className="absolute inset-0 rounded-lg bg-white flex flex-col items-center justify-center p-1 backface-hidden overflow-hidden"
+                        className="absolute inset-0 rounded-lg bg-white flex items-center justify-center p-1 backface-hidden shadow-xl"
                         style={{ transform: 'rotateY(180deg)' }}
                       >
                         {(() => {
-                          const cardData = drawnCards[selectionOrder];
-                          if (!cardData) return <div className="text-3xl md:text-4xl">🎴</div>;
-                          
+                          const cardData = drawnCards[idx];
+                          if (!cardData) return <div className="text-4xl">🎴</div>;
                           return (
                             <>
                               {cardData.card.imageUrl ? (
                                 <img 
                                   src={cardData.card.imageUrl}
                                   alt={cardData.card.nameKo}
-                                  className={`w-full h-full object-contain ${cardData.isReversed ? 'rotate-180' : ''}`}
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                  }}
+                                  className={`w-full h-full object-contain rounded ${cardData.isReversed ? 'rotate-180' : ''}`}
                                 />
-                              ) : null}
-                              <div className={cardData.card.imageUrl ? 'hidden' : 'flex flex-col items-center justify-center h-full'}>
-                                <div className="text-3xl md:text-4xl mb-1">🎴</div>
-                                <p className="text-xs font-bold text-purple-900 text-center px-1">{cardData.card.nameKo}</p>
-                                {cardData.isReversed && (
-                                  <p className="text-xs text-red-600">역방향</p>
-                                )}
-                              </div>
+                              ) : (
+                                <div className="text-center">
+                                  <div className="text-4xl mb-1">🎴</div>
+                                  <p className="text-xs font-bold text-purple-900">{cardData.card.nameKo}</p>
+                                </div>
+                              )}
                             </>
                           );
                         })()}
                       </div>
                     )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 카드 부채꼴 스프레드 */}
+      <div className="relative">
+        {/* 회전 버튼 */}
+        <button
+          onClick={() => rotateFan('left')}
+          disabled={isRevealing || selectedCards.length === totalCards}
+          className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-30 bg-purple-800/90 p-3 md:p-4 rounded-full shadow-2xl hover:bg-purple-700 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="왼쪽 이동"
+        >
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+        </button>
+        <button
+          onClick={() => rotateFan('right')}
+          disabled={isRevealing || selectedCards.length === totalCards}
+          className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-30 bg-purple-800/90 p-3 md:p-4 rounded-full shadow-2xl hover:bg-purple-700 transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="오른쪽 이동"
+        >
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+        </button>
+
+        {selectedCards.length < totalCards && (
+          <div className="text-center text-sm text-white/60 mb-4">
+            💡 마우스 휠이나 버튼으로 카드를 탐색하세요
+          </div>
+        )}
+
+        {/* 부채꼴 카드 배치 */}
+        <div 
+          ref={fanContainerRef}
+          className="relative mx-auto overflow-hidden"
+          style={{ 
+            height: isMobile ? '350px' : '450px',
+            maxWidth: '100%'
+          }}
+        >
+          <div className="absolute inset-0 flex items-end justify-center">
+            {deckCards.map((cardIndex) => {
+              const isSelected = selectedCards.includes(cardIndex);
+              
+              // 선택된 카드는 별도 영역에 표시하므로 여기서는 숨김
+              if (isSelected) return null;
+              
+              // 부채꼴 배치를 위한 각도 계산
+              const position = cardIndex + fanRotation;
+              const centerIndex = Math.floor(totalDeckSize / 2);
+              const offsetFromCenter = position - centerIndex;
+              
+              // 가시 범위 확인 (더 넓은 범위)
+              const halfVisible = Math.floor(visibleCardCount / 2);
+              if (Math.abs(offsetFromCenter) > halfVisible) return null;
+              
+              // 부채꼴 각도 계산 (120도 범위를 사용하여 더 넓게)
+              const maxAngle = isMobile ? 100 : 120; // 부채꼴 펼침 각도
+              const anglePerCard = maxAngle / visibleCardCount;
+              const angle = offsetFromCenter * anglePerCard;
+              const angleRad = (angle * Math.PI) / 180;
+              
+              // 화면 크기에 따른 반지름 (더 길게)
+              const radius = isMobile ? 280 : 380;
+              
+              // 부채꼴 위치 계산 (아래에서 위로 펼쳐짐)
+              const x = Math.sin(angleRad) * radius;
+              const y = -Math.cos(angleRad) * radius + radius; // 아래쪽 중심
+              
+              // 중앙에서 멀어질수록 작아지는 효과
+              const distanceFromCenter = Math.abs(offsetFromCenter);
+              const scale = 1 - (distanceFromCenter / visibleCardCount) * 0.3;
+              const opacity = 0.7 + (1 - distanceFromCenter / visibleCardCount) * 0.3;
+              
+              // 카드 회전 (부채꼴 효과)
+              const cardRotation = angle * 0.7;
+              
+              return (
+                <button
+                  key={cardIndex}
+                  onClick={() => handleCardClick(cardIndex)}
+                  disabled={isRevealing}
+                  className={`
+                    absolute ${isMobile ? 'w-16' : 'w-20 md:w-24'} aspect-[2/3] rounded-lg transition-all duration-300
+                    hover:scale-110 hover:z-20 cursor-pointer
+                  `}
+                  style={{
+                    transform: `translate(${x}px, ${y}px) scale(${scale}) rotate(${cardRotation}deg)`,
+                    opacity: opacity,
+                    left: '50%',
+                    top: '0',
+                    marginLeft: isMobile ? '-32px' : '-40px',
+                    transformOrigin: 'center bottom',
+                    zIndex: Math.floor(10 - Math.abs(offsetFromCenter))
+                  }}
+                >
+                    {/* 카드 뒷면 */}
+                    <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900 border-2 border-purple-400/50 hover:border-mystical-gold/70 flex items-center justify-center shadow-lg transition-all">
+                      <div className="relative w-full h-full p-1.5">
+                        <div className="w-full h-full border-2 border-mystical-gold/30 rounded flex items-center justify-center">
+                          <div className="text-center">
+                            <Sparkles className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'} text-mystical-gold/50 mx-auto mb-1`} />
+                            <div className={`${isMobile ? 'w-4 h-4' : 'w-6 h-6'} border-2 border-mystical-gold/30 rounded-full mx-auto`} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                 </button>
               );
             })}
@@ -308,20 +337,21 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       </div>
 
       <style>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
+        @keyframes revealCard {
+          0% {
+            opacity: 0;
+            transform: scale(0.5) translateY(-50px);
+          }
+          50% {
+            transform: scale(1.2) translateY(-20px);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
         }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        
-        @keyframes flip {
-          0% { transform: rotateY(0deg); }
-          100% { transform: rotateY(180deg); }
-        }
-        .animate-flip {
-          animation: flip 0.6s ease-in-out forwards;
+        .animate-revealCard {
+          animation: revealCard 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
         .backface-hidden {
           backface-visibility: hidden;
