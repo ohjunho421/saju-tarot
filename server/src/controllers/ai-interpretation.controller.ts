@@ -92,7 +92,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       drawnCards,
       spreadType,
       question,
-      previousContext
+      previousContext,
+      user.name || undefined
     );
 
     // 리딩 결과 저장

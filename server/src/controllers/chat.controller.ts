@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getAIService } from '../services/ai.service';
+import prisma from '../utils/prisma';
 
 export const chatWithReading = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -20,8 +21,19 @@ export const chatWithReading = async (req: Request, res: Response): Promise<void
       return;
     }
 
+    // 사용자 이름 조회
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { name: true }
+    });
+
     const aiService = getAIService();
-    const answer = await aiService.chatAboutReading(question, reading, chatHistory || []);
+    const answer = await aiService.chatAboutReading(
+      question, 
+      reading, 
+      chatHistory || [],
+      user?.name || undefined
+    );
 
     res.json({
       success: true,

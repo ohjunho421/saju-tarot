@@ -144,7 +144,8 @@ JSON 형식으로 답변해주세요:
     drawnCards: DrawnCard[],
     spreadType: SpreadType,
     question: string,
-    previousContext?: Array<{ date: string; question: string; summary: string }> | null
+    previousContext?: Array<{ date: string; question: string; summary: string }> | null,
+    userName?: string
   ): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -167,44 +168,73 @@ ${previousContext.map((ctx, i) => `${i + 1}. [${ctx.date}] "${ctx.question}"
 `
       : '';
 
+    // 오행별 자연스러운 설명
+    const elementDescriptions: Record<string, string> = {
+      '목': '나무의 기운으로, 봄처럼 성장하고 뻗어나가는 에너지입니다. 목 기운이 강한 사람은 창의적이고 유연하며 발전을 추구합니다.',
+      '화': '불의 기운으로, 여름처럼 뜨겁고 활동적인 에너지입니다. 화 기운이 강한 사람은 열정적이고 적극적이며 밝은 성격을 지닙니다.',
+      '토': '흙의 기운으로, 계절의 전환기처럼 안정되고 중심을 잡는 에너지입니다. 토 기운이 강한 사람은 신뢰할 수 있고 포용력이 있으며 조화를 이룹니다.',
+      '금': '금속의 기운으로, 가을처럼 결실을 맺고 정리하는 에너지입니다. 금 기운이 강한 사람은 논리적이고 원칙을 중시하며 결단력이 있습니다.',
+      '수': '물의 기운으로, 겨울처럼 고요하고 깊이 있는 에너지입니다. 수 기운이 강한 사람은 유연하고 지혜로우며 투명하고 순수한 면이 있습니다.'
+    };
+
+    const userElement = sajuAnalysis.dayMasterElement;
+    const elementDesc = elementDescriptions[userElement] || '';
+    const namePrefix = userName ? `${userName}님의 ` : '';
+
     const prompt = `
 동양 철학과 타로를 융합한 전문가로서 친근하게 해석해주세요.
 
-[사용자]
-일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement}), 강한 오행: ${sajuAnalysis.strongElements.join(', ')}, 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
+[사용자 정보]
+${userName ? `이름: ${userName}님` : ''}
+일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
+${namePrefix}일간은 ${elementDesc}
+강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
 ${previousContextText}
+
 [질문] "${question}"
 
-[카드]
+[뽑힌 타로 카드]
 ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => 
   `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(${dc.isReversed ? '역' : '정'}) - ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}`
 ).join('\n')}
 ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? 
   `\n조언: ${drawnCards.find(dc => dc.positionMeaning === '조언 카드')!.card.nameKo}(${drawnCards.find(dc => dc.positionMeaning === '조언 카드')!.isReversed ? '역' : '정'})` : ''}
 
-⚠️ 규칙: 마크다운 금지(*, **, #, - 등), "---"로 섹션 구분
+⚠️ 필수 규칙:
+1. 마크다운 절대 금지(*, **, #, -, > 등 일체 사용 금지)
+2. "---"로만 섹션 구분
+3. ${userName ? userName + '님' : '당신'}을 자연스럽게 호칭
+4. 오행 특성을 비유로 풀어서 설명 (예: "물의 기운처럼 유연하고 투명한 ${userName ? userName + '님의' : '당신의'} 성향이...")
 
 [질문에 대한 결론]
-질문에 대한 핵심 답을 먼저 명확히 요약 (150~200자)
+${userName ? userName + '님' : '당신'}의 질문에 대한 핵심 답을 명확히 요약 (150~200자)
 
 ---
 
 [각 타로 카드의 상세 해석]
 ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => 
-  `${i + 1}. ${dc.card.nameKo}: 카드 상징 설명 → 사주 오행과의 연결 → 실천 메시지 (200자)`
+  `${i + 1}. ${dc.card.nameKo}: 
+   - 카드 그림과 상징 설명
+   - ${userName ? userName + '님의' : '당신의'} ${userElement} 기운(${elementDesc.split('.')[0]})이 이 카드와 어떻게 연결되는지 자연스럽게 풀어서 설명
+   - 이러한 성향 때문에 현재 어떤 상황/고민이 생긴 것인지 해석
+   - 실천 메시지 (각 카드당 200자 내외)`
 ).join('\n')}
-전체 카드의 흐름과 사주의 조화 설명 (200자)
+
+전체 카드의 흐름: 모든 카드가 ${userName ? userName + '님의' : '당신의'} 사주와 어떻게 조화를 이루는지 종합 설명 (200자)
 
 ---
 
 [오행의 흐름과 현재 시기]
-${dateContext.season}, ${dateContext.jieqi} 시기의 ${seasonalElement} 기운과 사주, 카드의 조화 설명 (200자)
+지금은 ${dateContext.season}, ${dateContext.jieqi} 시기로 ${seasonalElement} 기운이 강합니다.
+${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 현재 계절의 기운, 그리고 뽑힌 카드들이 어떻게 서로 영향을 주는지 자연스럽게 설명해주세요. 
+마치 ${userElement === '수' ? '물이 흐르듯' : userElement === '목' ? '나무가 자라듯' : userElement === '화' ? '불이 타오르듯' : userElement === '토' ? '흙이 품듯' : '금속이 단단해지듯'} ${userName ? userName + '님의' : '당신의'} 에너지가 현재 어떤 상태인지 비유적으로 표현 (250자)
 
 ---
 
 [실천할 수 있는 조언]
-${dateContext.month}월 현재 강한 오행 활용 + 약한 오행 보완 구체적 방법 (200자)
-${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조언 카드의 메시지]\n조언 카드의 핵심 메시지 (150자)' : ''}
+${dateContext.month}월 현재, ${userName ? userName + '님' : '당신'}이 가진 강한 ${sajuAnalysis.strongElements.join(', ')} 기운을 어떻게 활용하고, 약한 ${sajuAnalysis.weakElements.join(', ')} 기운을 어떻게 보완할지 구체적인 방법을 제시해주세요.
+예를 들어 "수 기운이 약하다면 물처럼 유연한 사고를 기르기 위해..."처럼 오행의 특성을 자연스럽게 연결 (250자)
+${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조언 카드의 메시지]\n조언 카드가 ' + (userName || '당신') + '님께 전하는 핵심 메시지 (150자)' : ''}
 `;
 
     try {
@@ -331,13 +361,26 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
   async chatAboutReading(
     question: string,
     reading: any,
-    chatHistory: Array<{ role: string; content: string }>
+    chatHistory: Array<{ role: string; content: string }>,
+    userName?: string
   ): Promise<string> {
+    const userElement = reading.sajuAnalysis?.dayMasterElement || '';
+    const elementDescriptions: Record<string, string> = {
+      '목': '나무의 기운으로 창의적이고 유연한',
+      '화': '불의 기운으로 열정적이고 활동적인',
+      '토': '흙의 기운으로 안정적이고 포용력 있는',
+      '금': '금속의 기운으로 논리적이고 원칙을 중시하는',
+      '수': '물의 기운으로 유연하고 지혜로운'
+    };
+    const elementDesc = elementDescriptions[userElement] || '';
+
     const prompt = `당신은 타로와 사주 만세력에 정통한 친절한 상담사입니다.
 
 [사용자의 사주 정보]
+${userName ? `이름: ${userName}님` : ''}
 ${reading.sajuAnalysis ? `
 - 일간: ${reading.sajuAnalysis.dayMaster} (${reading.sajuAnalysis.dayMasterElement})
+- ${userName ? userName + '님은' : '이 분은'} ${elementDesc} 성향을 가진 분입니다
 - 강한 오행: ${reading.sajuAnalysis.strongElements?.join(', ') || '정보 없음'}
 - 약한 오행: ${reading.sajuAnalysis.weakElements?.join(', ') || '정보 없음'}
 - 성격 특성: ${reading.sajuAnalysis.personality || '정보 없음'}
@@ -357,9 +400,11 @@ ${chatHistory.slice(-3).map(msg => `${msg.role === 'user' ? '사용자' : '상�
 ${question}
 
 ⚠️ 중요한 답변 규칙:
-- 마크다운 문법을 절대 사용하지 마세요 (*, **, #, - 등 모두 금지)
+- 마크다운 문법을 절대 사용하지 마세요 (*, **, #, -, > 등 모두 금지)
+- ${userName ? userName + '님' : '당신'}을 자연스럽게 호칭하세요
 - 편안하고 친근한 "~해요", "~이에요" 말투 사용
-- 사용자의 사주와 타로 결과를 함께 고려해서 답변하세요
+- ${userName ? userName + '님의' : '당신의'} 사주 오행을 비유로 설명 (예: "${userElement} 기운이 ${userElement === '수' ? '물처럼 유연하게' : userElement === '목' ? '나무처럼 성장하며' : userElement === '화' ? '불처럼 열정적으로' : userElement === '토' ? '흙처럼 안정적으로' : '금속처럼 단단하게'} 작용하고 있어요")
+- ${userName ? userName + '님의' : '사용자의'} 사주와 타로 결과를 함께 고려해서 답변하세요
 - 구체적이고 실천 가능한 조언 제공
 - 답변은 250자 내외로 작성
 - 질문이 관련 없으면 부드럽게 리딩과 연결해서 답변하세요
