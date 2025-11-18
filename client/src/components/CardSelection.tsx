@@ -86,6 +86,29 @@ const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
   ]
 };
 
+// 레이아웃의 범위를 계산하는 함수
+function getLayoutBounds(layout: CardPosition[], cardWidth: number, cardHeight: number) {
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+  
+  layout.forEach(pos => {
+    // 회전된 카드의 경우 대략적인 범위 계산 (90도 회전 시 width/height 교체)
+    const effectiveWidth = pos.rotation === 90 ? cardHeight : cardWidth;
+    const effectiveHeight = pos.rotation === 90 ? cardWidth : cardHeight;
+    
+    minX = Math.min(minX, pos.x - effectiveWidth / 2);
+    maxX = Math.max(maxX, pos.x + effectiveWidth / 2);
+    minY = Math.min(minY, pos.y - effectiveHeight / 2);
+    maxY = Math.max(maxY, pos.y + effectiveHeight / 2);
+  });
+  
+  return {
+    minX, maxX, minY, maxY,
+    width: maxX - minX,
+    height: maxY - minY
+  };
+}
+
 export default function CardSelection({ spreadType, question, drawnCards, onComplete }: CardSelectionProps) {
   const totalCards = SPREAD_CARD_COUNTS[spreadType];
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
@@ -233,24 +256,50 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       {/* 선택된 카드 표시 영역 - 스프레드별 배치 */}
       {selectedCards.length > 0 && (
         <div className="mb-8">
-          <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-8 md:p-12" style={{ minHeight: isMobile ? '300px' : '400px' }}>
+          <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-8 md:p-12 overflow-hidden" style={{ minHeight: isMobile ? '320px' : '420px' }}>
             <div className="relative" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {selectedCards.map((cardIndex, idx) => {
-                const isRevealed = revealedCards.has(cardIndex);
-                const layout = SPREAD_LAYOUTS[spreadType][idx];
-                const cardSize = isMobile ? 'w-16' : 'w-20 md:w-24';
+              {(() => {
+                // 카드 크기 계산 (px 단위)
+                const cardWidthPx = isMobile ? 64 : 80; // w-16 = 64px, w-20 = 80px
+                const cardHeightPx = cardWidthPx * 1.5; // aspect-[2/3]
                 
-                return (
-                  <div
-                    key={cardIndex}
-                    className={`absolute transition-all duration-500 ${
-                      isRevealed ? 'animate-revealCard' : ''
-                    }`}
-                    style={{
-                      transform: `translate(${layout.x}px, ${layout.y}px)`,
-                      animationDelay: `${idx * 400}ms`
-                    }}
-                  >
+                // 현재 스프레드의 레이아웃
+                const currentLayout = SPREAD_LAYOUTS[spreadType];
+                
+                // 레이아웃의 실제 범위 계산
+                const bounds = getLayoutBounds(currentLayout, cardWidthPx, cardHeightPx);
+                
+                // 박스의 사용 가능한 공간 계산 (padding 제외)
+                const paddingPx = isMobile ? 32 : 48; // p-8 = 32px, p-12 = 48px
+                const minHeightPx = isMobile ? 320 : 420;
+                const availableWidth = (isMobile ? window.innerWidth : 1280) - paddingPx * 2; // 최대 너비 제한
+                const availableHeight = minHeightPx - paddingPx * 2;
+                
+                // 스케일 팩터 계산 (여유 공간 20% 확보)
+                const scaleX = bounds.width > 0 ? (availableWidth * 0.8) / bounds.width : 1;
+                const scaleY = bounds.height > 0 ? (availableHeight * 0.8) / bounds.height : 1;
+                const scale = Math.min(scaleX, scaleY, 1); // 확대는 하지 않고 축소만
+                
+                return selectedCards.map((cardIndex, idx) => {
+                  const isRevealed = revealedCards.has(cardIndex);
+                  const layout = currentLayout[idx];
+                  const cardSize = isMobile ? 'w-16' : 'w-20 md:w-24';
+                  
+                  // 스케일링된 좌표
+                  const scaledX = layout.x * scale;
+                  const scaledY = layout.y * scale;
+                  
+                  return (
+                    <div
+                      key={cardIndex}
+                      className={`absolute transition-all duration-500 ${
+                        isRevealed ? 'animate-revealCard' : ''
+                      }`}
+                      style={{
+                        transform: `translate(${scaledX}px, ${scaledY}px)`,
+                        animationDelay: `${idx * 400}ms`
+                      }}
+                    >
                     <div 
                       className={`${cardSize} aspect-[2/3] rounded-lg transition-all duration-500`}
                       style={{
@@ -301,7 +350,7 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                     </div>
                   </div>
                 );
-              })}
+              })})()}
             </div>
           </div>
         </div>
