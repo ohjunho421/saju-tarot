@@ -256,7 +256,7 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       {/* 선택된 카드 표시 영역 - 스프레드별 배치 */}
       {selectedCards.length > 0 && (
         <div className="mb-8">
-          <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-8 md:p-12 overflow-hidden" style={{ minHeight: isMobile ? '320px' : '420px' }}>
+          <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-8 md:p-12 overflow-hidden" style={{ minHeight: isMobile ? '380px' : '500px' }}>
             <div className="relative" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {(() => {
                 // 카드 크기 계산 (px 단위)
@@ -271,13 +271,13 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                 
                 // 박스의 사용 가능한 공간 계산 (padding 제외)
                 const paddingPx = isMobile ? 32 : 48; // p-8 = 32px, p-12 = 48px
-                const minHeightPx = isMobile ? 320 : 420;
+                const minHeightPx = isMobile ? 380 : 500;
                 const availableWidth = (isMobile ? window.innerWidth : 1280) - paddingPx * 2; // 최대 너비 제한
                 const availableHeight = minHeightPx - paddingPx * 2;
                 
-                // 스케일 팩터 계산 (여유 공간 20% 확보)
-                const scaleX = bounds.width > 0 ? (availableWidth * 0.8) / bounds.width : 1;
-                const scaleY = bounds.height > 0 ? (availableHeight * 0.8) / bounds.height : 1;
+                // 스케일 팩터 계산 (여유 공간 30% 확보)
+                const scaleX = bounds.width > 0 ? (availableWidth * 0.7) / bounds.width : 1;
+                const scaleY = bounds.height > 0 ? (availableHeight * 0.7) / bounds.height : 1;
                 const scale = Math.min(scaleX, scaleY, 1); // 확대는 하지 않고 축소만
                 
                 return selectedCards.map((cardIndex, idx) => {
