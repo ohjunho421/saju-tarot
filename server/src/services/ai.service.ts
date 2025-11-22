@@ -71,7 +71,7 @@ JSON 형식으로 답변해주세요:
       let response: string;
 
       if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-2.5-pro' });
+        const model = this.gemini.getGenerativeModel({ model: 'gemini-3-pro-preview' });
         const result = await model.generateContent(prompt);
         response = result.response.text();
       } else if (this.claude) {
@@ -241,7 +241,7 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조
       let response: string;
 
       if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-2.5-pro' });
+        const model = this.gemini.getGenerativeModel({ model: 'gemini-3-pro-preview' });
         const result = await model.generateContent(prompt);
         response = result.response.text();
       } else if (this.claude) {
@@ -414,7 +414,7 @@ ${question}
       let response: string;
 
       if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-2.5-pro' });
+        const model = this.gemini.getGenerativeModel({ model: 'gemini-3-pro-preview' });
         const result = await model.generateContent(prompt);
         response = result.response.text();
       } else if (this.claude) {
