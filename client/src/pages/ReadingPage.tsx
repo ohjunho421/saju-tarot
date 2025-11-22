@@ -18,7 +18,6 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [sajuAnalysis, setSajuAnalysis] = useState<SajuAnalysis | null>(null);
   const [selectedSpread, setSelectedSpread] = useState<SpreadType | null>(null);
   const [question, setQuestion] = useState<string>('');
-  const [includeAdvice, setIncludeAdvice] = useState<boolean | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,12 +41,10 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
           setSajuAnalysis(user.sajuAnalysis as SajuAnalysis);
           setStep('tarot'); // 생년월일 입력과 사주 분석 모두 스킵하고 바로 타로 리딩으로
         }
+        // 사용자 정보가 없어도 계속 진행 (생년월일 입력부터 시작)
       } catch (error) {
         console.error('사용자 정보 로드 실패:', error);
-        setError('사용자 정보를 불러오는데 실패했습니다. 다시 로그인해주세요.');
-        setTimeout(() => {
-          onBack();
-        }, 2000);
+        // 에러가 나도 토큰이 있으면 진행 허용 (생년월일 입력부터)
       }
     };
     loadUserInfo();
@@ -74,11 +71,12 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   };
 
   const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean) => {
+    console.log('🎴 handleTarotComplete 호출:', { spreadType, userQuestion, includeAdvice });
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
-    setIncludeAdvice(includeAdvice);
     
     // 사용자가 먼저 카드를 선택하도록 바로 카드 선택 화면으로 이동
+    console.log('📍 cardSelection 단계로 전환');
     setStep('cardSelection');
   };
 
@@ -92,7 +90,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     try {
       // 로그인한 사용자만 접근 가능하므로 AI API 사용
       const { aiApi } = await import('../services/api');
-      const reading = await aiApi.getAIReading(question, selectedSpread, includeAdvice, cardPositions);
+      const reading = await aiApi.getAIReading(question, selectedSpread, undefined, cardPositions);
       
       // 결과 표시
       onComplete(reading);
