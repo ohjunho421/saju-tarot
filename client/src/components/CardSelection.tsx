@@ -176,9 +176,9 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         if (i === cards.length - 1) {
           setTimeout(() => {
             onComplete(cards);
-          }, 1000); // 1초로 단축
+          }, 4000); // 4초 대기 - 사용자가 카드를 충분히 볼 수 있도록
         }
-      }, i * 200); // 카드당 200ms 간격으로 단축
+      }, i * 300); // 카드당 300ms 간격으로 천천히
     });
   };
 
@@ -377,12 +377,13 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                   return (
                     <div
                       key={cardIndex}
-                      className={`absolute transition-all duration-500 ${
-                        isRevealed ? 'animate-revealCard' : ''
+                      className={`absolute ${
+                        isRevealed ? 'animate-revealCard' : 'opacity-0'
                       }`}
                       style={{
-                        transform: `translate(${scaledX}px, ${scaledY}px)`
-                        // animationDelay 제거 - 모든 카드 동시에 표시
+                        transform: `translate(${scaledX}px, ${scaledY}px)`,
+                        animationDelay: `${idx * 300}ms`
+                        // 카드는 처음부터 최종 위치에 있고, 순서대로 천천히 페이드인만 됨
                       }}
                     >
                     <div 

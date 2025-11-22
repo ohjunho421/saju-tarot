@@ -19,7 +19,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [selectedSpread, setSelectedSpread] = useState<SpreadType | null>(null);
   const [question, setQuestion] = useState<string>('');
   const [drawnCardsData, setDrawnCardsData] = useState<any>(null);
-  const [completeReading, setCompleteReading] = useState<IntegratedReading | null>(null);
+  const [readingPromise, setReadingPromise] = useState<Promise<IntegratedReading> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,41 +68,43 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
     
-    // 먼저 카드를 뽑고 해석을 완료
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      let reading;
-      
-      if (token && userQuestion) {
-        const { aiApi } = await import('../services/api');
-        reading = await aiApi.getAIReading(userQuestion, spreadType, includeAdvice);
-      } else {
-        reading = await interpretationApi.getIntegrated(birthInfo!, spreadType, userQuestion);
-      }
-      
-      // 완전한 리딩 결과 저장 (해석 포함)
-      setCompleteReading(reading);
-      setDrawnCardsData(reading.drawnCards);
-      setStep('cardSelection');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '카드 데이터를 가져오는 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
+    // 백그라운드에서 AI 해석 시작 (로딩 없이 바로 카드 선택 화면으로)
+    const token = localStorage.getItem('token');
+    let readingPromiseResult: Promise<IntegratedReading>;
+    
+    if (token && userQuestion) {
+      const { aiApi } = await import('../services/api');
+      readingPromiseResult = aiApi.getAIReading(userQuestion, spreadType, includeAdvice);
+    } else {
+      readingPromiseResult = interpretationApi.getIntegrated(birthInfo!, spreadType, userQuestion);
     }
+    
+    setReadingPromise(readingPromiseResult);
+    
+    // 카드 데이터를 미리 가져오기 위해 Promise를 시작하지만 기다리지 않음
+    readingPromiseResult.then(reading => {
+      setDrawnCardsData(reading.drawnCards);
+    }).catch(err => {
+      console.error('카드 데이터 로드 실패:', err);
+    });
+    
+    // 즉시 카드 선택 화면으로 이동
+    setStep('cardSelection');
   };
 
   const handleCardSelectionComplete = async (_cardPositions: number[]) => {
-    if (!completeReading) return;
+    if (!readingPromise) return;
 
-    // 사용자가 카드를 모두 선택 완료 - 이미 저장된 리딩 결과 사용
+    // 사용자가 카드를 모두 선택 완료 - AI 해석 완료 대기
     setLoading(true);
     setError(null);
 
     try {
-      // 카드 선택 애니메이션 후 결과 표시를 위한 짧은 딜레이
-      await new Promise(resolve => setTimeout(resolve, 500));
-      onComplete(completeReading);
+      // AI 해석이 완료될 때까지 대기
+      const reading = await readingPromise;
+      
+      // 결과 표시
+      onComplete(reading);
     } catch (err) {
       setError(err instanceof Error ? err.message : '타로 리딩 중 오류가 발생했습니다.');
     } finally {
