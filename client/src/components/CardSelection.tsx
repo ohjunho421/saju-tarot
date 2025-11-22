@@ -176,9 +176,9 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         if (i === cards.length - 1) {
           setTimeout(() => {
             onComplete(cards);
-          }, 3000); // 3초로 증가하여 사용자가 카드를 충분히 볼 수 있도록
+          }, 1000); // 1초로 단축
         }
-      }, i * 400);
+      }, i * 200); // 카드당 200ms 간격으로 단축
     });
   };
 
@@ -381,8 +381,8 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                         isRevealed ? 'animate-revealCard' : ''
                       }`}
                       style={{
-                        transform: `translate(${scaledX}px, ${scaledY}px)`,
-                        animationDelay: `${idx * 400}ms`
+                        transform: `translate(${scaledX}px, ${scaledY}px)`
+                        // animationDelay 제거 - 모든 카드 동시에 표시
                       }}
                     >
                     <div 

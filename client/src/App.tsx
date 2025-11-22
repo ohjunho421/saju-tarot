@@ -35,6 +35,11 @@ function App() {
     checkLoginStatus();
   }, []);
 
+  // 페이지 이동 시 맨 위로 스크롤
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
+
   const handleStartReading = () => {
     setCurrentStep('reading');
   };
