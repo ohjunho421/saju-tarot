@@ -433,8 +433,10 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
                       </div>
                       
                       {/* 카드 앞면 */}
-                      {isRevealed && allTarotCards.length > 0 && (() => {
-                        const tarotCard = allTarotCards[cardIndex];
+                      {isRevealed && allTarotCards.length > 0 && deckCards.length > 0 && (() => {
+                        // cardIndex는 선택한 위치이고, 실제 카드 번호는 deckCards에서 가져옴
+                        const actualCardNumber = deckCards[cardIndex];
+                        const tarotCard = allTarotCards[actualCardNumber];
                         if (!tarotCard) {
                           return (
                             <div 
