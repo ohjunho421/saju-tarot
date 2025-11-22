@@ -194,7 +194,7 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
   const revealCards = (cards: number[]) => {
     setIsRevealing(true);
     
-    // 카드를 하나씩 뒤집기
+    // 카드를 하나씩 천천히 뒤집기
     cards.forEach((cardIndex, i) => {
       setTimeout(() => {
         setRevealedCards(prev => new Set([...prev, cardIndex]));
@@ -203,9 +203,9 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
         if (i === cards.length - 1) {
           setTimeout(() => {
             onComplete(cards);
-          }, 4000); // 4초 대기 - 사용자가 카드를 충분히 볼 수 있도록
+          }, 8000); // 8초 대기 - 사용자가 카드를 충분히 볼 수 있도록
         }
-      }, i * 300); // 카드당 300ms 간격으로 천천히
+      }, i * 800); // 카드당 800ms 간격으로 천천히 뒤집기
     });
   };
 
@@ -404,20 +404,20 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
                   return (
                     <div
                       key={cardIndex}
-                      className={`absolute ${
-                        isRevealed ? 'animate-revealCard' : 'opacity-0'
-                      }`}
+                      className="absolute"
                       style={{
                         transform: `translate(${scaledX}px, ${scaledY}px)`,
-                        animationDelay: `${idx * 300}ms`
-                        // 카드는 처음부터 최종 위치에 있고, 순서대로 천천히 페이드인만 됨
+                        opacity: 1
+                        // 카드는 선택되자마자 즉시 패딩 영역에 표시됨 (뒷면)
                       }}
                     >
                     <div 
-                      className={`${cardSize} aspect-[2/3] rounded-lg transition-all duration-500`}
+                      className={`${cardSize} aspect-[2/3] rounded-lg`}
                       style={{
                         transformStyle: 'preserve-3d',
-                        transform: `${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'} rotate(${layout.rotation || 0}deg)`
+                        transform: `${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'} rotate(${layout.rotation || 0}deg)`,
+                        transition: 'transform 1.2s ease-in-out'
+                        // 뒤집기 애니메이션만 (이동 없음)
                       }}
                     >
                       {/* 카드 뒷면 */}
