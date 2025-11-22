@@ -129,9 +129,20 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
   // 모든 타로 카드 데이터
   const [allTarotCards, setAllTarotCards] = useState<TarotCard[]>([]);
 
-  // 카드 덱 생성 (78장)
+  // 카드 덱 생성 (78장) - 매번 섞임
   const totalDeckSize = 78;
-  const deckCards = Array.from({ length: totalDeckSize }, (_, i) => i);
+  const [deckCards, setDeckCards] = useState<number[]>([]);
+
+  // 카드 덱 섞기
+  useEffect(() => {
+    const shuffled = Array.from({ length: totalDeckSize }, (_, i) => i);
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    setDeckCards(shuffled);
+    console.log('🔀 카드 덱이 섞였습니다');
+  }, []); // 마운트될 때 한 번만 섞음
 
   // 타로 카드 데이터 로드
   useEffect(() => {
