@@ -406,31 +406,15 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                       </div>
                       
                       {/* 카드 앞면 */}
-                      {isRevealed && drawnCards && (
+                      {isRevealed && (
                         <div 
-                          className="absolute inset-0 rounded-lg bg-white flex items-center justify-center p-1 backface-hidden shadow-xl"
+                          className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-100 to-white flex items-center justify-center p-2 backface-hidden shadow-xl"
                           style={{ transform: 'rotateY(180deg)' }}
                         >
-                          {(() => {
-                            const cardData = drawnCards[idx];
-                            if (!cardData) return <div className="text-3xl md:text-4xl">🎴</div>;
-                            return (
-                              <>
-                                {cardData.card.imageUrl ? (
-                                  <img 
-                                    src={cardData.card.imageUrl}
-                                    alt={cardData.card.nameKo}
-                                    className={`w-full h-full object-contain rounded ${cardData.isReversed ? 'rotate-180' : ''}`}
-                                  />
-                                ) : (
-                                  <div className="text-center">
-                                    <div className="text-3xl md:text-4xl mb-1">🎴</div>
-                                    <p className="text-xs font-bold text-purple-900">{cardData.card.nameKo}</p>
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
+                          <div className="text-center">
+                            <div className="text-4xl md:text-5xl mb-2">🎴</div>
+                            <p className="text-sm md:text-base font-bold text-purple-900">선택됨</p>
+                          </div>
                         </div>
                       )}
                     </div>
