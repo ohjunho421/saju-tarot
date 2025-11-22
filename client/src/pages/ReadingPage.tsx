@@ -14,7 +14,6 @@ interface ReadingPageProps {
 
 export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [step, setStep] = useState<'birth' | 'saju' | 'tarot' | 'cardSelection'>('birth');
-  const [birthInfo, setBirthInfo] = useState<BirthInfo | null>(null);
   const [sajuAnalysis, setSajuAnalysis] = useState<SajuAnalysis | null>(null);
   const [selectedSpread, setSelectedSpread] = useState<SpreadType | null>(null);
   const [question, setQuestion] = useState<string>('');
@@ -37,7 +36,6 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       try {
         const user = await authApi.getMe();
         if (user.birthInfo && user.sajuAnalysis) {
-          setBirthInfo(user.birthInfo as BirthInfo);
           setSajuAnalysis(user.sajuAnalysis as SajuAnalysis);
           setStep('tarot'); // 생년월일 입력과 사주 분석 모두 스킵하고 바로 타로 리딩으로
         }
@@ -56,7 +54,6 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     
     try {
       const analysis = await sajuApi.analyze(info);
-      setBirthInfo(info);
       setSajuAnalysis(analysis);
       setStep('saju');
     } catch (err) {
