@@ -41,6 +41,11 @@ function App() {
   }, [currentStep]);
 
   const handleStartReading = () => {
+    // 로그인 체크
+    if (!isLoggedIn) {
+      setShowAuthModal(true);
+      return;
+    }
     setCurrentStep('reading');
   };
 

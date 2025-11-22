@@ -42,14 +42,20 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    const { question, spreadType, includeAdviceCard }: {
+    const { question, spreadType, includeAdviceCard, cardPositions }: {
       question: string;
       spreadType: SpreadType;
       includeAdviceCard?: boolean;
+      cardPositions?: number[];
     } = req.body;
 
     if (!question || !spreadType) {
       res.status(400).json({ error: '질문과 스프레드 타입을 입력해주세요.' });
+      return;
+    }
+    
+    if (!cardPositions || cardPositions.length === 0) {
+      res.status(400).json({ error: '카드를 선택해주세요.' });
       return;
     }
 
@@ -83,8 +89,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       summary: r.interpretation.substring(0, 150) + '...'
     })) : null;
 
-    // 타로 카드 뽑기 (조언 카드 포함 옵션)
-    const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false);
+    // 사용자가 선택한 카드로 뽑기
+    const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false, cardPositions);
 
     // AI 기반 종합 해석 (이전 컨텍스트 포함)
     const aiInterpretation = await aiService.generateAdvancedInterpretation(

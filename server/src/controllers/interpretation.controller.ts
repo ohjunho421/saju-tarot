@@ -11,10 +11,11 @@ const interpretationService = new InterpretationService();
 
 export const getIntegratedReading = (req: Request, res: Response) => {
   try {
-    const { birthInfo, spreadType, question } = req.body as {
+    const { birthInfo, spreadType, question, cardPositions } = req.body as {
       birthInfo: BirthInfo;
       spreadType: SpreadType;
       question?: string;
+      cardPositions?: number[];
     };
 
     // 유효성 검사
@@ -25,8 +26,8 @@ export const getIntegratedReading = (req: Request, res: Response) => {
     // 사주 분석
     const sajuAnalysis = sajuService.analyzeSaju(birthInfo);
 
-    // 타로 카드 뽑기
-    const drawnCards = tarotService.drawCards(spreadType, question);
+    // 타로 카드 뽑기 (사용자가 선택한 카드)
+    const drawnCards = tarotService.drawCards(spreadType, question, false, cardPositions);
 
     // 통합 해석
     const integrated = interpretationService.integrateInterpretation(

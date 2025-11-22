@@ -24,8 +24,30 @@ export class TarotService {
   }
 
   // 카드 뽑기
-  public drawCards(spreadType: SpreadType, question?: string, includeAdviceCard: boolean = false): DrawnCard[] {
+  public drawCards(spreadType: SpreadType, question?: string, includeAdviceCard: boolean = false, cardPositions?: number[]): DrawnCard[] {
     const positions = SPREAD_POSITIONS[spreadType];
+    
+    // 사용자가 선택한 카드 인덱스가 제공된 경우
+    if (cardPositions && cardPositions.length > 0) {
+      const drawnCards: DrawnCard[] = [];
+      
+      for (let i = 0; i < positions.length; i++) {
+        const cardIndex = cardPositions[i];
+        const card = this.allCards[cardIndex];
+        const isReversed = Math.random() < 0.3; // 30% 확률로 역방향
+        
+        drawnCards.push({
+          card,
+          position: i,
+          isReversed,
+          positionMeaning: positions[i]
+        });
+      }
+      
+      return drawnCards;
+    }
+    
+    // 기존 랜덤 로직
     const shuffledDeck = this.shuffleDeck();
     const drawnCards: DrawnCard[] = [];
 

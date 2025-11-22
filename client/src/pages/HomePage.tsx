@@ -59,7 +59,10 @@ export default function HomePage({ onStart }: HomePageProps) {
         >
           운세 보러 가기
         </button>
-        <p className="text-white/50 text-xs md:text-sm mt-3 md:mt-4">
+        <p className="text-mystical-gold text-xs md:text-sm mt-3 font-semibold">
+          🔐 로그인이 필요한 서비스입니다
+        </p>
+        <p className="text-white/50 text-xs md:text-sm mt-2">
           * 정확한 해석을 위해 생년월일시를 정확히 입력해주세요
         </p>
       </div>

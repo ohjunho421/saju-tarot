@@ -108,11 +108,12 @@ export const aiApi = {
     return response.data.data;
   },
 
-  getAIReading: async (question: string, spreadType: SpreadType, includeAdviceCard?: boolean): Promise<IntegratedReading> => {
+  getAIReading: async (question: string, spreadType: SpreadType, includeAdviceCard?: boolean, cardPositions?: number[]): Promise<IntegratedReading> => {
     const response = await api.post<ApiResponse<IntegratedReading>>('/ai/ai-reading', {
       question,
       spreadType,
       includeAdviceCard,
+      cardPositions,
     });
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || 'AI 해석에 실패했습니다.');
@@ -163,12 +164,14 @@ export const interpretationApi = {
   getIntegrated: async (
     birthInfo: BirthInfo,
     spreadType: SpreadType,
-    question?: string
+    question?: string,
+    cardPositions?: number[]
   ): Promise<IntegratedReading> => {
     const response = await api.post<ApiResponse<IntegratedReading>>('/interpretation/integrated', {
       birthInfo,
       spreadType,
       question,
+      cardPositions,
     });
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || '통합 해석에 실패했습니다.');
