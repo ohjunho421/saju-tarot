@@ -72,12 +72,16 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
 
   const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean) => {
     console.log('🎴 handleTarotComplete 호출:', { spreadType, userQuestion, includeAdvice });
+    
+    // State를 먼저 모두 설정한 후 다음 렌더링에서 step 변경
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
     
-    // 사용자가 먼저 카드를 선택하도록 바로 카드 선택 화면으로 이동
-    console.log('📍 cardSelection 단계로 전환');
-    setStep('cardSelection');
+    // setTimeout을 사용하여 state 업데이트 후 step 전환 보장
+    setTimeout(() => {
+      console.log('📍 cardSelection 단계로 전환');
+      setStep('cardSelection');
+    }, 0);
   };
 
   const handleCardSelectionComplete = async (cardPositions: number[]) => {
@@ -201,13 +205,29 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
         <TarotReading onComplete={handleTarotComplete} />
       )}
 
-      {step === 'cardSelection' && selectedSpread && (
-        <CardSelection 
-          spreadType={selectedSpread}
-          question={question}
-          onComplete={handleCardSelectionComplete}
-        />
-      )}
+      {step === 'cardSelection' && (() => {
+        console.log('🔍 cardSelection 렌더링 조건:', { 
+          step, 
+          selectedSpread, 
+          shouldRender: !!selectedSpread 
+        });
+        
+        if (!selectedSpread) {
+          return (
+            <div className="text-center text-white">
+              ⚠️ selectedSpread가 null입니다. 다시 시도해주세요.
+            </div>
+          );
+        }
+        
+        return (
+          <CardSelection 
+            spreadType={selectedSpread}
+            question={question}
+            onComplete={handleCardSelectionComplete}
+          />
+        );
+      })()}
 
       {/* 뒤로가기 버튼 */}
       <div className="text-center mt-8">
