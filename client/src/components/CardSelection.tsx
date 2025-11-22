@@ -1,11 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import type { SpreadType, DrawnCard } from '../types';
+import type { SpreadType } from '../types';
 import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CardSelectionProps {
   spreadType: SpreadType;
   question?: string;
-  drawnCards?: DrawnCard[];
   onComplete: (selectedPositions: number[]) => void;
 }
 
@@ -109,7 +108,7 @@ function getLayoutBounds(layout: CardPosition[], cardWidth: number, cardHeight: 
   };
 }
 
-export default function CardSelection({ spreadType, question, drawnCards, onComplete }: CardSelectionProps) {
+export default function CardSelection({ spreadType, question, onComplete }: CardSelectionProps) {
   const totalCards = SPREAD_CARD_COUNTS[spreadType];
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
