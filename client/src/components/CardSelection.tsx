@@ -118,6 +118,13 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
   const fanContainerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [visibleCardCount, setVisibleCardCount] = useState(21); // 한 번에 보이는 카드 수 (부채꼴용)
+  
+  // 더블클릭 및 드래그 상태
+  const [previewCard, setPreviewCard] = useState<number | null>(null); // 첫 클릭한 카드 (프리뷰)
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false); // 실제로 드래그가 발생했는지
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartRotation, setDragStartRotation] = useState(0);
 
   // 카드 덱 생성 (78장)
   const totalDeckSize = 78;
@@ -133,19 +140,27 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // 첫 클릭 - 프리뷰 모드
   const handleCardClick = (index: number) => {
-    if (isRevealing || selectedCards.includes(index)) return;
+    if (isRevealing || selectedCards.includes(index) || hasDragged) return;
     
-    if (selectedCards.length < totalCards) {
-      const newSelected = [...selectedCards, index];
-      setSelectedCards(newSelected);
-      
-      // 모든 카드 선택 완료
-      if (newSelected.length === totalCards) {
-        setTimeout(() => {
-          revealCards(newSelected);
-        }, 500);
+    if (previewCard === index) {
+      // 같은 카드를 다시 클릭 - 실제 선택
+      if (selectedCards.length < totalCards) {
+        const newSelected = [...selectedCards, index];
+        setSelectedCards(newSelected);
+        setPreviewCard(null);
+        
+        // 모든 카드 선택 완료
+        if (newSelected.length === totalCards) {
+          setTimeout(() => {
+            revealCards(newSelected);
+          }, 500);
+        }
       }
+    } else {
+      // 다른 카드 클릭 - 프리뷰 모드로 전환
+      setPreviewCard(index);
     }
   };
 
@@ -200,6 +215,47 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
     });
   };
 
+  // 드래그 핸들러
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isRevealing) return;
+    setIsDragging(true);
+    setHasDragged(false); // 아직 드래그하지 않음
+    setDragStartRotation(fanRotation);
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    setDragStartX(clientX);
+  };
+
+  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging || isRevealing) return;
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const deltaX = clientX - dragStartX;
+    
+    // 5픽셀 이상 움직이면 드래그로 간주
+    if (Math.abs(deltaX) > 5) {
+      setHasDragged(true);
+    }
+    
+    // 민감도 조절 (픽셀당 회전량)
+    const sensitivity = isMobile ? 0.05 : 0.08;
+    const rotationChange = Math.round(-deltaX * sensitivity);
+    
+    const newRotation = dragStartRotation + rotationChange;
+    
+    // 회전 제한
+    const maxRotation = Math.floor(totalDeckSize / 2) - Math.floor(visibleCardCount / 2);
+    const minRotation = -maxRotation;
+    
+    setFanRotation(Math.max(minRotation, Math.min(maxRotation, newRotation)));
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    // 드래그가 끝난 후 약간의 딜레이를 두고 hasDragged 리셋
+    setTimeout(() => setHasDragged(false), 100);
+  };
+
   // 마우스 휠 이벤트 처리
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -215,6 +271,35 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       return () => container.removeEventListener('wheel', handleWheel);
     }
   }, [isRevealing, isMobile]);
+
+  // 전역 드래그 이벤트 (마우스가 컨테이너 밖으로 나가도 추적)
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      handleDragMove(e as any);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      handleDragMove(e as any);
+    };
+
+    const handleEnd = () => {
+      handleDragEnd();
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, dragStartX, dragStartRotation, fanRotation]);
 
   return (
     <div className="max-w-7xl mx-auto px-4">
@@ -257,7 +342,7 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       {selectedCards.length > 0 && (
         <div className="mb-8">
           <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-12 md:p-16 overflow-hidden" style={{ minHeight: isMobile ? '450px' : '600px' }}>
-            <div className="relative" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="relative" style={{ height: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '40px' }}>
               {(() => {
                 // 카드 크기 계산 (px 단위)
                 const cardWidthPx = isMobile ? 64 : 80; // w-16 = 64px, w-20 = 80px
@@ -275,9 +360,9 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                 const availableWidth = (isMobile ? window.innerWidth : 1280) - paddingPx * 2; // 최대 너비 제한
                 const availableHeight = minHeightPx - paddingPx * 2;
                 
-                // 스케일 팩터 계산 (여유 공간 30% 확보)
-                const scaleX = bounds.width > 0 ? (availableWidth * 0.7) / bounds.width : 1;
-                const scaleY = bounds.height > 0 ? (availableHeight * 0.7) / bounds.height : 1;
+                // 스케일 팩터 계산 (여유 공간 20% 확보 - 더 넓게)
+                const scaleX = bounds.width > 0 ? (availableWidth * 0.8) / bounds.width : 1;
+                const scaleY = bounds.height > 0 ? (availableHeight * 0.8) / bounds.height : 1;
                 const scale = Math.min(scaleX, scaleY, 1); // 확대는 하지 않고 축소만
                 
                 return selectedCards.map((cardIndex, idx) => {
@@ -378,19 +463,26 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
 
         {selectedCards.length < totalCards && (
           <div className="text-center text-sm text-white/60 mb-4">
-            💡 마우스 휠이나 버튼으로 카드를 탐색하세요
+            💡 {isMobile ? '터치로 좌우 드래그' : '마우스로 드래그하거나 휠로 카드를 탐색하세요'}
+            <br />
+            <span className="text-mystical-gold text-xs mt-1 inline-block">
+              ✨ 카드를 한 번 클릭하면 프리뷰, 다시 클릭하면 선택됩니다
+            </span>
           </div>
         )}
 
         {/* 부채꼴 카드 배치 */}
         <div 
           ref={fanContainerRef}
-          className="relative mx-auto"
+          className="relative mx-auto select-none"
           style={{ 
             height: isMobile ? '400px' : '480px',
             maxWidth: '100%',
-            paddingTop: isMobile ? '40px' : '60px'
+            paddingTop: isMobile ? '40px' : '60px',
+            cursor: isDragging ? 'grabbing' : 'grab'
           }}
+          onMouseDown={handleDragStart}
+          onTouchStart={handleDragStart}
         >
           <div className="absolute inset-0 flex items-end justify-center">
             {deckCards.map((cardIndex) => {
@@ -432,6 +524,8 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
               // 카드 회전
               const cardRotation = angle * 0.85;
               
+              const isPreview = previewCard === cardIndex;
+              
               return (
                 <button
                   key={cardIndex}
@@ -439,20 +533,20 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                   disabled={isRevealing}
                   className={`
                     absolute ${isMobile ? 'w-16' : 'w-20 md:w-24'} aspect-[2/3] rounded-lg transition-all duration-300
-                    hover:scale-110 hover:z-20 cursor-pointer
+                    ${isPreview ? 'scale-110 z-30' : 'hover:scale-110 hover:z-20'} cursor-pointer
                   `}
                   style={{
-                    transform: `translate(${x}px, ${y}px) scale(${scale}) rotate(${cardRotation}deg)`,
+                    transform: `translate(${x}px, ${y + (isPreview ? -20 : 0)}px) scale(${scale}) rotate(${cardRotation}deg)`,
                     opacity: opacity,
                     left: '50%',
                     bottom: '20px',
                     marginLeft: isMobile ? '-32px' : '-40px',
                     transformOrigin: 'center bottom',
-                    zIndex: cardSeqIndex
+                    zIndex: isPreview ? 100 : cardSeqIndex
                   }}
                 >
                     {/* 카드 뒷면 */}
-                    <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900 border-2 border-purple-400/50 hover:border-mystical-gold/70 flex items-center justify-center shadow-lg transition-all">
+                    <div className={`absolute inset-0 rounded-lg bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900 border-2 ${isPreview ? 'border-mystical-gold shadow-mystical-gold/50 shadow-2xl' : 'border-purple-400/50 hover:border-mystical-gold/70'} flex items-center justify-center shadow-lg transition-all`}>
                       <div className="relative w-full h-full p-1.5">
                         <div className="w-full h-full border-2 border-mystical-gold/30 rounded flex items-center justify-center">
                           <div className="text-center">
@@ -473,14 +567,11 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         @keyframes revealCard {
           0% {
             opacity: 0;
-            transform: scale(0.5) translateY(-20px);
-          }
-          50% {
-            transform: scale(1.15) translateY(-10px);
+            transform: scale(0.8);
           }
           100% {
             opacity: 1;
-            transform: scale(1) translateY(0);
+            transform: scale(1);
           }
         }
         .animate-revealCard {
