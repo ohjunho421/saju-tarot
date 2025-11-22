@@ -202,7 +202,10 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
         // 마지막 카드 뒤집기 완료 후
         if (i === cards.length - 1) {
           setTimeout(() => {
-            onComplete(cards);
+            // 선택한 위치의 실제 카드 번호를 서버에 전송
+            const actualCardNumbers = cards.map(pos => deckCards[pos]);
+            console.log('📤 서버로 전송:', { 선택한위치: cards, 실제카드번호: actualCardNumbers });
+            onComplete(actualCardNumbers);
           }, 8000); // 8초 대기 - 사용자가 카드를 충분히 볼 수 있도록
         }
       }, i * 800); // 카드당 800ms 간격으로 천천히 뒤집기
