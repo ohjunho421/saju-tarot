@@ -49,13 +49,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       cardPositions?: number[];
     } = req.body;
 
-    if (!question || !spreadType) {
-      res.status(400).json({ error: '질문과 스프레드 타입을 입력해주세요.' });
-      return;
-    }
-    
-    if (!cardPositions || cardPositions.length === 0) {
-      res.status(400).json({ error: '카드를 선택해주세요.' });
+    if (!spreadType) {
+      res.status(400).json({ error: '스프레드 타입을 입력해주세요.' });
       return;
     }
 
