@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import type { SpreadType } from '../types';
+import type { SpreadType, TarotCard } from '../types';
 import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { tarotApi } from '../services/api';
 
 interface CardSelectionProps {
   spreadType: SpreadType;
@@ -125,9 +126,25 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartRotation, setDragStartRotation] = useState(0);
 
+  // 모든 타로 카드 데이터
+  const [allTarotCards, setAllTarotCards] = useState<TarotCard[]>([]);
+
   // 카드 덱 생성 (78장)
   const totalDeckSize = 78;
   const deckCards = Array.from({ length: totalDeckSize }, (_, i) => i);
+
+  // 타로 카드 데이터 로드
+  useEffect(() => {
+    const loadCards = async () => {
+      try {
+        const cards = await tarotApi.getAllCards();
+        setAllTarotCards(cards);
+      } catch (error) {
+        console.error('카드 데이터 로드 실패:', error);
+      }
+    };
+    loadCards();
+  }, []);
 
   // 모바일 체크
   useEffect(() => {
@@ -405,17 +422,41 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
                       </div>
                       
                       {/* 카드 앞면 */}
-                      {isRevealed && (
-                        <div 
-                          className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-100 to-white flex items-center justify-center p-2 backface-hidden shadow-xl"
-                          style={{ transform: 'rotateY(180deg)' }}
-                        >
-                          <div className="text-center">
-                            <div className="text-4xl md:text-5xl mb-2">🎴</div>
-                            <p className="text-sm md:text-base font-bold text-purple-900">선택됨</p>
+                      {isRevealed && allTarotCards.length > 0 && (() => {
+                        const tarotCard = allTarotCards[cardIndex];
+                        if (!tarotCard) {
+                          return (
+                            <div 
+                              className="absolute inset-0 rounded-lg bg-gradient-to-br from-purple-100 to-white flex items-center justify-center p-2 backface-hidden shadow-xl"
+                              style={{ transform: 'rotateY(180deg)' }}
+                            >
+                              <div className="text-center">
+                                <div className="text-4xl md:text-5xl mb-2">🎴</div>
+                                <p className="text-sm md:text-base font-bold text-purple-900">선택됨</p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div 
+                            className="absolute inset-0 rounded-lg bg-white flex items-center justify-center p-1 backface-hidden shadow-xl overflow-hidden"
+                            style={{ transform: 'rotateY(180deg)' }}
+                          >
+                            {tarotCard.imageUrl ? (
+                              <img 
+                                src={tarotCard.imageUrl}
+                                alt={tarotCard.nameKo}
+                                className="w-full h-full object-cover rounded"
+                              />
+                            ) : (
+                              <div className="text-center p-2">
+                                <div className="text-3xl md:text-4xl mb-1">🎴</div>
+                                <p className="text-xs font-bold text-purple-900">{tarotCard.nameKo}</p>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 );
