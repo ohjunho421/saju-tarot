@@ -161,7 +161,7 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         if (i === cards.length - 1) {
           setTimeout(() => {
             onComplete(cards);
-          }, 1000);
+          }, 3000); // 3초로 증가하여 사용자가 카드를 충분히 볼 수 있도록
         }
       }, i * 400);
     });
@@ -256,7 +256,7 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
       {/* 선택된 카드 표시 영역 - 스프레드별 배치 */}
       {selectedCards.length > 0 && (
         <div className="mb-8">
-          <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-8 md:p-12 overflow-hidden" style={{ minHeight: isMobile ? '380px' : '500px' }}>
+          <div className="relative bg-gradient-to-br from-mystical-gold/10 to-purple-600/10 rounded-xl border-2 border-mystical-gold/30 p-12 md:p-16 overflow-hidden" style={{ minHeight: isMobile ? '450px' : '600px' }}>
             <div className="relative" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {(() => {
                 // 카드 크기 계산 (px 단위)
@@ -270,8 +270,8 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
                 const bounds = getLayoutBounds(currentLayout, cardWidthPx, cardHeightPx);
                 
                 // 박스의 사용 가능한 공간 계산 (padding 제외)
-                const paddingPx = isMobile ? 32 : 48; // p-8 = 32px, p-12 = 48px
-                const minHeightPx = isMobile ? 380 : 500;
+                const paddingPx = isMobile ? 48 : 64; // p-12 = 48px, p-16 = 64px
+                const minHeightPx = isMobile ? 450 : 600;
                 const availableWidth = (isMobile ? window.innerWidth : 1280) - paddingPx * 2; // 최대 너비 제한
                 const availableHeight = minHeightPx - paddingPx * 2;
                 
@@ -473,10 +473,10 @@ export default function CardSelection({ spreadType, question, drawnCards, onComp
         @keyframes revealCard {
           0% {
             opacity: 0;
-            transform: scale(0.5) translateY(-50px);
+            transform: scale(0.5) translateY(-20px);
           }
           50% {
-            transform: scale(1.2) translateY(-20px);
+            transform: scale(1.15) translateY(-10px);
           }
           100% {
             opacity: 1;
