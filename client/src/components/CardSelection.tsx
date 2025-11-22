@@ -133,7 +133,7 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
   const totalDeckSize = 78;
   const [deckCards, setDeckCards] = useState<number[]>([]);
 
-  // 카드 덱 섞기
+  // 카드 덱 섞기 - 질문할 때마다 섞임
   useEffect(() => {
     const shuffled = Array.from({ length: totalDeckSize }, (_, i) => i);
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -141,8 +141,8 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setDeckCards(shuffled);
-    console.log('🔀 카드 덱이 섞였습니다');
-  }, []); // 마운트될 때 한 번만 섞음
+    console.log('🔀 카드 덱이 섞였습니다 (새로운 질문)');
+  }, [spreadType, question]); // spreadType이나 question이 변경될 때마다 섞음
 
   // 타로 카드 데이터 로드
   useEffect(() => {
