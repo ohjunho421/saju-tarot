@@ -30,10 +30,43 @@ export class TarotService {
     // 사용자가 선택한 카드 인덱스가 제공된 경우
     if (cardPositions && cardPositions.length > 0) {
       const drawnCards: DrawnCard[] = [];
+      const shuffledDeck = this.shuffleDeck(); // 백업용 랜덤 덱
       
       for (let i = 0; i < positions.length; i++) {
         const cardIndex = cardPositions[i];
+        
+        // 유효성 검사 (undefined, null, 범위 밖)
+        if (cardIndex === undefined || cardIndex === null || cardIndex < 0 || cardIndex >= this.allCards.length) {
+          console.error(`Invalid card index at position ${i}: ${cardIndex}. Using random card instead.`);
+          const card = shuffledDeck[i];
+          const isReversed = Math.random() < 0.3;
+          
+          drawnCards.push({
+            card,
+            position: i,
+            isReversed,
+            positionMeaning: positions[i]
+          });
+          continue;
+        }
+        
         const card = this.allCards[cardIndex];
+        
+        // 카드가 존재하는지 최종 확인
+        if (!card) {
+          console.error(`Card not found at index ${cardIndex}. Using random card instead.`);
+          const randomCard = shuffledDeck[i];
+          const isReversed = Math.random() < 0.3;
+          
+          drawnCards.push({
+            card: randomCard,
+            position: i,
+            isReversed,
+            positionMeaning: positions[i]
+          });
+          continue;
+        }
+        
         const isReversed = Math.random() < 0.3; // 30% 확률로 역방향
         
         drawnCards.push({
