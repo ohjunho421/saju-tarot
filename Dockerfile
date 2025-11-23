@@ -1,5 +1,8 @@
-# Use Node.js 20 based on nixpacks.toml
-FROM node:20-alpine
+# Use Node.js 20 slim (Debian) for better compatibility with Prisma/native modules
+FROM node:20-slim
+
+# Install OpenSSL (required for Prisma)
+RUN apt-get update -y && apt-get install -y openssl
 
 # Set working directory
 WORKDIR /app
