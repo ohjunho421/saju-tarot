@@ -128,6 +128,7 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
 
   // 모든 타로 카드 데이터
   const [allTarotCards, setAllTarotCards] = useState<TarotCard[]>([]);
+  const totalDeckSize = allTarotCards.length;
 
   // 카드 덱 생성 (78장) - 매번 섞임
   // 카드 덱 생성 (매번 섞임)
