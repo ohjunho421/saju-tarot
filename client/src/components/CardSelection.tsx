@@ -130,19 +130,23 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
   const [allTarotCards, setAllTarotCards] = useState<TarotCard[]>([]);
 
   // 카드 덱 생성 (78장) - 매번 섞임
-  const totalDeckSize = 78;
+  // 카드 덱 생성 (매번 섞임)
+  // const totalDeckSize = 78; // Removed hardcoded size
   const [deckCards, setDeckCards] = useState<number[]>([]);
 
-  // 카드 덱 섞기 - 질문할 때마다 섞임
+  // 카드 덱 섞기 - 질문이 올때마다 섞임
   useEffect(() => {
+    if (allTarotCards.length === 0) return;
+
+    const totalDeckSize = allTarotCards.length;
     const shuffled = Array.from({ length: totalDeckSize }, (_, i) => i);
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setDeckCards(shuffled);
-    console.log('🔀 카드 덱이 섞였습니다 (새로운 질문)');
-  }, [spreadType, question]); // spreadType이나 question이 변경될 때마다 섞음
+    console.log('🔀 Deck shuffled (' + totalDeckSize + ' cards)');
+  }, [spreadType, question, allTarotCards]); // spreadType, question, allTarotCards가 변경될 때마다 섞음
 
   // 타로 카드 데이터 로드
   useEffect(() => {
