@@ -125,7 +125,21 @@ export const aiApi = {
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || 'AI 해석에 실패했습니다.');
     }
-    return response.data.data;
+    
+    // 이미지 URL에 서버 baseURL 추가 (상대 경로를 절대 경로로 변환)
+    const serverBaseUrl = API_BASE_URL.replace('/api', ''); // '/api' 제거
+    const reading = response.data.data;
+    reading.drawnCards = reading.drawnCards.map(dc => ({
+      ...dc,
+      card: {
+        ...dc.card,
+        imageUrl: dc.card.imageUrl && dc.card.imageUrl.startsWith('/') 
+          ? `${serverBaseUrl}${dc.card.imageUrl}` 
+          : dc.card.imageUrl
+      }
+    }));
+    
+    return reading;
   },
 
   getMyReadings: async (page = 1, limit = 10) => {
