@@ -541,11 +541,22 @@
         "dependencies": [],
         "priority": "medium",
         "subtasks": []
+      },
+      {
+        "id": 34,
+        "title": "Railway 빌드 에러 수정 - TypeScript 타입 오류",
+        "description": "tarot-cards.ts 파일의 TypeScript 타입 에러를 수정하여 Railway 배포가 성공하도록 수정",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-10-27T15:16:35.981Z",
-      "updated": "2025-11-25T13:52:26.386Z",
+      "updated": "2025-11-25T14:32:29.107Z",
       "description": "Tasks for master context"
     }
   }

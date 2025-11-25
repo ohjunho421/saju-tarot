@@ -19,5 +19,5 @@ RUN npm run build
 # Expose port
 EXPOSE 3000
 
-# Start the server
-CMD ["npm", "start"]
+# Start the server with Prisma migration
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss --skip-generate && node dist/index.js"]
