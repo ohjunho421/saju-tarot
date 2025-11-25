@@ -89,10 +89,35 @@ export const TAROT_IMAGE_MAP: Record<string, string> = {
   'King of Pentacles': '펜타클 킹.jpg',
 };
 
+// 숫자를 영어로 변환
+const numberToWord: Record<string, string> = {
+  '2': 'Two',
+  '3': 'Three',
+  '4': 'Four',
+  '5': 'Five',
+  '6': 'Six',
+  '7': 'Seven',
+  '8': 'Eight',
+  '9': 'Nine',
+  '10': 'Ten'
+};
+
 // 이미지 URL 생성
 export function getTarotCardImageUrl(cardName: string): string {
-  const filename = TAROT_IMAGE_MAP[cardName];
+  // "2 of Wands" -> "Two of Wands" 변환
+  let normalizedName = cardName;
+  const match = cardName.match(/^(\d+) of (Wands|Cups|Swords|Pentacles)$/);
+  if (match) {
+    const [, number, suit] = match;
+    const word = numberToWord[number];
+    if (word) {
+      normalizedName = `${word} of ${suit}`;
+    }
+  }
+  
+  const filename = TAROT_IMAGE_MAP[normalizedName];
   if (!filename) {
+    console.warn(`No image mapping found for card: ${cardName} (normalized: ${normalizedName})`);
     return ''; // 이미지 없음
   }
   
