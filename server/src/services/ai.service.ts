@@ -56,8 +56,9 @@ export class AIService {
 다음 스프레드 중 하나를 선택하세요:
 1. one-card: 간단하고 명확한 답이 필요한 질문 (예: 오늘의 운세, 간단한 Yes/No)
 2. three-card: 시간의 흐름이나 원인-현재-결과를 보는 질문 (예: 이 프로젝트는 어떻게 진행될까?)
-3. celtic-cross: 복잡한 상황이나 종합적인 분석이 필요한 질문 (예: 내 인생의 방향은?)
-4. saju-custom: 사주와 연관된 오행 균형이 중요한 질문 (예: 나의 재물운/건강운)
+3. six-months: "언제", "시기", "타이밍" 관련 질문이나 향후 6개월의 흐름을 보고 싶을 때 (예: 이번 일은 언제 결과가 나올까? 올해 하반기 운세는?)
+4. celtic-cross: 복잡한 상황이나 종합적인 분석이 필요한 질문 (예: 내 인생의 방향은?)
+5. saju-custom: 사주와 연관된 오행 균형이 중요한 질문 (예: 나의 재물운/건강운)
 
 JSON 형식으로 답변해주세요:
 {
@@ -107,15 +108,26 @@ JSON 형식으로 답변해주세요:
   } {
     const lowerQ = question.toLowerCase();
 
-    if (lowerQ.includes('오늘') || lowerQ.includes('지금') || lowerQ.length < 20) {
+    if (lowerQ.includes('오늘') || lowerQ.includes('지금') || lowerQ.length < 10) {
       return {
-        analysis: '간단하고 즉각적인 답이 필요한 질문입니다.',
+        analysis: '간단한 질문입니다.',
         recommendedSpread: 'one-card',
-        reason: '간결한 답변이 필요한 질문이므로 원 카드 스프레드가 적합합니다.'
+        reason: '명확하고 직접적인 답을 위해 원 카드 스프레드를 추천합니다.'
       };
     }
 
-    if (lowerQ.includes('미래') || lowerQ.includes('앞으로') || lowerQ.includes('과거')) {
+    // 시기 관련 질문 감지
+    if (lowerQ.includes('언제') || lowerQ.includes('시기') || lowerQ.includes('타이밍') || 
+        lowerQ.includes('개월') || lowerQ.includes('하반기') || lowerQ.includes('상반기') ||
+        lowerQ.includes('올해') || lowerQ.includes('내년') || lowerQ.includes('흐름')) {
+      return {
+        analysis: '시기와 타이밍을 묻는 질문입니다.',
+        recommendedSpread: 'six-months',
+        reason: '향후 6개월간의 월별 흐름을 보며 시기를 파악하기에 적합한 6개월 흐름 스프레드를 추천합니다.'
+      };
+    }
+
+    if (lowerQ.includes('과거') || lowerQ.includes('현재') || lowerQ.includes('미래')) {
       return {
         analysis: '시간의 흐름을 보는 질문입니다.',
         recommendedSpread: 'three-card',
@@ -215,7 +227,10 @@ ${userName ? userName + '님' : '당신'}의 질문에 대한 핵심 답을 명�
 [각 타로 카드의 상세 해석]
 ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
   const cardElement = dc.card.element ? ` (오행: ${dc.card.element})` : '';
-  return `${i + 1}. ${dc.positionMeaning} - ${dc.card.nameKo}${cardElement} ${dc.isReversed ? '(역방향)' : '(정방향)'}:
+  const currentMonth = dateContext.month;
+  const targetMonth = spreadType === 'six-months' ? ((currentMonth + i - 1) % 12) + 1 : null;
+  const monthLabel = targetMonth ? `${targetMonth}월` : '';
+  return `${i + 1}. ${dc.positionMeaning}${monthLabel ? ` (${monthLabel})` : ''} - ${dc.card.nameKo}${cardElement} ${dc.isReversed ? '(역방향)' : '(정방향)'}:
    
    [카드의 기본 의미]
    ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}
@@ -235,6 +250,7 @@ ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) =>
 
 [전체 카드의 흐름과 사주 조화]
 위에 나온 모든 카드들이 ${userName ? userName + '님의' : '당신의'} 사주(강한 오행: ${sajuAnalysis.strongElements.join(', ')}, 약한 오행: ${sajuAnalysis.weakElements.join(', ')})와 어떻게 조화를 이루거나 충돌하는지, 그리고 이것이 현재 질문과 어떻게 연결되는지 종합적으로 설명 (300자)
+${spreadType === 'six-months' ? `\n\n[향후 6개월 흐름의 핵심 포인트]\n현재 ${dateContext.month}월부터 시작하여 향후 6개월 동안 ${userName ? userName + '님' : '당신'}이 경험하게 될 변화의 흐름을 요약해주세요. 특히 언제쯤 중요한 전환점이 찾아올지, 어느 시기가 가장 유리한지 구체적으로 알려주세요 (250자)` : ''}
 
 ---
 

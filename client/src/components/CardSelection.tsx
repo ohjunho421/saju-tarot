@@ -13,6 +13,7 @@ interface CardSelectionProps {
 const SPREAD_CARD_COUNTS: Record<SpreadType, number> = {
   'one-card': 1,
   'three-card': 3,
+  'six-months': 6,
   'celtic-cross': 10,
   'saju-custom': 5
 };
@@ -20,6 +21,7 @@ const SPREAD_CARD_COUNTS: Record<SpreadType, number> = {
 const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
   'one-card': '마음을 가라앉히고, 질문에 집중하며 한 장의 카드를 선택하세요.',
   'three-card': '과거, 현재, 미래를 생각하며 세 장의 카드를 차례로 선택하세요.',
+  'six-months': '향후 6개월의 흐름을 살펴보며 매달의 카드를 차례로 선택하세요.',
   'celtic-cross': '당신의 인생 전체를 아우르는 복잡한 상황을 떠올리며 열 장을 선택하세요.',
   'saju-custom': '당신의 사주와 오행을 생각하며 다섯 장의 카드를 선택하세요.'
 };
@@ -48,6 +50,14 @@ const POSITION_GUIDANCE: Record<SpreadType, string[]> = {
     '🌍 주변 영향 - 당신을 둘러싼 환경, 타인, 외부 요인들을 생각하며 카드를 선택하세요',
     '❤️ 희망과 두려움 - 당신이 진심으로 바라는 것과 두려워하는 것을 느끼며 카드를 선택하세요',
     '🎊 최종 결과 - 현재의 흐름이 이어질 때 도달하게 될 결말을 상상하며 카드를 선택하세요'
+  ],
+  'six-months': [
+    '📅 이번 달 - 지금부터 시작되는 한 달의 에너지와 주요 사건을 떠올리며 카드를 선택하세요',
+    '📅 다음 달 - 한 달 후의 상황과 맞이할 변화를 상상하며 카드를 선택하세요',
+    '📅 2개월 후 - 두 달 후의 흐름과 중요한 결정을 생각하며 카드를 선택하세요',
+    '📅 3개월 후 - 세 달 후의 전개와 새로운 국면을 예상하며 카드를 선택하세요',
+    '📅 4개월 후 - 네 달 후의 상황과 성숙된 변화를 느끼며 카드를 선택하세요',
+    '📅 5개월 후 - 다섯 달 후의 결실과 완성을 바라보며 카드를 선택하세요'
   ],
   'saju-custom': [
     '🌱 목(木) 기운 - 당신의 성장, 창의성, 새로운 시작의 에너지를 느끼며 카드를 선택하세요',
@@ -80,6 +90,14 @@ const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
     { x: 240, y: 0 },          // 8. 환경
     { x: 240, y: -120 },       // 9. 희망/두려움
     { x: 240, y: -240 }        // 10. 결과
+  ],
+  'six-months': [
+    { x: -250, y: 0 },   // 이번 달
+    { x: -150, y: 0 },   // 다음 달
+    { x: -50, y: 0 },    // 2개월 후
+    { x: 50, y: 0 },     // 3개월 후
+    { x: 150, y: 0 },    // 4개월 후
+    { x: 250, y: 0 }     // 5개월 후
   ],
   'saju-custom': [
     { x: -200, y: 0 },   // 목

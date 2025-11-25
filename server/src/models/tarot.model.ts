@@ -33,7 +33,7 @@ export interface DrawnCard {
   positionMeaning: string;
 }
 
-export type SpreadType = 'one-card' | 'three-card' | 'celtic-cross' | 'saju-custom';
+export type SpreadType = 'one-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months';
 
 export interface TarotReading {
   id: string;
@@ -61,5 +61,6 @@ export const SPREAD_POSITIONS: Record<SpreadType, string[]> = {
     '희망과 두려움',
     '최종 결과'
   ],
-  'saju-custom': ['목(木) 기운', '화(火) 기운', '토(土) 기운', '금(金) 기운', '수(水) 기운']
+  'saju-custom': ['목(木) 기운', '화(火) 기운', '토(土) 기운', '금(金) 기운', '수(水) 기운'],
+  'six-months': ['이번 달', '다음 달', '2개월 후', '3개월 후', '4개월 후', '5개월 후']
 };

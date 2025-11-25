@@ -32,6 +32,12 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
       cards: 3
     },
     {
+      type: 'six-months' as SpreadType,
+      name: '6개월 흐름',
+      description: '향후 6개월의 월별 흐름',
+      cards: 6
+    },
+    {
       type: 'celtic-cross' as SpreadType,
       name: '켈트 십자가',
       description: '종합적인 상황 분석',
@@ -218,6 +224,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
           )}
           {selectedSpread === 'three-card' && (
             <p>세 장의 카드로 과거-현재-미래의 흐름을 파악합니다. 상황의 원인과 현재, 그리고 앞으로의 전개를 볼 수 있습니다.</p>
+          )}
+          {selectedSpread === 'six-months' && (
+            <p>향후 6개월 동안의 월별 흐름을 살펴봅니다. "언제 어떻게 될까?"와 같은 시기 관련 질문에 적합하며, 매달의 주요 에너지와 조언을 확인할 수 있습니다.</p>
           )}
           {selectedSpread === 'celtic-cross' && (
             <p>가장 복잡하고 상세한 스프레드입니다. 현재 상황, 장애물, 목표, 과거와 미래, 주변 영향 등을 종합적으로 분석합니다.</p>
