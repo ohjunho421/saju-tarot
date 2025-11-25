@@ -156,7 +156,17 @@ export const tarotApi = {
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || '카드 목록을 가져오는데 실패했습니다.');
     }
-    return response.data.data;
+    
+    // 이미지 URL에 서버 baseURL 추가 (상대 경로를 절대 경로로 변환)
+    const serverBaseUrl = API_BASE_URL.replace('/api', ''); // '/api' 제거
+    const cards = response.data.data.map(card => ({
+      ...card,
+      imageUrl: card.imageUrl && card.imageUrl.startsWith('/') 
+        ? `${serverBaseUrl}${card.imageUrl}` 
+        : card.imageUrl
+    }));
+    
+    return cards;
   },
 };
 
