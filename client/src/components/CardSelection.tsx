@@ -24,6 +24,9 @@ const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
   'saju-custom': '당신의 사주와 오행을 생각하며 다섯 장의 카드를 선택하세요.'
 };
 
+// 조언 카드 안내 메시지
+const ADVICE_CARD_GUIDANCE = '✨ 조언 카드 - 앞으로 나아갈 방향과 실천할 수 있는 지혜를 구하며 마지막 카드를 선택하세요';
+
 // 각 스프레드의 카드별 선택 안내 메시지
 const POSITION_GUIDANCE: Record<SpreadType, string[]> = {
   'one-card': [
@@ -360,10 +363,12 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
         ) : selectedCards.length < totalCards ? (
           <div className="mt-4">
             <p className="text-base text-white/70 mb-2">
-              {selectedCards.length}번째 카드 선택
+              {selectedCards.length + 1}번째 카드 선택
             </p>
             <p className="text-lg text-mystical-gold animate-pulse font-semibold">
-              🌟 {POSITION_GUIDANCE[spreadType][selectedCards.length]}
+              🌟 {selectedCards.length >= baseCardCount 
+                ? ADVICE_CARD_GUIDANCE 
+                : POSITION_GUIDANCE[spreadType][selectedCards.length]}
             </p>
           </div>
         ) : null}
@@ -385,8 +390,14 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                 const cardWidthPx = isMobile ? 64 : 80; // w-16 = 64px, w-20 = 80px
                 const cardHeightPx = cardWidthPx * 1.5; // aspect-[2/3]
                 
-                // 현재 스프레드의 레이아웃
-                const currentLayout = SPREAD_LAYOUTS[spreadType];
+                // 현재 스프레드의 레이아웃 (조언 카드 포함)
+                let currentLayout = [...SPREAD_LAYOUTS[spreadType]];
+                
+                // 조언 카드가 활성화되어 있으면 레이아웃에 추가
+                if (includeAdviceCard) {
+                  // 조언 카드 위치: 기존 카드 레이아웃 아래에 배치
+                  currentLayout.push({ x: 0, y: 150 });
+                }
                 
                 // 레이아웃의 실제 범위 계산
                 const bounds = getLayoutBounds(currentLayout, cardWidthPx, cardHeightPx);
@@ -406,6 +417,12 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                   const isRevealed = revealedCards.has(cardIndex);
                   const layout = currentLayout[idx];
                   const cardSize = isMobile ? 'w-16' : 'w-20 md:w-24';
+                  
+                  // 레이아웃이 없으면 스킵 (안전장치)
+                  if (!layout) {
+                    console.error(`레이아웃을 찾을 수 없습니다: idx=${idx}, totalCards=${totalCards}`);
+                    return null;
+                  }
                   
                   // 스케일링된 좌표
                   const scaledX = layout.x * scale;
@@ -438,7 +455,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                           </div>
                         </div>
                         <div className="absolute top-0.5 right-0.5 md:top-1 md:right-1 w-5 h-5 md:w-6 md:h-6 bg-mystical-gold rounded-full flex items-center justify-center text-xs font-bold text-purple-900">
-                          {idx + 1}
+                          {idx >= baseCardCount ? '✨' : idx + 1}
                         </div>
                       </div>
                       
