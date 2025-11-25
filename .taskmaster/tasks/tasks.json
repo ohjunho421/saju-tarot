@@ -442,11 +442,110 @@
             "testStrategy": "1. 프로덕션 URL에서 전체 애플리케이션 기능 테스트\n2. 로드 테스트 및 성능 측정\n3. 에러 모니터링 및 알림 시스템 테스트\n4. 배포 후 자동화된 스모크 테스트 실행"
           }
         ]
+      },
+      {
+        "id": 25,
+        "title": "로그인 사용자만 서비스 이용 가능하도록 구현",
+        "description": "사주 타로 서비스는 로그인한 사용자만 접근할 수 있어야 함. 비로그인 시 홈페이지로 리다이렉트 및 인증 모달 표시",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 26,
+        "title": "사용자가 직접 선택한 카드로 AI 해석 구현",
+        "description": "AI가 임의로 카드를 선택하는 것이 아니라, 사용자가 부채꼴 화면에서 직접 선택한 카드로 해석해야 함",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 27,
+        "title": "선택한 카드를 패딩 영역의 스프레드 위치에 배치",
+        "description": "사용자가 부채꼴에서 카드를 선택하면 즉시 패딩 영역의 스프레드 레이아웃(3장, 10장 등)에 맞게 배치되어야 함",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 28,
+        "title": "카드 포개기/모으기 애니메이션 제거",
+        "description": "선택한 카드가 한 곳으로 모이는 애니메이션을 제거하고, 스프레드 위치에서 그대로 뒤집히도록 구현",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 29,
+        "title": "카드 뒤집기 속도 조절 및 충분한 확인 시간 제공",
+        "description": "카드가 너무 빨리 뒤집히지 않도록 속도를 조절하고, 사용자가 선택한 카드를 충분히 확인할 수 있도록 대기 시간 제공",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 30,
+        "title": "매 질문마다 카드 덱 섞기",
+        "description": "로그인할 때가 아니라 질문할 때마다 78장의 카드 덱이 섞여야 함. Fisher-Yates 알고리즘 사용",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 31,
+        "title": "선택한 카드의 실제 이미지 표시",
+        "description": "카드가 뒤집힐 때 선택한 카드의 실제 타로 이미지가 표시되어야 함. \"선택됨\" 텍스트가 아닌 실제 카드 이미지",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 32,
+        "title": "각 카드 위치별 구체적인 선택 가이드 제공",
+        "description": "단순히 \"과거 카드를 선택하세요\"가 아니라, \"과거 - 이 상황이 시작된 계기나 원인이 되었던 과거의 경험을 떠올리며 카드를 선택하세요\" 같은 디테일한 가이드 제공",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
+      },
+      {
+        "id": 33,
+        "title": "중복 카드 방지 - 실제 카드 번호를 서버에 전송",
+        "description": "클라이언트와 서버가 동일한 카드를 사용하도록 섞인 덱의 실제 카드 번호를 전송. Wheel of Fortune이 2장 나오는 버그 방지",
+        "details": "",
+        "testStrategy": "",
+        "status": "done",
+        "dependencies": [],
+        "priority": "medium",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2025-10-27T15:16:35.981Z",
-      "updated": "2025-10-28T17:38:48.416Z",
+      "updated": "2025-11-25T13:52:26.386Z",
       "description": "Tasks for master context"
     }
   }
