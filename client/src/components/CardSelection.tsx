@@ -222,11 +222,11 @@ export default function CardSelection({ spreadType, question, onComplete }: Card
     const updateVisibleCount = () => {
       const width = window.innerWidth;
       if (width < 640) {
-        setVisibleCardCount(15); // 모바일: 15장
+        setVisibleCardCount(25); // 모바일: 25장
       } else if (width < 1024) {
-        setVisibleCardCount(21); // 태블릿: 21장
+        setVisibleCardCount(40); // 태블릿: 40장
       } else {
-        setVisibleCardCount(27); // 데스크톱: 27장
+        setVisibleCardCount(50); // 데스크톱: 50장 (더 많은 카드를 동시에 볼 수 있음)
       }
     };
     updateVisibleCount();
