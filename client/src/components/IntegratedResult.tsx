@@ -61,6 +61,15 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
   const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
   const mainCards = drawnCards.filter(dc => dc.positionMeaning !== '조언 카드');
 
+  // 디버깅: 카드 이미지 URL 확인
+  useEffect(() => {
+    console.log('📊 카드 데이터:', mainCards.map(c => ({
+      name: c.card.nameKo,
+      imageUrl: c.card.imageUrl,
+      hasImage: !!c.card.imageUrl
+    })));
+  }, [mainCards]);
+
   // interpretation을 요약과 세부로 분리
   const getSummary = (text: string) => {
     const lines = text.split('\n\n');
@@ -129,14 +138,21 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
                       <img 
                         src={card.imageUrl} 
                         alt={card.nameKo}
-                        className="w-full h-auto rounded-lg"
+                        className="w-full h-auto rounded-lg min-h-[200px] object-cover"
                         onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          const target = e.currentTarget;
+                          const parent = target.parentElement;
+                          if (parent) {
+                            target.style.display = 'none';
+                            const fallback = parent.querySelector('.fallback-icon');
+                            if (fallback) {
+                              fallback.classList.remove('hidden');
+                            }
+                          }
                         }}
                       />
                     ) : null}
-                    <div className={card.imageUrl ? 'hidden' : 'text-6xl md:text-7xl'}>🎴</div>
+                    <div className={`fallback-icon ${card.imageUrl ? 'hidden' : ''} text-7xl md:text-8xl flex items-center justify-center min-h-[200px]`}>🎴</div>
                   </div>
                   <div className="text-center space-y-1">
                     <p className="text-base md:text-lg font-bold text-mystical-gold">{card.nameKo}</p>
@@ -166,14 +182,21 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
                   <img 
                     src={adviceCard.card.imageUrl} 
                     alt={adviceCard.card.nameKo}
-                    className="w-full max-w-[200px] h-auto rounded-lg mb-3 mx-auto"
+                    className="w-full max-w-[200px] h-auto rounded-lg mb-3 mx-auto min-h-[250px] object-cover"
                     onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      const target = e.currentTarget;
+                      const parent = target.parentElement;
+                      if (parent) {
+                        target.style.display = 'none';
+                        const fallback = parent.querySelector('.fallback-advice-icon');
+                        if (fallback) {
+                          fallback.classList.remove('hidden');
+                        }
+                      }
                     }}
                   />
                 ) : null}
-                <div className={adviceCard.card.imageUrl ? 'hidden' : 'text-6xl mb-3'}>🎴</div>
+                <div className={`fallback-advice-icon ${adviceCard.card.imageUrl ? 'hidden' : ''} text-8xl mb-3 flex items-center justify-center min-h-[250px]`}>🎴</div>
                 <p className="text-lg font-bold text-mystical-gold">{adviceCard.card.nameKo}</p>
                 <p className="text-sm text-white/80">{adviceCard.card.name}</p>
               </div>
