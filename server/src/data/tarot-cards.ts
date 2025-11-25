@@ -1,4 +1,4 @@
-import { TarotCard } from '../types';
+import { TarotCard } from '../models/tarot.model';
 
 export const TAROT_CARDS: TarotCard[] = [
   {
