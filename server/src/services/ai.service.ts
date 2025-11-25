@@ -145,7 +145,8 @@ JSON 형식으로 답변해주세요:
     spreadType: SpreadType,
     question: string,
     previousContext?: Array<{ date: string; question: string; summary: string }> | null,
-    userName?: string
+    userName?: string,
+    includeAdviceCard: boolean = false
   ): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -212,15 +213,28 @@ ${userName ? userName + '님' : '당신'}의 질문에 대한 핵심 답을 명�
 ---
 
 [각 타로 카드의 상세 해석]
-${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => 
-  `${i + 1}. ${dc.card.nameKo}: 
-   - 카드 그림과 상징 설명
-   - ${userName ? userName + '님의' : '당신의'} ${userElement} 기운(${elementDesc.split('.')[0]})이 이 카드와 어떻게 연결되는지 자연스럽게 풀어서 설명
-   - 이러한 성향 때문에 현재 어떤 상황/고민이 생긴 것인지 해석
-   - 실천 메시지 (각 카드당 200자 내외)`
-).join('\n')}
+${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
+  const cardElement = dc.card.element ? ` (오행: ${dc.card.element})` : '';
+  return `${i + 1}. ${dc.positionMeaning} - ${dc.card.nameKo}${cardElement} ${dc.isReversed ? '(역방향)' : '(정방향)'}:
+   
+   [카드의 기본 의미]
+   ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}
+   
+   [사주와의 연결]
+   ${userName ? userName + '님의' : '당신의'} 일간 ${sajuAnalysis.dayMaster}(${userElement})은 ${elementDesc.split('.')[0]}입니다.
+   이 ${dc.card.nameKo} 카드${dc.card.element ? `의 ${dc.card.element} 기운` : ''}이 ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 만나 어떤 의미를 만드는지 자연스럽게 풀어서 설명해주세요.
+   ${dc.card.element && dc.card.element === userElement ? '같은 오행이므로 에너지가 증폭됩니다.' : ''}
+   ${dc.card.element && dc.card.element !== userElement ? `${dc.card.element}과 ${userElement}의 상생/상극 관계를 고려한 해석을 포함해주세요.` : ''}
+   
+   [현재 상황 해석]
+   이 카드가 ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요.
+   
+   [실천 메시지]
+   ${userName ? userName + '님' : '당신'}이 이 카드의 에너지를 활용하여 현실에서 어떻게 행동해야 하는지 구체적으로 제시 (각 카드당 총 300-400자)`
+}).join('\n\n')}
 
-전체 카드의 흐름: 모든 카드가 ${userName ? userName + '님의' : '당신의'} 사주와 어떻게 조화를 이루는지 종합 설명 (200자)
+[전체 카드의 흐름과 사주 조화]
+위에 나온 모든 카드들이 ${userName ? userName + '님의' : '당신의'} 사주(강한 오행: ${sajuAnalysis.strongElements.join(', ')}, 약한 오행: ${sajuAnalysis.weakElements.join(', ')})와 어떻게 조화를 이루거나 충돌하는지, 그리고 이것이 현재 질문과 어떻게 연결되는지 종합적으로 설명 (300자)
 
 ---
 
@@ -234,7 +248,22 @@ ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 현재 
 [실천할 수 있는 조언]
 ${dateContext.month}월 현재, ${userName ? userName + '님' : '당신'}이 가진 강한 ${sajuAnalysis.strongElements.join(', ')} 기운을 어떻게 활용하고, 약한 ${sajuAnalysis.weakElements.join(', ')} 기운을 어떻게 보완할지 구체적인 방법을 제시해주세요.
 예를 들어 "수 기운이 약하다면 물처럼 유연한 사고를 기르기 위해..."처럼 오행의 특성을 자연스럽게 연결 (250자)
-${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? '\n---\n\n[조언 카드의 메시지]\n조언 카드가 ' + (userName || '당신') + '님께 전하는 핵심 메시지 (150자)' : ''}
+${includeAdviceCard && drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? `
+---
+
+[조언 카드의 특별한 메시지]
+${(() => {
+  const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드')!;
+  const adviceCardElement = adviceCard.card.element ? ` (오행: ${adviceCard.card.element})` : '';
+  return `조언 카드: ${adviceCard.card.nameKo}${adviceCardElement} ${adviceCard.isReversed ? '(역방향)' : '(정방향)'}
+
+[카드의 기본 의미]
+${adviceCard.isReversed ? adviceCard.card.reversedMeaning : adviceCard.card.uprightMeaning}
+
+[사주와 연결된 조언]
+${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 이 조언 카드${adviceCard.card.element ? `의 ${adviceCard.card.element} 기운` : ''}이 만나, 앞으로 어떻게 행동해야 가장 좋은 결과를 얻을 수 있는지 구체적이고 실천 가능한 조언을 제시해주세요.
+${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻게 활용하면 좋을지 포함` : ''}해주세요. (300자)`;
+})()}` : ''}
 `;
 
     try {

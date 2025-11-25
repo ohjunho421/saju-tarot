@@ -42,11 +42,12 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    const { question, spreadType, includeAdviceCard, cardPositions }: {
+    const { question, spreadType, includeAdviceCard, cardPositions, sajuAnalysis: clientSajuAnalysis }: {
       question: string;
       spreadType: SpreadType;
       includeAdviceCard?: boolean;
       cardPositions?: number[];
+      sajuAnalysis?: any;
     } = req.body;
 
     if (!spreadType) {
@@ -87,14 +88,18 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
     // 사용자가 선택한 카드로 뽑기
     const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false, cardPositions);
 
-    // AI 기반 종합 해석 (이전 컨텍스트 포함)
+    // 사주 분석 정보 (클라이언트에서 전달받은 것 우선, 없으면 DB에서)
+    const sajuData = clientSajuAnalysis || user.sajuAnalysis;
+
+    // AI 기반 종합 해석 (사주 정보 + 타로 카드 복합 해석)
     const aiInterpretation = await aiService.generateAdvancedInterpretation(
-      user.sajuAnalysis as any,
+      sajuData as any,
       drawnCards,
       spreadType,
       question,
       previousContext,
-      user.name || undefined
+      user.name || undefined,
+      includeAdviceCard || false  // 조언 카드 포함 여부
     );
 
     // 리딩 결과 저장

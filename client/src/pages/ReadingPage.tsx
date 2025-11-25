@@ -17,6 +17,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [sajuAnalysis, setSajuAnalysis] = useState<SajuAnalysis | null>(null);
   const [selectedSpread, setSelectedSpread] = useState<SpreadType | null>(null);
   const [question, setQuestion] = useState<string>('');
+  const [includeAdviceCard, setIncludeAdviceCard] = useState<boolean>(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +74,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     // State를 먼저 모두 설정한 후 다음 렌더링에서 step 변경
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
+    setIncludeAdviceCard(includeAdvice || false);
     
     // setTimeout을 사용하여 state 업데이트 후 step 전환 보장
     setTimeout(() => {
@@ -82,7 +84,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   };
 
   const handleCardSelectionComplete = async (cardPositions: number[]) => {
-    if (!selectedSpread) return;
+    if (!selectedSpread || !sajuAnalysis) return;
 
     // 사용자가 카드를 모두 선택 완료 - 이제 AI 해석 시작
     setLoading(true);
@@ -91,7 +93,15 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     try {
       // 로그인한 사용자만 접근 가능하므로 AI API 사용
       const { aiApi } = await import('../services/api');
-      const reading = await aiApi.getAIReading(question, selectedSpread, undefined, cardPositions);
+      
+      // 사주 분석과 조언 카드 포함 여부를 함께 전달
+      const reading = await aiApi.getAIReading(
+        question, 
+        selectedSpread, 
+        sajuAnalysis,  // 사주 분석 정보 전달
+        cardPositions,
+        includeAdviceCard  // 조언 카드 포함 여부
+      );
       
       // 결과 표시
       onComplete(reading);
@@ -221,6 +231,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
           <CardSelection 
             spreadType={selectedSpread}
             question={question}
+            includeAdviceCard={includeAdviceCard}
             onComplete={handleCardSelectionComplete}
           />
         );

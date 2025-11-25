@@ -6,6 +6,7 @@ import { tarotApi } from '../services/api';
 interface CardSelectionProps {
   spreadType: SpreadType;
   question?: string;
+  includeAdviceCard?: boolean;
   onComplete: (selectedPositions: number[]) => void;
 }
 
@@ -109,8 +110,9 @@ function getLayoutBounds(layout: CardPosition[], cardWidth: number, cardHeight: 
   };
 }
 
-export default function CardSelection({ spreadType, question, onComplete }: CardSelectionProps) {
-  const totalCards = SPREAD_CARD_COUNTS[spreadType];
+export default function CardSelection({ spreadType, question, includeAdviceCard = false, onComplete }: CardSelectionProps) {
+  const baseCardCount = SPREAD_CARD_COUNTS[spreadType];
+  const totalCards = baseCardCount + (includeAdviceCard ? 1 : 0); // 조언 카드 포함 시 +1
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
