@@ -297,7 +297,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
     
     // 민감도 조절 (픽셀당 회전량)
     const sensitivity = isMobile ? 0.05 : 0.08;
-    const rotationChange = Math.round(-deltaX * sensitivity);
+    const rotationChange = Math.round(deltaX * sensitivity); // 양수: 손가락 방향과 같은 방향으로 이동
     
     const newRotation = dragStartRotation + rotationChange;
     
@@ -339,6 +339,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // 브라우저 기본 스크롤 방지
       handleDragMove(e as any);
     };
 
@@ -347,7 +348,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleTouchMove);
+    window.addEventListener('touchmove', handleTouchMove, { passive: false }); // passive: false로 preventDefault 허용
     window.addEventListener('mouseup', handleEnd);
     window.addEventListener('touchend', handleEnd);
 
@@ -562,7 +563,9 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
             height: isMobile ? '400px' : '480px',
             maxWidth: '100%',
             paddingTop: isMobile ? '40px' : '60px',
-            cursor: isDragging ? 'grabbing' : 'grab'
+            cursor: isDragging ? 'grabbing' : 'grab',
+            touchAction: 'none', // 모바일에서 브라우저 기본 터치 동작 방지
+            overflowX: 'hidden' // 가로 스크롤 방지
           }}
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
