@@ -7,6 +7,7 @@ import { DateHelper } from '../utils/date-helper';
 export class AIService {
   private gemini: GoogleGenerativeAI | null = null;
   private claude: Anthropic | null = null;
+  private geminiModels = ['gemini-3-pro-preview', 'gemini-2.5-pro-preview-05-06', 'gemini-2.5-flash-preview-05-20'];
 
   constructor() {
     console.log('🔍 AI 서비스 초기화 중...');
@@ -72,9 +73,7 @@ JSON 형식으로 답변해주세요:
       let response: string;
 
       if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-3-pro-preview' });
-        const result = await model.generateContent(prompt);
-        response = result.response.text();
+        response = await this.tryGeminiWithFallback(prompt, 1024);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-3-5-sonnet-20241022',
@@ -286,9 +285,7 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
       let response: string;
 
       if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-3-pro-preview' });
-        const result = await model.generateContent(prompt);
-        response = result.response.text();
+        response = await this.tryGeminiWithFallback(prompt, 4096);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-3-5-sonnet-20241022',
@@ -320,6 +317,43 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
       console.error('AI 해석 생성 오류:', error);
       throw new Error('AI 해석을 생성하는 중 오류가 발생했습니다.');
     }
+  }
+
+  // Gemini 모델 fallback 로직
+  private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024): Promise<string> {
+    if (!this.gemini) {
+      throw new Error('Gemini API가 초기화되지 않았습니다.');
+    }
+
+    for (const modelName of this.geminiModels) {
+      try {
+        console.log(`🤖 Gemini 모델 시도: ${modelName}`);
+        const model = this.gemini.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: { maxOutputTokens: maxTokens }
+        });
+        const result = await model.generateContent(prompt);
+        console.log(`✅ ${modelName} 성공`);
+        return result.response.text();
+      } catch (error: any) {
+        const errorMessage = error?.message || String(error);
+        const isQuotaError = errorMessage.includes('429') || 
+                            errorMessage.includes('quota') || 
+                            errorMessage.includes('RESOURCE_EXHAUSTED') ||
+                            errorMessage.includes('rate limit');
+        
+        console.warn(`⚠️ ${modelName} 실패:`, errorMessage.substring(0, 100));
+        
+        if (isQuotaError) {
+          console.log(`🔄 할당량 초과, 다음 모델로 전환...`);
+          continue;
+        }
+        // 할당량 외 다른 에러는 바로 throw
+        throw error;
+      }
+    }
+    
+    throw new Error('모든 Gemini 모델의 할당량이 소진되었습니다. 잠시 후 다시 시도해주세요.');
   }
 
   // AI 응답 파싱
@@ -459,9 +493,7 @@ ${question}
       let response: string;
 
       if (this.gemini) {
-        const model = this.gemini.getGenerativeModel({ model: 'gemini-3-pro-preview' });
-        const result = await model.generateContent(prompt);
-        response = result.response.text();
+        response = await this.tryGeminiWithFallback(prompt, 500);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-3-5-sonnet-20241022',
