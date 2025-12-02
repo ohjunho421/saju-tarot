@@ -50,22 +50,29 @@ export class AIService {
     reason: string;
   }> {
     const prompt = `
-당신은 타로 전문가입니다. 사용자의 질문을 분석하고 가장 적합한 타로 스프레드를 추천해주세요.
+당신은 따뜻하고 직관적인 타로 상담사입니다. 
+사용자가 마음속에 품고 있는 진짜 고민이 무엇인지 느껴보세요.
 
-사용자 질문: "${question}"
+사용자의 질문: "${question}"
 
-다음 스프레드 중 하나를 선택하세요:
-1. one-card: 간단하고 명확한 답이 필요한 질문 (예: 오늘의 운세, 간단한 Yes/No)
-2. three-card: 시간의 흐름이나 원인-현재-결과를 보는 질문 (예: 이 프로젝트는 어떻게 진행될까?)
-3. six-months: "언제", "시기", "타이밍" 관련 질문이나 향후 6개월의 흐름을 보고 싶을 때 (예: 이번 일은 언제 결과가 나올까? 올해 하반기 운세는?)
-4. celtic-cross: 복잡한 상황이나 종합적인 분석이 필요한 질문 (예: 내 인생의 방향은?)
-5. saju-custom: 사주와 연관된 오행 균형이 중요한 질문 (예: 나의 재물운/건강운)
+이 사람은 지금 무엇이 궁금한 걸까요? 
+표면적인 질문 뒤에 숨겨진 진짜 마음은 무엇일까요?
+이 고민을 풀어드리려면 어떤 방식으로 카드를 펼쳐보는 게 좋을까요?
 
-JSON 형식으로 답변해주세요:
+당신이 사용할 수 있는 스프레드:
+- one-card: 한 장의 카드로 핵심 메시지를 전달. 지금 이 순간 필요한 한마디.
+- three-card: 세 장으로 이야기의 흐름을 보여줌. 어떻게 여기까지 왔고, 지금 어디에 있으며, 어디로 향하는지.
+- six-months: 여섯 장으로 앞으로의 시간을 비춰줌. 변화의 타이밍과 흐름을 읽고 싶을 때.
+- celtic-cross: 열 장으로 상황 전체를 조망. 복잡하게 얽힌 마음과 상황을 깊이 들여다볼 때.
+- saju-custom: 다섯 장으로 타고난 기운과 연결. 자신의 본질적인 에너지와 운의 흐름을 볼 때.
+
+사용자의 마음을 읽고, 이 고민을 풀어드리기에 가장 좋은 방법을 추천해주세요.
+
+JSON 형식으로 답변:
 {
-  "analysis": "질문 분석 내용",
-  "recommendedSpread": "추천하는 스프레드 타입",
-  "reason": "추천 이유"
+  "analysis": "이 사람이 진짜 알고 싶어하는 것, 마음속 고민의 본질",
+  "recommendedSpread": "one-card/three-card/six-months/celtic-cross/saju-custom 중 하나",
+  "reason": "왜 이 방식이 이 사람의 고민을 풀어주는 데 도움이 될지"
 }
 `;
 
@@ -337,18 +344,23 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
         return result.response.text();
       } catch (error: any) {
         const errorMessage = error?.message || String(error);
-        const isQuotaError = errorMessage.includes('429') || 
+        const isRetryableError = errorMessage.includes('429') || 
                             errorMessage.includes('quota') || 
                             errorMessage.includes('RESOURCE_EXHAUSTED') ||
-                            errorMessage.includes('rate limit');
+                            errorMessage.includes('rate limit') ||
+                            errorMessage.includes('fetch failed') ||
+                            errorMessage.includes('ECONNRESET') ||
+                            errorMessage.includes('ETIMEDOUT') ||
+                            errorMessage.includes('socket hang up') ||
+                            errorMessage.includes('network');
         
-        console.warn(`⚠️ ${modelName} 실패:`, errorMessage.substring(0, 100));
+        console.warn(`⚠️ ${modelName} 실패:`, errorMessage.substring(0, 150));
         
-        if (isQuotaError) {
-          console.log(`🔄 할당량 초과, 다음 모델로 전환...`);
+        if (isRetryableError) {
+          console.log(`🔄 재시도 가능한 에러, 다음 모델로 전환...`);
           continue;
         }
-        // 할당량 외 다른 에러는 바로 throw
+        // 재시도 불가능한 에러는 바로 throw
         throw error;
       }
     }
