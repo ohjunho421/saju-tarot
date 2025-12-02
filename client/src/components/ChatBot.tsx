@@ -49,10 +49,6 @@ export default function ChatBot({ reading }: ChatBotProps) {
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
       
-      // 30초 타임아웃 설정
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
-      
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: {
@@ -63,31 +59,32 @@ export default function ChatBot({ reading }: ChatBotProps) {
           question: userMessage.content,
           reading: reading,
           chatHistory: messages.map(m => ({ role: m.role, content: m.content }))
-        }),
-        signal: controller.signal
+        })
       });
-      
-      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error('답변을 받을 수 없습니다');
 
       const data = await response.json();
+      console.log('Chat API 응답:', data);
+      
+      const answerText = data?.data?.answer || data?.answer || '';
+      
+      if (!answerText) {
+        throw new Error('빈 응답');
+      }
       
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.data.answer,
+        content: answerText,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
       console.error('Chat error:', error);
-      const isTimeout = error?.name === 'AbortError';
       const errorMessage: Message = {
         role: 'assistant',
-        content: isTimeout 
-          ? '응답 시간이 너무 오래 걸리고 있어요. 😅 잠시 후 다시 질문해주세요!'
-          : '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.',
+        content: '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
