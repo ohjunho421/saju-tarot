@@ -50,29 +50,72 @@ export class AIService {
     reason: string;
   }> {
     const prompt = `
-당신은 따뜻하고 직관적인 타로 상담사입니다. 
-사용자가 마음속에 품고 있는 진짜 고민이 무엇인지 느껴보세요.
+당신은 수십 년 경력의 타로 마스터입니다. 
+사용자의 질문을 깊이 읽고, 그 사람이 진짜 알고 싶어하는 것이 무엇인지 파악하세요.
+그리고 질문의 본질에 가장 적합한 카드 배열 방식을 추천해주세요.
 
 사용자의 질문: "${question}"
 
-이 사람은 지금 무엇이 궁금한 걸까요? 
-표면적인 질문 뒤에 숨겨진 진짜 마음은 무엇일까요?
-이 고민을 풀어드리려면 어떤 방식으로 카드를 펼쳐보는 게 좋을까요?
+## 사용 가능한 스프레드
 
-당신이 사용할 수 있는 스프레드:
-- one-card: 한 장의 카드로 핵심 메시지를 전달. 지금 이 순간 필요한 한마디.
-- three-card: 세 장으로 이야기의 흐름을 보여줌. 어떻게 여기까지 왔고, 지금 어디에 있으며, 어디로 향하는지.
-- six-months: 여섯 장으로 앞으로의 시간을 비춰줌. 변화의 타이밍과 흐름을 읽고 싶을 때.
-- celtic-cross: 열 장으로 상황 전체를 조망. 복잡하게 얽힌 마음과 상황을 깊이 들여다볼 때.
-- saju-custom: 다섯 장으로 타고난 기운과 연결. 자신의 본질적인 에너지와 운의 흐름을 볼 때.
+### 1장 스프레드
+- **one-card**: 지금 이 순간의 핵심 메시지. 오늘 하루, 현재 에너지 확인용
+- **yes-no**: 예/아니오 형태의 직관적 답변이 필요할 때
 
-사용자의 마음을 읽고, 이 고민을 풀어드리기에 가장 좋은 방법을 추천해주세요.
+### 2장 스프레드  
+- **two-card**: A와 B 두 가지 선택지를 직접 비교할 때 (각 카드가 각 선택지를 대표)
+  예: "취업 준비 vs 아르바이트", "A회사 vs B회사", "이 사람 vs 저 사람"
+- **problem-solution**: 현재 문제의 원인과 해결책을 알고 싶을 때
+
+### 3장 스프레드
+- **three-card**: 과거-현재-미래 흐름, 상황의 전개 과정, 결정의 결과 예측
+  선택 질문이지만 시간의 흐름도 보고 싶을 때 적합
+
+### 5장 스프레드
+- **saju-custom**: 오행(목화토금수) 에너지와 연결, 타고난 기운 분석
+
+### 6장 스프레드
+- **six-months**: 향후 6개월간 월별 흐름. 장기적 시간의 흐름을 볼 때만 사용
+
+### 10장 스프레드
+- **celtic-cross**: 복잡한 관계, 다양한 요소가 얽힌 상황, 인생의 큰 결정
+
+## 스프레드 선택 기준
+
+질문을 분석할 때 다음을 고려하세요:
+
+1. **질문에 명확한 두 가지 선택지가 있는가?**
+   - "A vs B", "A를 할까 B를 할까" → **two-card** (가장 직접적인 비교)
+   - 예: "취업 준비 vs 아르바이트?" → two-card
+
+2. **결정이나 행동에 대한 조언이 필요한가?**
+   - "~해도 될까?", "~해야 할까?" → **three-card** (과거 맥락과 미래 결과 포함)
+
+3. **현재 문제의 원인과 해결책을 알고 싶은가?**
+   - "왜 이런 상황인지", "어떻게 해결할지" → **problem-solution**
+
+4. **단순히 예/아니오 답변이 필요한가?**
+   - "~할 수 있을까?", "~가 맞을까?" (간단한 확인) → **yes-no**
+
+5. **시간의 흐름을 보고 싶은가?**
+   - "앞으로 6개월간", "올해 운세" → **six-months**
+
+6. **현재 상태/에너지를 알고 싶은가?**
+   - "오늘 어떨까", "지금 나의 상태" → **one-card**
+
+7. **매우 복잡한 상황인가?**
+   - 여러 사람, 여러 요소가 얽힌 고민 → **celtic-cross**
+
+## 중요!
+- 질문에 "언제"가 있더라도 본질이 선택/결정이면 **two-card** 또는 **three-card**
+- A와 B가 명확히 있는 비교 질문은 **two-card**가 가장 적합
+- 사용자에게 가장 도움이 되는 방식을 선택하세요
 
 JSON 형식으로 답변:
 {
-  "analysis": "이 사람이 진짜 알고 싶어하는 것, 마음속 고민의 본질",
-  "recommendedSpread": "one-card/three-card/six-months/celtic-cross/saju-custom 중 하나",
-  "reason": "왜 이 방식이 이 사람의 고민을 풀어주는 데 도움이 될지"
+  "analysis": "이 질문의 핵심 의도와 사용자가 진짜 알고 싶어하는 것",
+  "recommendedSpread": "one-card/two-card/three-card/celtic-cross/saju-custom/six-months/yes-no/problem-solution 중 하나",
+  "reason": "왜 이 스프레드가 이 질문에 가장 적합한지 (2-3문장)"
 }
 `;
 
@@ -114,45 +157,120 @@ JSON 형식으로 답변:
   } {
     const lowerQ = question.toLowerCase();
 
+    // 1. 명확한 A vs B 비교 질문 (two-card)
+    const vsKeywords = ['vs', ' 아니면 ', '중에서', '중에 뭐', '둘 중', '둘중'];
+    const hasClearComparison = vsKeywords.some(keyword => lowerQ.includes(keyword));
+    
+    if (hasClearComparison) {
+      return {
+        analysis: '두 가지 선택지를 직접 비교하는 질문입니다.',
+        recommendedSpread: 'two-card',
+        reason: '각 선택지를 대표하는 카드 두 장으로 직접 비교해보세요.'
+      };
+    }
+
+    // 2. 문제/해결 구조의 질문
+    const problemKeywords = ['왜 이런', '문제가', '해결', '어떻게 하면', '방법'];
+    const isProblemSolution = problemKeywords.some(keyword => lowerQ.includes(keyword));
+    
+    if (isProblemSolution) {
+      return {
+        analysis: '현재 문제의 원인과 해결책을 찾는 질문입니다.',
+        recommendedSpread: 'problem-solution',
+        reason: '문제의 원인과 해결책을 각각 카드로 확인할 수 있습니다.'
+      };
+    }
+
+    // 3. 선택/결정 질문 (three-card 또는 two-card)
+    const choiceKeywords = [
+      '어느', '어떤', '뭐가', '무엇이', '선택', '결정', '해야 할까', '해야할까',
+      '더 좋', '더좋', '낫', '할까 말까', '할까말까', '시작해도', 
+      '해도 될까', '해도될까', '맞을까', '좋을까', '괜찮을까', '어떨까'
+    ];
+    
+    const isChoiceQuestion = choiceKeywords.some(keyword => lowerQ.includes(keyword));
+    
+    if (isChoiceQuestion) {
+      // "A와 B 중에" 패턴이 있으면 two-card
+      if (lowerQ.includes('중에') || lowerQ.includes('중') && lowerQ.includes('가')) {
+        return {
+          analysis: '선택지 비교가 필요한 질문입니다.',
+          recommendedSpread: 'two-card',
+          reason: '두 가지 옵션을 직접 비교하는 투 카드 스프레드를 추천합니다.'
+        };
+      }
+      return {
+        analysis: '결정에 도움이 필요한 질문입니다.',
+        recommendedSpread: 'three-card',
+        reason: '상황의 흐름과 결과를 보기 위해 쓰리 카드 스프레드를 추천합니다.'
+      };
+    }
+
+    // 4. 간단한 예/아니오 질문
+    const yesNoPatterns = ['할 수 있을까', '할수있을까', '가능할까', '될까요'];
+    const isYesNo = yesNoPatterns.some(p => lowerQ.includes(p)) && lowerQ.length < 25;
+    
+    if (isYesNo) {
+      return {
+        analysis: '직관적인 답이 필요한 질문입니다.',
+        recommendedSpread: 'yes-no',
+        reason: '예/아니오 형태의 명확한 답을 얻을 수 있습니다.'
+      };
+    }
+
+    // 5. 간단한 현재 상황 질문
     if (lowerQ.includes('오늘') || lowerQ.includes('지금') || lowerQ.length < 10) {
       return {
         analysis: '간단한 질문입니다.',
         recommendedSpread: 'one-card',
-        reason: '명확하고 직접적인 답을 위해 원 카드 스프레드를 추천합니다.'
+        reason: '지금 이 순간의 핵심 메시지를 전달합니다.'
       };
     }
 
-    // 시기 관련 질문 감지
-    if (lowerQ.includes('언제') || lowerQ.includes('시기') || lowerQ.includes('타이밍') || 
-        lowerQ.includes('개월') || lowerQ.includes('하반기') || lowerQ.includes('상반기') ||
-        lowerQ.includes('올해') || lowerQ.includes('내년') || lowerQ.includes('흐름')) {
+    // 6. 시기/흐름 관련 질문
+    const timingKeywords = ['개월', '하반기', '상반기', '올해', '내년', '흐름', '운세'];
+    const pureTimingQuestion = timingKeywords.some(keyword => lowerQ.includes(keyword));
+    
+    if (pureTimingQuestion) {
       return {
-        analysis: '시기와 타이밍을 묻는 질문입니다.',
+        analysis: '시기와 흐름을 묻는 질문입니다.',
         recommendedSpread: 'six-months',
-        reason: '향후 6개월간의 월별 흐름을 보며 시기를 파악하기에 적합한 6개월 흐름 스프레드를 추천합니다.'
+        reason: '향후 6개월간의 월별 흐름을 볼 수 있습니다.'
       };
     }
 
+    // 7. 과거/현재/미래 흐름
     if (lowerQ.includes('과거') || lowerQ.includes('현재') || lowerQ.includes('미래')) {
       return {
         analysis: '시간의 흐름을 보는 질문입니다.',
         recommendedSpread: 'three-card',
-        reason: '과거-현재-미래의 흐름을 보기에 적합한 쓰리 카드 스프레드를 추천합니다.'
+        reason: '과거-현재-미래의 흐름을 볼 수 있습니다.'
       };
     }
 
-    if (lowerQ.includes('재물') || lowerQ.includes('건강') || lowerQ.includes('오행')) {
+    // 8. 오행/사주 관련
+    if (lowerQ.includes('재물') || lowerQ.includes('건강') || lowerQ.includes('오행') || lowerQ.includes('사주')) {
       return {
         analysis: '오행과 연관된 질문입니다.',
         recommendedSpread: 'saju-custom',
-        reason: '사주의 오행 균형과 연결된 사주 맞춤형 스프레드가 적합합니다.'
+        reason: '사주의 오행 균형과 연결된 스프레드입니다.'
       };
     }
 
+    // 9. 관계나 복잡한 상황
+    if (lowerQ.includes('관계') || lowerQ.includes('복잡') || lowerQ.length > 40) {
+      return {
+        analysis: '복합적인 상황 분석이 필요한 질문입니다.',
+        recommendedSpread: 'celtic-cross',
+        reason: '다양한 측면에서 종합적으로 분석합니다.'
+      };
+    }
+
+    // 10. 기본값: 쓰리 카드 (가장 범용적)
     return {
-      analysis: '복합적인 상황 분석이 필요한 질문입니다.',
-      recommendedSpread: 'celtic-cross',
-      reason: '종합적인 분석을 위해 켈트 십자가 스프레드를 추천합니다.'
+      analysis: '상황의 흐름을 파악하는 질문입니다.',
+      recommendedSpread: 'three-card',
+      reason: '과거-현재-미래의 흐름을 통해 상황을 이해합니다.'
     };
   }
 
