@@ -458,8 +458,16 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
           generationConfig: { maxOutputTokens: maxTokens }
         });
         const result = await model.generateContent(prompt);
-        console.log(`✅ ${modelName} 성공`);
-        return result.response.text();
+        
+        // 응답 검증
+        const responseText = result.response.text();
+        if (!responseText || responseText.trim() === '') {
+          console.warn(`⚠️ ${modelName}: 빈 응답 반환됨, 다음 모델 시도...`);
+          continue; // 빈 응답이면 다음 모델 시도
+        }
+        
+        console.log(`✅ ${modelName} 성공 (응답 길이: ${responseText.length}자)`);
+        return responseText;
       } catch (error: any) {
         const errorMessage = error?.message || String(error);
         const isRetryableError = errorMessage.includes('429') || 
@@ -470,7 +478,9 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
                             errorMessage.includes('ECONNRESET') ||
                             errorMessage.includes('ETIMEDOUT') ||
                             errorMessage.includes('socket hang up') ||
-                            errorMessage.includes('network');
+                            errorMessage.includes('network') ||
+                            errorMessage.includes('SAFETY') ||
+                            errorMessage.includes('blocked');
         
         console.warn(`⚠️ ${modelName} 실패:`, errorMessage.substring(0, 150));
         
@@ -635,10 +645,19 @@ ${question}
         throw new Error('AI 서비스를 사용할 수 없습니다.');
       }
 
-      return response.trim();
+      const trimmedResponse = response.trim();
+      
+      // 빈 응답 검증
+      if (!trimmedResponse) {
+        console.error('Chat AI: 빈 응답 반환됨');
+        return '죄송합니다. 답변을 생성하는 데 문제가 발생했습니다. 다시 질문해 주세요. 🙏';
+      }
+      
+      return trimmedResponse;
     } catch (error) {
       console.error('Chat AI 오류:', error);
-      throw new Error('답변 생성 중 오류가 발생했습니다.');
+      // 기본 응답 반환 (에러 throw 대신)
+      return '죄송합니다. 일시적인 오류가 발생했어요. 잠시 후 다시 질문해 주시면 더 나은 답변을 드릴게요. 🙏';
     }
   }
 }
