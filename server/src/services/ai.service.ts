@@ -340,8 +340,16 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
           generationConfig: { maxOutputTokens: maxTokens }
         });
         const result = await model.generateContent(prompt);
-        console.log(`✅ ${modelName} 성공`);
-        return result.response.text();
+        
+        // 응답 검증
+        const responseText = result.response.text();
+        if (!responseText || responseText.trim() === '') {
+          console.warn(`⚠️ ${modelName}: 빈 응답 반환됨, 다음 모델 시도...`);
+          continue; // 빈 응답이면 다음 모델 시도
+        }
+        
+        console.log(`✅ ${modelName} 성공 (응답 길이: ${responseText.length}자)`);
+        return responseText;
       } catch (error: any) {
         const errorMessage = error?.message || String(error);
         const isRetryableError = errorMessage.includes('429') || 
@@ -352,7 +360,9 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
                             errorMessage.includes('ECONNRESET') ||
                             errorMessage.includes('ETIMEDOUT') ||
                             errorMessage.includes('socket hang up') ||
-                            errorMessage.includes('network');
+                            errorMessage.includes('network') ||
+                            errorMessage.includes('SAFETY') ||
+                            errorMessage.includes('blocked');
         
         console.warn(`⚠️ ${modelName} 실패:`, errorMessage.substring(0, 150));
         
