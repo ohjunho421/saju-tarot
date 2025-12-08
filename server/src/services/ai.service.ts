@@ -126,7 +126,7 @@ JSON 형식으로 답변:
         response = await this.tryGeminiWithFallback(prompt, 1024);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }]
         });
@@ -413,7 +413,7 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
         response = await this.tryGeminiWithFallback(prompt, 4096);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 4096,
           messages: [{ role: 'user', content: prompt }]
         });
@@ -646,7 +646,7 @@ ${question}
       if (!response.trim() && this.claude) {
         console.log('🤖 Claude로 fallback 시도...');
         const message = await this.claude.messages.create({
-          model: 'claude-3-5-sonnet-20241022',
+          model: 'claude-sonnet-4-20250514',
           max_tokens: 500,
           messages: [{ role: 'user', content: prompt }]
         });
