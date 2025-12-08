@@ -632,25 +632,18 @@ ${question}
     try {
       let response: string = '';
 
-      // Gemini 먼저 시도
-      if (this.gemini) {
-        try {
-          response = await this.tryGeminiWithFallback(prompt, 500);
-        } catch (geminiError) {
-          console.warn('Gemini 실패, Claude로 fallback 시도...', geminiError);
-          response = ''; // Claude로 fallback
-        }
-      }
-
-      // Gemini 실패 또는 빈 응답이면 Claude 시도
-      if (!response.trim() && this.claude) {
-        console.log('🤖 Claude로 fallback 시도...');
+      // 챗봇은 Claude 먼저 사용 (더 안정적)
+      if (this.claude) {
+        console.log('🤖 Claude로 챗봇 응답 생성...');
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 500,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
+      } else if (this.gemini) {
+        // Claude 없으면 Gemini 사용
+        response = await this.tryGeminiWithFallback(prompt, 500);
       }
 
       if (!this.gemini && !this.claude) {
