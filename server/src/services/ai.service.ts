@@ -630,24 +630,36 @@ ${question}
 - 새로운 통찰이나 구체적인 예시를 들어주세요`;
 
     try {
-      let response: string;
+      let response: string = '';
 
+      // Gemini 먼저 시도
       if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 500);
-      } else if (this.claude) {
+        try {
+          response = await this.tryGeminiWithFallback(prompt, 500);
+        } catch (geminiError) {
+          console.warn('Gemini 실패, Claude로 fallback 시도...', geminiError);
+          response = ''; // Claude로 fallback
+        }
+      }
+
+      // Gemini 실패 또는 빈 응답이면 Claude 시도
+      if (!response.trim() && this.claude) {
+        console.log('🤖 Claude로 fallback 시도...');
         const message = await this.claude.messages.create({
           model: 'claude-3-5-sonnet-20241022',
           max_tokens: 500,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
-      } else {
+      }
+
+      if (!this.gemini && !this.claude) {
         throw new Error('AI 서비스를 사용할 수 없습니다.');
       }
 
       const trimmedResponse = response.trim();
       if (!trimmedResponse) {
-        console.error('Chat AI 빈 응답');
+        console.error('Chat AI 빈 응답 (Gemini + Claude 모두 실패)');
         return '죄송해요, 잠시 생각이 필요해요. 다시 한번 질문해 주시겠어요? 🙏';
       }
       return trimmedResponse;
