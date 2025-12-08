@@ -7,7 +7,7 @@ import { DateHelper } from '../utils/date-helper';
 export class AIService {
   private gemini: GoogleGenerativeAI | null = null;
   private claude: Anthropic | null = null;
-  private geminiModels = ['gemini-3-pro-preview', 'gemini-2.5-pro-preview-05-06', 'gemini-2.5-flash-preview-05-20'];
+  private geminiModels = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3-pro-preview'];
 
   constructor() {
     console.log('🔍 AI 서비스 초기화 중...');
