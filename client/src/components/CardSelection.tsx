@@ -12,18 +12,24 @@ interface CardSelectionProps {
 
 const SPREAD_CARD_COUNTS: Record<SpreadType, number> = {
   'one-card': 1,
+  'two-card': 2,
   'three-card': 3,
   'six-months': 6,
   'celtic-cross': 10,
-  'saju-custom': 5
+  'saju-custom': 5,
+  'yes-no': 1,
+  'problem-solution': 2
 };
 
 const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
   'one-card': '마음을 가라앉히고, 질문에 집중하며 한 장의 카드를 선택하세요.',
+  'two-card': '두 가지 선택지를 떠올리며 각각을 대표하는 카드를 선택하세요.',
   'three-card': '과거, 현재, 미래를 생각하며 세 장의 카드를 차례로 선택하세요.',
   'six-months': '향후 6개월의 흐름을 살펴보며 매달의 카드를 차례로 선택하세요.',
   'celtic-cross': '당신의 인생 전체를 아우르는 복잡한 상황을 떠올리며 열 장을 선택하세요.',
-  'saju-custom': '당신의 사주와 오행을 생각하며 다섯 장의 카드를 선택하세요.'
+  'saju-custom': '당신의 사주와 오행을 생각하며 다섯 장의 카드를 선택하세요.',
+  'yes-no': '마음속 질문을 떠올리며 직관적으로 한 장의 카드를 선택하세요.',
+  'problem-solution': '현재 직면한 문제를 떠올리며 두 장의 카드를 선택하세요.'
 };
 
 // 조언 카드 안내 메시지
@@ -65,6 +71,17 @@ const POSITION_GUIDANCE: Record<SpreadType, string[]> = {
     '🏔️ 토(土) 기운 - 당신의 안정감, 신뢰, 중심을 잡는 에너지를 느끼며 카드를 선택하세요',
     '⚔️ 금(金) 기운 - 당신의 결단력, 변화, 정리하는 에너지를 느끼며 카드를 선택하세요',
     '💧 수(水) 기운 - 당신의 지혜, 유연성, 흐르는 에너지를 느끼며 카드를 선택하세요'
+  ],
+  'two-card': [
+    '⬅️ 선택지 A - 첫 번째 옵션을 대표하는 에너지를 느끼며 카드를 선택하세요',
+    '➡️ 선택지 B - 두 번째 옵션을 대표하는 에너지를 느끼며 카드를 선택하세요'
+  ],
+  'yes-no': [
+    '✨ 마음속 질문에 대한 답을 구하며 직관적으로 카드를 선택하세요'
+  ],
+  'problem-solution': [
+    '🔍 문제의 원인 - 현재 어려움의 근본 원인을 떠올리며 카드를 선택하세요',
+    '💡 해결책 - 이 상황을 해결할 방법을 구하며 카드를 선택하세요'
   ]
 };
 
@@ -105,6 +122,17 @@ const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
     { x: 0, y: 0 },      // 토 (중앙)
     { x: 100, y: -80 },  // 금
     { x: 200, y: 0 }     // 수
+  ],
+  'two-card': [
+    { x: -100, y: 0 },   // 선택지 A
+    { x: 100, y: 0 }     // 선택지 B
+  ],
+  'yes-no': [
+    { x: 0, y: 0 }       // 답변
+  ],
+  'problem-solution': [
+    { x: -100, y: 0 },   // 문제의 원인
+    { x: 100, y: 0 }     // 해결책
   ]
 };
 
@@ -526,7 +554,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
       )}
 
       {/* 카드 부채꼴 스프레드 */}
-      <div className="relative">
+      <div className="relative" style={{ overflowX: 'clip' }}> {/* 가로 스크롤 방지하면서 양 끝 카드는 보이게 */}
         {/* 회전 버튼 */}
         <button
           onClick={() => rotateFan('left')}
@@ -563,9 +591,11 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
             height: isMobile ? '400px' : '480px',
             maxWidth: '100%',
             paddingTop: isMobile ? '40px' : '60px',
+            paddingLeft: isMobile ? '40px' : '60px', // 양 끝 카드 선택 가능하도록 패딩 추가
+            paddingRight: isMobile ? '40px' : '60px',
             cursor: isDragging ? 'grabbing' : 'grab',
             touchAction: 'none', // 모바일에서 브라우저 기본 터치 동작 방지
-            overflowX: 'hidden' // 가로 스크롤 방지
+            overflow: 'visible' // 양 끝 카드가 보이도록 변경
           }}
           onMouseDown={handleDragStart}
           onTouchStart={handleDragStart}
@@ -590,13 +620,13 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
               const cardSeqIndex = offsetFromCenter + halfVisible; // 0 to visibleCardCount-1
               const progress = cardSeqIndex / (visibleCardCount - 1); // 0(왼쪽) to 1(오른쪽)
               
-              // U자 부채꼴 형태 유지
-              const maxAngle = isMobile ? 40 : 45;
-              const angle = -maxAngle + (progress * maxAngle * 2); // -45 to +45 (U자)
+              // U자 부채꼴 형태 유지 - 모바일에서 각도 줄여 양 끝 카드 선택 가능하게
+              const maxAngle = isMobile ? 32 : 45; // 모바일 각도 축소 (40 -> 32)
+              const angle = -maxAngle + (progress * maxAngle * 2);
               const angleRad = (angle * Math.PI) / 180;
               
-              // 부채꼴 반지름
-              const radius = isMobile ? 280 : 360;
+              // 부채꼴 반지름 - 모바일에서 약간 축소
+              const radius = isMobile ? 250 : 360; // 모바일 반지름 축소 (280 -> 250)
               
               // U자 곡선 위치 계산
               const x = Math.sin(angleRad) * radius;
