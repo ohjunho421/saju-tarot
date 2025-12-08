@@ -82,9 +82,10 @@ export default function ChatBot({ reading }: ChatBotProps) {
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error: any) {
       console.error('Chat error:', error);
+      console.error('Error message:', error?.message);
       const errorMessage: Message = {
         role: 'assistant',
-        content: '죄송합니다. 일시적인 오류가 발생했습니다. 다시 시도해주세요.',
+        content: '죄송합니다. 일시적인 오류가 발생했어요. 잠시 후 다시 질문해 주시면 더 나은 답변을 드릴게요. 🙏',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
