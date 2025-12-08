@@ -645,10 +645,16 @@ ${question}
         throw new Error('AI 서비스를 사용할 수 없습니다.');
       }
 
-      return response.trim();
+      const trimmedResponse = response.trim();
+      if (!trimmedResponse) {
+        console.error('Chat AI 빈 응답');
+        return '죄송해요, 잠시 생각이 필요해요. 다시 한번 질문해 주시겠어요? 🙏';
+      }
+      return trimmedResponse;
     } catch (error) {
       console.error('Chat AI 오류:', error);
-      throw new Error('답변 생성 중 오류가 발생했습니다.');
+      // 에러 발생 시 기본 응답 반환 (throw 대신)
+      return '죄송해요, 지금은 답변을 드리기 어려워요. 잠시 후 다시 시도해 주세요. 🙏';
     }
   }
 }
