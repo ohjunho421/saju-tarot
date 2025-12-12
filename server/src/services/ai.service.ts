@@ -120,28 +120,31 @@ JSON 형식으로 답변:
 `;
 
     try {
-      let response: string;
+      let response: string = '';
 
-      if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 1024);
-      } else if (this.claude) {
+      // Claude 먼저 사용 (더 안정적인 JSON 응답)
+      if (this.claude) {
+        console.log('🤖 Claude로 스프레드 추천...');
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
-      } else {
-        // Fallback: 기본 로직
-        return this.fallbackSpreadRecommendation(question);
+      } else if (this.gemini) {
+        // Claude 없으면 Gemini 사용
+        response = await this.tryGeminiWithFallback(prompt, 1024);
       }
 
       // JSON 파싱
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('✅ AI 스프레드 추천 결과:', parsed.recommendedSpread);
+        return parsed;
       }
 
+      console.warn('⚠️ AI 응답에서 JSON 파싱 실패, fallback 사용');
       return this.fallbackSpreadRecommendation(question);
     } catch (error) {
       console.error('AI 스프레드 추천 오류:', error);
