@@ -372,10 +372,7 @@ ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) =>
    ${dc.card.element && dc.card.element !== userElement ? `${dc.card.element}과 ${userElement}의 상생/상극 관계를 고려한 해석을 포함해주세요.` : ''}
    
    [현재 상황 해석]
-   이 카드가 ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요.
-   
-   [실천 메시지]
-   ${userName ? userName + '님' : '당신'}이 이 카드의 에너지를 활용하여 현실에서 어떻게 행동해야 하는지 구체적으로 제시 (각 카드당 총 300-400자)`
+   이 카드가 ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요. (각 카드당 250-350자)`
 }).join('\n\n')}
 
 [전체 카드의 흐름과 사주 조화]
@@ -391,7 +388,18 @@ ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 현재 
 
 ---
 
-[실천할 수 있는 조언]
+[카드별 실천 메시지]
+각 카드에서 얻은 메시지를 바탕으로 ${userName ? userName + '님' : '당신'}이 실제로 행동할 수 있는 구체적인 실천 방법을 카드별로 정리해주세요:
+${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
+  const currentMonth = dateContext.month;
+  const targetMonth = spreadType === 'six-months' ? ((currentMonth + i - 1) % 12) + 1 : null;
+  const monthLabel = targetMonth ? ` (${targetMonth}월)` : '';
+  return `${i + 1}. ${dc.card.nameKo}${monthLabel}: 이 카드의 에너지를 활용한 구체적인 실천 방법 1-2가지 (50-80자)`;
+}).join('\n')}
+
+---
+
+[종합 실천 조언]
 ${dateContext.month}월 현재, ${userName ? userName + '님' : '당신'}이 가진 강한 ${sajuAnalysis.strongElements.join(', ')} 기운을 어떻게 활용하고, 약한 ${sajuAnalysis.weakElements.join(', ')} 기운을 어떻게 보완할지 구체적인 방법을 제시해주세요.
 예를 들어 "수 기운이 약하다면 물처럼 유연한 사고를 기르기 위해..."처럼 오행의 특성을 자연스럽게 연결 (250자)
 ${includeAdviceCard && drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? `
@@ -415,18 +423,24 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
     try {
       let response: string;
 
+      // 카드 수에 따라 max_tokens 동적 조절 (6개월/켈틱크로스는 더 많은 토큰 필요)
+      const cardCount = drawnCards.length;
+      const maxTokens = cardCount >= 6 ? 12000 : cardCount >= 4 ? 8000 : 6000;
+      
       if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 4096);
+        response = await this.tryGeminiWithFallback(prompt, maxTokens);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
+          max_tokens: maxTokens,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
       } else {
         throw new Error('AI 서비스를 사용할 수 없습니다.');
       }
+      
+      console.log(`📊 카드 ${cardCount}장, max_tokens: ${maxTokens}, 응답 길이: ${response.length}자`);
 
       // 디버깅: AI 응답 전체 로깅
       console.log('=== AI 응답 전체 ===');
