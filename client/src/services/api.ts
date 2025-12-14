@@ -112,14 +112,14 @@ export const aiApi = {
     question: string, 
     spreadType: SpreadType, 
     sajuAnalysis?: SajuAnalysis,
-    cardPositions?: number[],
+    selectedCards?: { cardIndex: number; isReversed: boolean }[],
     includeAdviceCard?: boolean
   ): Promise<IntegratedReading> => {
     const response = await api.post<ApiResponse<IntegratedReading>>('/ai/ai-reading', {
       question,
       spreadType,
       sajuAnalysis,  // 사주 분석 정보 전달
-      cardPositions,
+      selectedCards, // { cardIndex, isReversed }[] 형태로 전달
       includeAdviceCard,
     });
     if (!response.data.success || !response.data.data) {

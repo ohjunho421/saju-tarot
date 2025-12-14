@@ -42,11 +42,12 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    const { question, spreadType, includeAdviceCard, cardPositions, sajuAnalysis: clientSajuAnalysis }: {
+    const { question, spreadType, includeAdviceCard, cardPositions, selectedCards, sajuAnalysis: clientSajuAnalysis }: {
       question: string;
       spreadType: SpreadType;
       includeAdviceCard?: boolean;
-      cardPositions?: number[];
+      cardPositions?: number[]; // 하위 호환성 유지
+      selectedCards?: { cardIndex: number; isReversed: boolean }[]; // 새로운 형식
       sajuAnalysis?: any;
     } = req.body;
 
@@ -85,8 +86,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       summary: r.interpretation.substring(0, 150) + '...'
     })) : null;
 
-    // 사용자가 선택한 카드로 뽑기
-    const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false, cardPositions);
+    // 사용자가 선택한 카드로 뽑기 (역방향 정보 포함)
+    const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false, selectedCards || cardPositions);
 
     // 사주 분석 정보 (클라이언트에서 전달받은 것 우선, 없으면 DB에서)
     const sajuData = clientSajuAnalysis || user.sajuAnalysis;

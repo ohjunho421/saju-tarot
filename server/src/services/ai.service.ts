@@ -349,6 +349,12 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ?
 6. 좋은 점만 말하지 말고, 주의해야 할 점이나 어려움도 함께 알려주세요
 7. 현실적이고 균형 잡힌 조언을 제공하세요
 
+⚠️ 카드 방향 해석 규칙 (매우 중요!):
+- 각 카드의 (역방향) 또는 (정방향) 표시를 반드시 확인하세요
+- 역방향 카드는 반드시 역방향의 의미로만 해석하세요 (정방향 의미 사용 금지)
+- 정방향 카드는 반드시 정방향의 의미로만 해석하세요
+- 역방향 카드가 나왔다면 "이 카드가 역방향으로 나왔기 때문에..."라고 명시하며 해석하세요
+
 [질문에 대한 결론]
 ${userName ? userName + '님' : '당신'}의 질문에 대한 핵심 답을 명확히 요약 (150~200자)
 
@@ -360,19 +366,23 @@ ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) =>
   const currentMonth = dateContext.month;
   const targetMonth = spreadType === 'six-months' ? ((currentMonth + i - 1) % 12) + 1 : null;
   const monthLabel = targetMonth ? `${targetMonth}월` : '';
-  return `${i + 1}. ${dc.positionMeaning}${monthLabel ? ` (${monthLabel})` : ''} - ${dc.card.nameKo}${cardElement} ${dc.isReversed ? '(역방향)' : '(정방향)'}:
+  const directionText = dc.isReversed ? '⚠️ 역방향' : '정방향';
+  const directionWarning = dc.isReversed 
+    ? `\n   ⚠️ 이 카드는 역방향입니다! 반드시 역방향 의미("${dc.card.reversedMeaning}")로만 해석하세요.` 
+    : '';
+  return `${i + 1}. ${dc.positionMeaning}${monthLabel ? ` (${monthLabel})` : ''} - ${dc.card.nameKo}${cardElement} [${directionText}]:${directionWarning}
    
-   [카드의 기본 의미]
+   [카드의 기본 의미 - ${dc.isReversed ? '역방향' : '정방향'}]
    ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}
    
    [사주와의 연결]
    ${userName ? userName + '님의' : '당신의'} 일간 ${sajuAnalysis.dayMaster}(${userElement})은 ${elementDesc.split('.')[0]}입니다.
-   이 ${dc.card.nameKo} 카드${dc.card.element ? `의 ${dc.card.element} 기운` : ''}이 ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 만나 어떤 의미를 만드는지 자연스럽게 풀어서 설명해주세요.
+   이 ${dc.card.nameKo} 카드(${dc.isReversed ? '역방향' : '정방향'})${dc.card.element ? `의 ${dc.card.element} 기운` : ''}이 ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 만나 어떤 의미를 만드는지 자연스럽게 풀어서 설명해주세요.
    ${dc.card.element && dc.card.element === userElement ? '같은 오행이므로 에너지가 증폭됩니다.' : ''}
    ${dc.card.element && dc.card.element !== userElement ? `${dc.card.element}과 ${userElement}의 상생/상극 관계를 고려한 해석을 포함해주세요.` : ''}
    
    [현재 상황 해석]
-   이 카드가 ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요. (각 카드당 250-350자)`
+   이 카드가 ${dc.isReversed ? '역방향으로' : '정방향으로'} ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요. (각 카드당 250-350자)`
 }).join('\n\n')}
 
 [전체 카드의 흐름과 사주 조화]

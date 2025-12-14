@@ -24,22 +24,41 @@ export class TarotService {
   }
 
   // 카드 뽑기
-  public drawCards(spreadType: SpreadType, question?: string, includeAdviceCard: boolean = false, cardPositions?: number[]): DrawnCard[] {
+  public drawCards(
+    spreadType: SpreadType, 
+    question?: string, 
+    includeAdviceCard: boolean = false, 
+    cardData?: number[] | { cardIndex: number; isReversed: boolean }[]
+  ): DrawnCard[] {
     const positions = SPREAD_POSITIONS[spreadType];
     
-    // 사용자가 선택한 카드 인덱스가 제공된 경우
-    if (cardPositions && cardPositions.length > 0) {
+    // 사용자가 선택한 카드 데이터가 제공된 경우
+    if (cardData && cardData.length > 0) {
       const drawnCards: DrawnCard[] = [];
       const shuffledDeck = this.shuffleDeck(); // 백업용 랜덤 덱
       
+      // 새로운 형식인지 확인 (객체 배열)
+      const isNewFormat = typeof cardData[0] === 'object' && 'cardIndex' in cardData[0];
+      
       for (let i = 0; i < positions.length; i++) {
-        const cardIndex = cardPositions[i];
+        let cardIndex: number;
+        let isReversed: boolean;
+        
+        if (isNewFormat) {
+          // 새로운 형식: { cardIndex, isReversed }
+          const selectedCard = (cardData as { cardIndex: number; isReversed: boolean }[])[i];
+          cardIndex = selectedCard?.cardIndex;
+          isReversed = selectedCard?.isReversed ?? Math.random() < 0.3;
+        } else {
+          // 기존 형식: number[]
+          cardIndex = (cardData as number[])[i];
+          isReversed = Math.random() < 0.3; // 기존 방식: 서버에서 랜덤 결정
+        }
         
         // 유효성 검사 (undefined, null, 범위 밖)
         if (cardIndex === undefined || cardIndex === null || cardIndex < 0 || cardIndex >= this.allCards.length) {
           console.error(`Invalid card index at position ${i}: ${cardIndex}. Using random card instead.`);
           const card = shuffledDeck[i];
-          const isReversed = Math.random() < 0.3;
           
           drawnCards.push({
             card,
@@ -56,7 +75,6 @@ export class TarotService {
         if (!card) {
           console.error(`Card not found at index ${cardIndex}. Using random card instead.`);
           const randomCard = shuffledDeck[i];
-          const isReversed = Math.random() < 0.3;
           
           drawnCards.push({
             card: randomCard,
@@ -67,7 +85,7 @@ export class TarotService {
           continue;
         }
         
-        const isReversed = Math.random() < 0.3; // 30% 확률로 역방향
+        console.log(`🎴 카드 ${i + 1}: ${card.nameKo} (${isReversed ? '역방향' : '정방향'})`);
         
         drawnCards.push({
           card,

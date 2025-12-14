@@ -7,7 +7,7 @@ interface CardSelectionProps {
   spreadType: SpreadType;
   question?: string;
   includeAdviceCard?: boolean;
-  onComplete: (selectedPositions: number[]) => void;
+  onComplete: (selectedCards: { cardIndex: number; isReversed: boolean }[]) => void;
 }
 
 const SPREAD_CARD_COUNTS: Record<SpreadType, number> = {
@@ -162,7 +162,7 @@ function getLayoutBounds(layout: CardPosition[], cardWidth: number, cardHeight: 
 export default function CardSelection({ spreadType, question, includeAdviceCard = false, onComplete }: CardSelectionProps) {
   const baseCardCount = SPREAD_CARD_COUNTS[spreadType];
   const totalCards = baseCardCount + (includeAdviceCard ? 1 : 0); // 조언 카드 포함 시 +1
-  const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [selectedCards, setSelectedCards] = useState<{ deckPosition: number; isReversed: boolean }[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
   const [fanRotation, setFanRotation] = useState(0);
@@ -225,14 +225,18 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
 
   // 첫 클릭 - 프리뷰 모드
   const handleCardClick = (index: number) => {
-    if (isRevealing || selectedCards.includes(index) || hasDragged) return;
+    if (isRevealing || selectedCards.some(c => c.deckPosition === index) || hasDragged) return;
     
     if (previewCard === index) {
       // 같은 카드를 다시 클릭 - 실제 선택
       if (selectedCards.length < totalCards) {
-        const newSelected = [...selectedCards, index];
+        // 30% 확률로 역방향 결정 (선택 시점에 결정)
+        const isReversed = Math.random() < 0.3;
+        const newSelected = [...selectedCards, { deckPosition: index, isReversed }];
         setSelectedCards(newSelected);
         setPreviewCard(null);
+        
+        console.log(`🎴 카드 선택: 덱 위치 ${index}, 역방향: ${isReversed}`);
         
         // 모든 카드 선택 완료
         if (newSelected.length === totalCards) {
@@ -247,21 +251,24 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
     }
   };
 
-  const revealCards = (cards: number[]) => {
+  const revealCards = (cards: { deckPosition: number; isReversed: boolean }[]) => {
     setIsRevealing(true);
     
     // 카드를 하나씩 천천히 뒤집기
-    cards.forEach((cardIndex, i) => {
+    cards.forEach((card, i) => {
       setTimeout(() => {
-        setRevealedCards(prev => new Set([...prev, cardIndex]));
+        setRevealedCards(prev => new Set([...prev, card.deckPosition]));
         
         // 마지막 카드 뒤집기 완료 후
         if (i === cards.length - 1) {
           setTimeout(() => {
-            // 선택한 위치의 실제 카드 번호를 서버에 전송
-            const actualCardNumbers = cards.map(pos => deckCards[pos]);
-            console.log('📤 서버로 전송:', { 선택한위치: cards, 실제카드번호: actualCardNumbers });
-            onComplete(actualCardNumbers);
+            // 선택한 위치의 실제 카드 번호와 역방향 정보를 서버에 전송
+            const cardsToSend = cards.map(c => ({
+              cardIndex: deckCards[c.deckPosition],
+              isReversed: c.isReversed
+            }));
+            console.log('📤 서버로 전송:', cardsToSend);
+            onComplete(cardsToSend);
           }, 8000); // 8초 대기 - 사용자가 카드를 충분히 볼 수 있도록
         }
       }, i * 800); // 카드당 800ms 간격으로 천천히 뒤집기
@@ -460,8 +467,9 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                 const scaleY = bounds.height > 0 ? (availableHeight * 0.8) / bounds.height : 1;
                 const scale = Math.min(scaleX, scaleY, 1); // 확대는 하지 않고 축소만
                 
-                return selectedCards.map((cardIndex, idx) => {
-                  const isRevealed = revealedCards.has(cardIndex);
+                return selectedCards.map((selectedCard, idx) => {
+                  const { deckPosition, isReversed } = selectedCard;
+                  const isRevealed = revealedCards.has(deckPosition);
                   const layout = currentLayout[idx];
                   const cardSize = isMobile ? 'w-16' : 'w-20 md:w-24';
                   
@@ -475,9 +483,12 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                   const scaledX = layout.x * scale;
                   const scaledY = layout.y * scale;
                   
+                  // 역방향 카드는 180도 회전 (공개 후에만)
+                  const reversedRotation = isReversed && isRevealed ? 180 : 0;
+                  
                   return (
                     <div
-                      key={cardIndex}
+                      key={deckPosition}
                       className="absolute"
                       style={{
                         transform: `translate(${scaledX}px, ${scaledY}px)`,
@@ -489,7 +500,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                       className={`${cardSize} aspect-[2/3] rounded-lg`}
                       style={{
                         transformStyle: 'preserve-3d',
-                        transform: `${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'} rotate(${layout.rotation || 0}deg)`,
+                        transform: `${isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)'} rotate(${(layout.rotation || 0) + reversedRotation}deg)`,
                         transition: 'transform 1.2s ease-in-out'
                         // 뒤집기 애니메이션만 (이동 없음)
                       }}
@@ -508,8 +519,8 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                       
                       {/* 카드 앞면 */}
                       {isRevealed && allTarotCards.length > 0 && deckCards.length > 0 && (() => {
-                        // cardIndex는 선택한 위치이고, 실제 카드 번호는 deckCards에서 가져옴
-                        const actualCardNumber = deckCards[cardIndex];
+                        // deckPosition은 선택한 위치이고, 실제 카드 번호는 deckCards에서 가져옴
+                        const actualCardNumber = deckCards[deckPosition];
                         const tarotCard = allTarotCards[actualCardNumber];
                         if (!tarotCard) {
                           return (
@@ -539,6 +550,12 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
                               <div className="text-center p-2">
                                 <div className="text-3xl md:text-4xl mb-1">🎴</div>
                                 <p className="text-xs font-bold text-purple-900">{tarotCard.nameKo}</p>
+                              </div>
+                            )}
+                            {/* 역방향 표시 배지 */}
+                            {isReversed && (
+                              <div className="absolute top-1 left-1 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded font-bold">
+                                역
                               </div>
                             )}
                           </div>

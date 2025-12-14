@@ -83,7 +83,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     }, 0);
   };
 
-  const handleCardSelectionComplete = async (cardPositions: number[]) => {
+  const handleCardSelectionComplete = async (selectedCards: { cardIndex: number; isReversed: boolean }[]) => {
     if (!selectedSpread || !sajuAnalysis) return;
 
     // 사용자가 카드를 모두 선택 완료 - 이제 AI 해석 시작
@@ -94,12 +94,12 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       // 로그인한 사용자만 접근 가능하므로 AI API 사용
       const { aiApi } = await import('../services/api');
       
-      // 사주 분석과 조언 카드 포함 여부를 함께 전달
+      // 사주 분석과 조언 카드 포함 여부를 함께 전달 (역방향 정보 포함)
       const reading = await aiApi.getAIReading(
         question, 
         selectedSpread, 
         sajuAnalysis,  // 사주 분석 정보 전달
-        cardPositions,
+        selectedCards, // { cardIndex, isReversed }[] 형태로 전달
         includeAdviceCard  // 조언 카드 포함 여부
       );
       
