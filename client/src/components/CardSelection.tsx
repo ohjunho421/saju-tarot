@@ -619,7 +619,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
         >
           <div className="absolute inset-0 flex items-end justify-center">
             {deckCards.map((cardIndex) => {
-              const isSelected = selectedCards.includes(cardIndex);
+              const isSelected = selectedCards.some(c => c.deckPosition === cardIndex);
               
               // 선택된 카드는 별도 영역에 표시하므로 여기서는 숨김
               if (isSelected) return null;
