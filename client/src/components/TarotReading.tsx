@@ -109,31 +109,54 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
               className="input-field min-h-24 resize-none"
               maxLength={200}
             />
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-white/50">
-                * 구체적인 질문일수록 더 명확한 답을 얻을 수 있습니다
-              </p>
-              {localStorage.getItem('token') && question.length >= 5 && (
+            <p className="text-xs text-white/50 mt-2">
+              * 구체적인 질문일수록 더 명확한 답을 얻을 수 있습니다
+            </p>
+            
+            {/* AI 스프레드 추천 후킹 영역 - 항상 눈에 띄게 표시 */}
+            {localStorage.getItem('token') && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-primary-900/50 via-mystical-purple/30 to-primary-900/50 border-2 border-mystical-gold/50 rounded-xl">
+                <div className="text-center mb-3">
+                  <span className="inline-flex items-center gap-2 text-mystical-gold font-bold text-lg">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                    AI 스프레드 추천
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                  </span>
+                  <p className="text-white/70 text-sm mt-1">
+                    질문을 입력하면 AI가 최적의 스프레드를 추천해드려요!
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={analyzeQuestionWithAI}
-                  disabled={analyzingQuestion}
-                  className="flex items-center gap-2 px-4 py-2 bg-mystical-gold/20 hover:bg-mystical-gold/30 rounded-lg transition-all text-sm"
+                  disabled={analyzingQuestion || question.length < 5}
+                  className={`w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl transition-all transform ${
+                    question.length >= 5 
+                      ? 'bg-gradient-to-r from-mystical-gold via-yellow-500 to-mystical-gold bg-[length:200%_100%] animate-shimmer shadow-lg shadow-mystical-gold/30 hover:shadow-mystical-gold/50 hover:scale-[1.02]' 
+                      : 'bg-mystical-gold/20 border border-mystical-gold/30 hover:bg-mystical-gold/30'
+                  }`}
                 >
                   {analyzingQuestion ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      AI 분석 중...
+                      <Loader2 className="w-6 h-6 animate-spin text-dark-900" />
+                      <span className="text-lg font-bold text-dark-900">AI가 분석하고 있어요...</span>
                     </>
                   ) : (
                     <>
-                      <Wand2 className="w-4 h-4" />
-                      AI가 스프레드 추천
+                      <Wand2 className={`w-6 h-6 ${question.length >= 5 ? 'text-dark-900' : 'text-mystical-gold'}`} />
+                      <span className={`text-lg font-bold ${question.length >= 5 ? 'text-dark-900' : 'text-mystical-gold'}`}>
+                        ✨ AI 스프레드 추천받기
+                      </span>
                     </>
                   )}
                 </button>
-              )}
-            </div>
+                {question.length < 5 && (
+                  <p className="text-center text-xs text-white/50 mt-2">
+                    💡 질문을 5자 이상 입력하면 버튼이 활성화됩니다
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* AI 추천 결과 */}

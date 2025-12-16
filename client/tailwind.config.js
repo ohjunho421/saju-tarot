@@ -30,6 +30,15 @@ export default {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         serif: ['Noto Serif KR', 'serif'],
       },
+      animation: {
+        shimmer: 'shimmer 2s linear infinite',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+      },
     },
   },
   plugins: [],
