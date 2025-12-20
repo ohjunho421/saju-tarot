@@ -118,7 +118,8 @@ JSON 형식으로 답변:
       if (this.claude) {
         console.log('🤖 Claude로 스프레드 추천...');
         const message = await this.claude.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }]
         });
@@ -450,7 +451,8 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
         response = await this.tryGeminiWithFallback(prompt, maxTokens);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: maxTokens,
           messages: [{ role: 'user', content: prompt }]
         });
@@ -677,7 +679,8 @@ ${question}
       if (this.claude) {
         console.log('🤖 Claude로 챗봇 응답 생성...');
         const message = await this.claude.messages.create({
-          model: 'claude-sonnet-4-20250514',
+          // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
+          model: 'claude-sonnet-4-5-20250929',
           max_tokens: 500,
           messages: [{ role: 'user', content: prompt }]
         });
