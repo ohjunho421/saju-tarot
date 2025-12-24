@@ -397,7 +397,46 @@ ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) =>
 
 [전체 카드의 흐름과 사주 조화]
 위에 나온 모든 카드들이 ${userName ? userName + '님의' : '당신의'} 사주(강한 오행: ${sajuAnalysis.strongElements.join(', ')}, 약한 오행: ${sajuAnalysis.weakElements.join(', ')})와 어떻게 조화를 이루거나 충돌하는지, 그리고 이것이 현재 질문과 어떻게 연결되는지 종합적으로 설명 (300자)
-${spreadType === 'six-months' ? `\n\n[향후 6개월 흐름의 핵심 포인트]\n현재 ${dateContext.month}월부터 시작하여 향후 6개월 동안 ${userName ? userName + '님' : '당신'}이 경험하게 될 변화의 흐름을 요약해주세요. 특히 언제쯤 중요한 전환점이 찾아올지, 어느 시기가 가장 유리한지 구체적으로 알려주세요 (250자)` : ''}
+${(() => {
+  // 스프레드별 특화 섹션
+  switch(spreadType) {
+    case 'six-months':
+      return `\n\n[향후 6개월 흐름의 핵심 포인트]\n현재 ${dateContext.month}월부터 시작하여 향후 6개월 동안 ${userName ? userName + '님' : '당신'}이 경험하게 될 변화의 흐름을 요약해주세요. 특히 언제쯤 중요한 전환점이 찾아올지, 어느 시기가 가장 유리한지 구체적으로 알려주세요 (250자)`;
+    case 'celtic-cross':
+      return `\n\n[켈틱 크로스 종합 분석]
+10장의 카드가 보여주는 전체 그림을 종합해주세요:
+1. 현재 상황(1번)과 장애물(2번)의 관계: 무엇이 ${userName ? userName + '님을' : '당신을'} 막고 있는지
+2. 의식(3번)과 무의식(4번)의 갈등: 표면적 목표와 내면의 진짜 욕구 차이
+3. 과거(5번)에서 가까운 미래(6번)로의 흐름: 어떤 변화가 예상되는지
+4. 자신(7번)과 외부(8번)의 상호작용: 주변 환경이 어떻게 영향을 주는지
+5. 희망과 두려움(9번)이 최종 결과(10번)에 미치는 영향
+${userName ? userName + '님의' : '당신의'} 사주 특성과 연결하여 가장 주의해야 할 점과 활용해야 할 기회를 명확히 제시 (400자)`;
+    case 'saju-custom':
+      return `\n\n[오행별 에너지 균형 분석]
+5장의 카드가 각각 목(木), 화(火), 토(土), 금(金), 수(水) 위치에 배치되었습니다.
+${userName ? userName + '님의' : '당신의'} 사주에서 강한 오행(${sajuAnalysis.strongElements.join(', ')})과 약한 오행(${sajuAnalysis.weakElements.join(', ')})을 고려하여:
+1. 강한 오행 위치의 카드: 이미 가진 에너지를 어떻게 활용할지
+2. 약한 오행 위치의 카드: 부족한 에너지를 어떻게 보완할지
+3. 오행 간 상생/상극 관계: 카드들이 서로 어떻게 영향을 주고받는지
+전체적인 오행 균형 상태와 조화를 이루기 위한 방향 제시 (350자)`;
+    case 'problem-solution':
+      return `\n\n[문제와 해결책의 연결]
+첫 번째 카드(문제의 원인)와 두 번째 카드(해결책)가 어떻게 연결되는지 분석해주세요.
+${userName ? userName + '님의' : '당신의'} ${userElement} 성향이 문제 발생에 어떤 영향을 미쳤는지, 그리고 해결책 카드가 제시하는 방향이 ${userName ? userName + '님의' : '당신의'} 사주와 어떻게 조화를 이룰 수 있는지 구체적으로 설명 (250자)`;
+    case 'two-card':
+      return `\n\n[두 선택지 비교 분석]
+선택지 A와 선택지 B를 ${userName ? userName + '님의' : '당신의'} 사주 특성과 연결하여 비교해주세요:
+1. 어느 쪽이 ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 더 잘 맞는지
+2. 각 선택의 장단점을 솔직하게
+3. 최종적으로 어느 쪽을 추천하는지 명확하게 (200자)`;
+    case 'yes-no':
+      return `\n\n[예/아니오 판단]
+이 카드가 ${userName ? userName + '님의' : '당신의'} 질문에 대해 "예" 또는 "아니오" 중 어느 쪽을 가리키는지 명확하게 답해주세요.
+카드의 정/역방향, 카드 자체의 에너지, 그리고 ${userName ? userName + '님의' : '당신의'} 사주와의 조화를 고려하여 판단 근거도 함께 설명 (150자)`;
+    default:
+      return '';
+  }
+})()}
 
 ---
 
@@ -443,9 +482,37 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
     try {
       let response: string;
 
-      // 카드 수에 따라 max_tokens 동적 조절 (6개월/켈틱크로스는 더 많은 토큰 필요)
+      // 스프레드 타입과 카드 수에 따라 max_tokens 동적 조절
       const cardCount = drawnCards.length;
-      const maxTokens = cardCount >= 6 ? 12000 : cardCount >= 4 ? 8000 : 6000;
+      let maxTokens: number;
+      
+      switch(spreadType) {
+        case 'celtic-cross':
+          maxTokens = 14000; // 10장 + 종합 분석
+          break;
+        case 'six-months':
+          maxTokens = 12000; // 6장 + 월별 흐름
+          break;
+        case 'saju-custom':
+          maxTokens = 10000; // 5장 + 오행 분석
+          break;
+        case 'three-card':
+        case 'problem-solution':
+        case 'two-card':
+          maxTokens = 6000; // 2-3장
+          break;
+        case 'one-card':
+        case 'yes-no':
+          maxTokens = 4000; // 1장
+          break;
+        default:
+          maxTokens = cardCount >= 6 ? 12000 : cardCount >= 4 ? 8000 : 6000;
+      }
+      
+      // 조언 카드 포함 시 추가 토큰
+      if (includeAdviceCard) {
+        maxTokens += 1500;
+      }
       
       if (this.gemini) {
         response = await this.tryGeminiWithFallback(prompt, maxTokens);
@@ -593,16 +660,32 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
       }
     }
 
-    // [실천할 수 있는 조언] 추출
-    const adviceMatch = response.match(/\[실천할 수 있는 조언\]\s*([\s\S]*?)(?=---|$)/i);
-    if (adviceMatch) {
-      sections.personalizedAdvice = adviceMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+    // [카드별 실천 메시지] + [종합 실천 조언] → personalizedAdvice
+    const practiceMatch = response.match(/\[카드별 실천 메시지\]\s*([\s\S]*?)(?=---|$)/i);
+    const overallAdviceMatch = response.match(/\[종합 실천 조언\]\s*([\s\S]*?)(?=---|$)/i);
+    
+    if (practiceMatch || overallAdviceMatch) {
+      const practice = practiceMatch ? practiceMatch[1].trim().replace(/^\[.*?\]\s*/, '') : '';
+      const overall = overallAdviceMatch ? overallAdviceMatch[1].trim().replace(/^\[.*?\]\s*/, '') : '';
+      sections.personalizedAdvice = [practice, overall].filter(Boolean).join('\n\n');
+    } else {
+      // Fallback: 이전 형식
+      const adviceMatch = response.match(/\[실천할 수 있는 조언\]\s*([\s\S]*?)(?=---|$)/i);
+      if (adviceMatch) {
+        sections.personalizedAdvice = adviceMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      }
     }
 
-    // [조언 카드의 메시지] 추출
-    const adviceCardMatch = response.match(/\[조언 카드의 메시지\]\s*([\s\S]*?)$/i);
+    // [조언 카드의 특별한 메시지] → adviceCardInterpretation
+    const adviceCardMatch = response.match(/\[조언 카드의 특별한 메시지\]\s*([\s\S]*?)$/i);
     if (adviceCardMatch) {
       sections.adviceCardInterpretation = adviceCardMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+    } else {
+      // Fallback: 이전 형식
+      const oldAdviceCardMatch = response.match(/\[조언 카드의 메시지\]\s*([\s\S]*?)$/i);
+      if (oldAdviceCardMatch) {
+        sections.adviceCardInterpretation = oldAdviceCardMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      }
     }
 
     // Fallback: --- 로 나뉜 부분 사용
