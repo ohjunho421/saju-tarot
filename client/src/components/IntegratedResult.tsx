@@ -70,13 +70,21 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
     })));
   }, [mainCards]);
 
-  // interpretation을 요약과 세부로 분리
+  // interpretation을 요약과 세부로 분리 (===CARD_DETAILS=== 구분자 사용)
   const getSummary = (text: string) => {
+    if (text.includes('===CARD_DETAILS===')) {
+      return text.split('===CARD_DETAILS===')[0].trim();
+    }
+    // fallback: 첫 번째 문단
     const lines = text.split('\n\n');
     return lines[0] || text.substring(0, 200);
   };
 
   const getDetailedContent = (text: string) => {
+    if (text.includes('===CARD_DETAILS===')) {
+      return text.split('===CARD_DETAILS===')[1]?.trim() || '';
+    }
+    // fallback: 나머지 문단
     const lines = text.split('\n\n');
     return lines.slice(1).join('\n\n') || text.substring(200);
   };

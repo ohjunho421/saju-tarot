@@ -634,15 +634,17 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
     };
 
     // [질문에 대한 결론] + [각 타로 카드의 상세 해석] 합쳐서 interpretation으로
+    // ※ 핵심 요약(결론)과 카드 상세 해석 사이에 "===CARD_DETAILS===" 구분자 삽입
     const conclusionMatch = response.match(/\[질문에 대한 결론\]\s*([\s\S]*?)(?=---|$)/i);
     const cardDetailsMatch = response.match(/\[각 타로 카드의 상세 해석\]\s*([\s\S]*?)(?=---|$)/i);
     
     if (conclusionMatch && cardDetailsMatch) {
       const conclusion = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
       const cardDetails = cardDetailsMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-      sections.interpretation = `${conclusion}\n\n${cardDetails}`;
+      // 구분자로 확실히 분리 (클라이언트에서 이 구분자로 split)
+      sections.interpretation = `${conclusion}\n\n===CARD_DETAILS===\n\n${cardDetails}`;
     } else if (cardDetailsMatch) {
-      sections.interpretation = cardDetailsMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      sections.interpretation = `===CARD_DETAILS===\n\n${cardDetailsMatch[1].trim().replace(/^\[.*?\]\s*/, '')}`;
     } else if (conclusionMatch) {
       sections.interpretation = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
     } else {
@@ -653,7 +655,7 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
       if (answerMatch && situationMatch) {
         const answer = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
         const situation = situationMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-        sections.interpretation = `${answer}\n\n${situation}`;
+        sections.interpretation = `${answer}\n\n===CARD_DETAILS===\n\n${situation}`;
       } else if (answerMatch) {
         sections.interpretation = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
       }
