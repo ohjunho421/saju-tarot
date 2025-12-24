@@ -635,31 +635,43 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
 
     // [질문에 대한 결론] + [각 타로 카드의 상세 해석] 합쳐서 interpretation으로
     // ※ 핵심 요약(결론)과 카드 상세 해석 사이에 "===CARD_DETAILS===" 구분자 삽입
-    const conclusionMatch = response.match(/\[질문에 대한 결론\]\s*([\s\S]*?)(?=---|$)/i);
-    const cardDetailsMatch = response.match(/\[각 타로 카드의 상세 해석\]\s*([\s\S]*?)(?=---|$)/i);
+    // 정규식: 다음 섹션([로 시작) 또는 --- 또는 끝까지 캡처
+    const conclusionMatch = response.match(/\[질문에 대한 결론\]\s*([\s\S]*?)(?=\[각 타로|\[오행|---|$)/i);
+    const cardDetailsMatch = response.match(/\[각 타로 카드의 상세 해석\]\s*([\s\S]*?)(?=\[전체 카드|\[오행|---|$)/i);
+    
+    // 디버깅 로그
+    console.log('=== 파싱 디버깅 ===');
+    console.log('conclusionMatch 존재:', !!conclusionMatch);
+    console.log('cardDetailsMatch 존재:', !!cardDetailsMatch);
+    if (conclusionMatch) {
+      console.log('결론 내용 (앞 200자):', conclusionMatch[1]?.substring(0, 200));
+    }
     
     if (conclusionMatch && cardDetailsMatch) {
-      const conclusion = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-      const cardDetails = cardDetailsMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      const conclusion = conclusionMatch[1].trim();
+      const cardDetails = cardDetailsMatch[1].trim();
       // 구분자로 확실히 분리 (클라이언트에서 이 구분자로 split)
       sections.interpretation = `${conclusion}\n\n===CARD_DETAILS===\n\n${cardDetails}`;
     } else if (cardDetailsMatch) {
-      sections.interpretation = `===CARD_DETAILS===\n\n${cardDetailsMatch[1].trim().replace(/^\[.*?\]\s*/, '')}`;
+      sections.interpretation = `===CARD_DETAILS===\n\n${cardDetailsMatch[1].trim()}`;
     } else if (conclusionMatch) {
-      sections.interpretation = conclusionMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+      sections.interpretation = conclusionMatch[1].trim();
     } else {
       // Fallback: 이전 형식 지원
-      const answerMatch = response.match(/\[질문에 대한 답변\]\s*([\s\S]*?)(?=---|$)/i);
-      const situationMatch = response.match(/\[현재 상황과 흐름\]\s*([\s\S]*?)(?=---|$)/i);
+      const answerMatch = response.match(/\[질문에 대한 답변\]\s*([\s\S]*?)(?=\[|---|$)/i);
+      const situationMatch = response.match(/\[현재 상황과 흐름\]\s*([\s\S]*?)(?=\[|---|$)/i);
       
       if (answerMatch && situationMatch) {
-        const answer = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
-        const situation = situationMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+        const answer = answerMatch[1].trim();
+        const situation = situationMatch[1].trim();
         sections.interpretation = `${answer}\n\n===CARD_DETAILS===\n\n${situation}`;
       } else if (answerMatch) {
-        sections.interpretation = answerMatch[1].trim().replace(/^\[.*?\]\s*/, '');
+        sections.interpretation = answerMatch[1].trim();
       }
     }
+    
+    console.log('최종 interpretation 길이:', sections.interpretation.length);
+    console.log('구분자 포함 여부:', sections.interpretation.includes('===CARD_DETAILS==='));
 
     // [오행의 흐름과 현재 시기] 추출
     const harmonyMatch = response.match(/\[오행의 흐름과 현재 시기\]\s*([\s\S]*?)(?=---|$)/i);
