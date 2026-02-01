@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Calendar, LogOut, Brain, ChevronDown, X } from 'lucide-react';
+import { User, Calendar, LogOut, Brain, X } from 'lucide-react';
 import type { SajuAnalysis, BirthInfo, MBTIType } from '../types';
 import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import { authApi } from '../services/api';
