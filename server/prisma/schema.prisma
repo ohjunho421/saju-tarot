@@ -17,11 +17,31 @@ model User {
   name          String
   birthInfo     Json     // BirthInfo 객체 저장
   sajuAnalysis  Json     // SajuAnalysis 객체 저장
+  mbti          String?  // MBTI 성격 유형 (예: ENFJ, INTP 등)
+  points        Int      @default(0) // 보유 포인트 (1포인트 = 1원)
   createdAt     DateTime @default(now())
   lastLoginAt   DateTime?
   readings      Reading[]
+  pointTransactions PointTransaction[]
 
   @@index([email])
+}
+
+// 포인트 거래 내역
+model PointTransaction {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            String   // 'charge' | 'use' | 'refund'
+  amount          Int      // 변동 포인트 (양수: 충전, 음수: 사용)
+  balance         Int      // 거래 후 잔액
+  description     String   // 거래 설명
+  orderId         String?  // 레몬스퀴지 주문 ID (충전 시)
+  readingId       String?  // 사용된 리딩 ID (사용 시)
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([orderId])
 }
 
 model Reading {

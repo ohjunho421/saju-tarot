@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { User, Calendar, LogOut } from 'lucide-react';
-import type { SajuAnalysis, BirthInfo } from '../types';
+import { User, Calendar, LogOut, Brain, ChevronDown, X } from 'lucide-react';
+import type { SajuAnalysis, BirthInfo, MBTIType } from '../types';
+import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import { authApi } from '../services/api';
 import SajuResult from '../components/SajuResult';
 
@@ -13,6 +14,8 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showMbtiSelector, setShowMbtiSelector] = useState(false);
+  const [mbtiLoading, setMbtiLoading] = useState(false);
 
   useEffect(() => {
     loadUserInfo();
@@ -27,6 +30,21 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMbtiChange = async (mbti: MBTIType | null) => {
+    setMbtiLoading(true);
+    try {
+      const result = await authApi.updateMbti(mbti);
+      if (result.success) {
+        setUser(result.data);
+        setShowMbtiSelector(false);
+      }
+    } catch (err) {
+      console.error('MBTI 업데이트 실패:', err);
+    } finally {
+      setMbtiLoading(false);
     }
   };
 
@@ -109,12 +127,104 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
         </div>
       </div>
 
+      {/* MBTI 설정 */}
+      <div className="card">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Brain className="w-5 h-5" />
+          MBTI 성격 유형
+        </h2>
+        
+        {user.mbti ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-3xl">
+                {MBTI_DESCRIPTIONS[user.mbti as MBTIType]?.emoji}
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{user.mbti}</p>
+                <p className="text-white/60">{MBTI_DESCRIPTIONS[user.mbti as MBTIType]?.name}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowMbtiSelector(true)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm"
+              >
+                변경
+              </button>
+              <button
+                onClick={() => handleMbtiChange(null)}
+                disabled={mbtiLoading}
+                className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors text-sm"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-white/60 mb-4">
+              MBTI를 설정하면 타로 리딩에서 성격 유형에 맞는 맞춤 조언을 받을 수 있어요!
+            </p>
+            <button
+              onClick={() => setShowMbtiSelector(true)}
+              className="btn-primary flex items-center gap-2 mx-auto"
+            >
+              <Brain className="w-4 h-4" />
+              MBTI 설정하기
+            </button>
+          </div>
+        )}
+
+        {/* MBTI 선택 모달 */}
+        {showMbtiSelector && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-dark-800 to-dark-900 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-white/10">
+                <h3 className="text-xl font-bold">MBTI 선택</h3>
+                <button
+                  onClick={() => setShowMbtiSelector(false)}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto max-h-[60vh]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {MBTI_TYPES.map((mbti) => (
+                    <button
+                      key={mbti}
+                      onClick={() => handleMbtiChange(mbti)}
+                      disabled={mbtiLoading}
+                      className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                        user.mbti === mbti
+                          ? 'border-primary-400 bg-primary-400/20'
+                          : 'border-white/10 bg-white/5 hover:border-white/30'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{MBTI_DESCRIPTIONS[mbti].emoji}</div>
+                      <div className="font-bold">{mbti}</div>
+                      <div className="text-xs text-white/60">{MBTI_DESCRIPTIONS[mbti].name}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {mbtiLoading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-400"></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* 사주 만세력 해석 */}
       {sajuAnalysis && <SajuResult analysis={sajuAnalysis} />}
 
       {/* 추가 정보 */}
       <div className="card bg-gradient-to-br from-primary-600/20 to-mystical-gold/20">
-        <h2 className="text-xl font-bold mb-4">💡 만세력 활용 팁</h2>
+        <h2 className="text-xl font-bold mb-4">💡 활용 팁</h2>
         <div className="space-y-3 text-white/90">
           <p className="leading-relaxed">
             • 일간이 강하면 자신감이 있고 추진력이 있지만, 독단적일 수 있어요.
@@ -127,6 +237,9 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
           </p>
           <p className="leading-relaxed">
             • 타로 리딩에서 약한 오행과 관련된 카드가 나오면 특별히 주의깊게 보세요!
+          </p>
+          <p className="leading-relaxed">
+            • MBTI를 설정하면 리딩에서 성격 유형에 맞는 주의사항과 조언을 받을 수 있어요!
           </p>
         </div>
       </div>

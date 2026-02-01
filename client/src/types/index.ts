@@ -91,3 +91,65 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
 }
+
+// 포인트 관련 타입
+export interface PointPackage {
+  id: string;
+  name: string;
+  points: number;
+  price: number;
+  description: string;
+  bonus: number;
+  variantId?: string; // 레몬스퀴지 variant ID
+}
+
+export interface PointTransaction {
+  id: string;
+  type: 'charge' | 'use' | 'refund';
+  amount: number;
+  balance: number;
+  description: string;
+  orderId?: string;
+  readingId?: string;
+  createdAt: string;
+}
+
+export interface SpreadCost {
+  spreadType: string;
+  requiredPoints: number;
+  currentPoints: number;
+  hasEnough: boolean;
+}
+
+// MBTI 타입
+export type MBTIType = 
+  | 'INTJ' | 'INTP' | 'ENTJ' | 'ENTP'
+  | 'INFJ' | 'INFP' | 'ENFJ' | 'ENFP'
+  | 'ISTJ' | 'ISFJ' | 'ESTJ' | 'ESFJ'
+  | 'ISTP' | 'ISFP' | 'ESTP' | 'ESFP';
+
+export const MBTI_TYPES: MBTIType[] = [
+  'INTJ', 'INTP', 'ENTJ', 'ENTP',
+  'INFJ', 'INFP', 'ENFJ', 'ENFP',
+  'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+  'ISTP', 'ISFP', 'ESTP', 'ESFP'
+];
+
+export const MBTI_DESCRIPTIONS: Record<MBTIType, { name: string; emoji: string }> = {
+  'INTJ': { name: '전략가', emoji: '🧠' },
+  'INTP': { name: '논리술사', emoji: '🔬' },
+  'ENTJ': { name: '통솔자', emoji: '👑' },
+  'ENTP': { name: '변론가', emoji: '💡' },
+  'INFJ': { name: '옹호자', emoji: '🌟' },
+  'INFP': { name: '중재자', emoji: '🦋' },
+  'ENFJ': { name: '선도자', emoji: '🌈' },
+  'ENFP': { name: '활동가', emoji: '🎭' },
+  'ISTJ': { name: '현실주의자', emoji: '📋' },
+  'ISFJ': { name: '수호자', emoji: '🛡️' },
+  'ESTJ': { name: '경영자', emoji: '📊' },
+  'ESFJ': { name: '집정관', emoji: '🤝' },
+  'ISTP': { name: '장인', emoji: '🔧' },
+  'ISFP': { name: '모험가', emoji: '🎨' },
+  'ESTP': { name: '사업가', emoji: '🚀' },
+  'ESFP': { name: '연예인', emoji: '🎉' }
+};

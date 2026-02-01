@@ -6,6 +6,8 @@ import IntegratedResult from './components/IntegratedResult';
 import AuthModal from './components/AuthModal';
 import MyPage from './pages/MyPage';
 import HistoryPage from './pages/HistoryPage';
+import PointBadge from './components/PointBadge';
+import PointChargeModal from './components/PointChargeModal';
 import { authApi } from './services/api';
 import { LogIn, LogOut, User, BookOpen } from 'lucide-react';
 
@@ -13,6 +15,7 @@ function App() {
   const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history'>('home');
   const [reading, setReading] = useState<IntegratedReading | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showChargeModal, setShowChargeModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
 
@@ -95,8 +98,11 @@ function App() {
             <div className="flex items-center justify-center md:justify-end gap-2">
               {isLoggedIn ? (
                 <>
+                  {/* 포인트 배지 */}
+                  <PointBadge onChargeClick={() => setShowChargeModal(true)} />
+                  
                   {userName && (
-                    <span className="text-xs md:text-sm text-white/80">
+                    <span className="text-xs md:text-sm text-white/80 hidden sm:inline">
                       {userName}님
                     </span>
                   )}
@@ -184,6 +190,12 @@ function App() {
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         onSuccess={handleAuthSuccess}
+      />
+
+      {/* 포인트 충전 모달 */}
+      <PointChargeModal
+        isOpen={showChargeModal}
+        onClose={() => setShowChargeModal(false)}
       />
     </div>
   );

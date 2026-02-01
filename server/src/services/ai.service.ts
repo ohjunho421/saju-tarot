@@ -290,7 +290,8 @@ JSON 형식으로 답변:
     question: string,
     previousContext?: Array<{ date: string; question: string; summary: string }> | null,
     userName?: string,
-    includeAdviceCard: boolean = false
+    includeAdviceCard: boolean = false,
+    userMbti?: string | null
   ): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -326,6 +327,114 @@ ${previousContext.map((ctx, i) => `${i + 1}. [${ctx.date}] "${ctx.question}"
     const elementDesc = elementDescriptions[userElement] || '';
     const namePrefix = userName ? `${userName}님의 ` : '';
 
+    // MBTI 특성 설명
+    const mbtiDescriptions: Record<string, { traits: string; strengths: string; weaknesses: string; advice: string }> = {
+      'INTJ': {
+        traits: '전략적이고 독립적이며, 장기적인 비전을 가지고 목표를 향해 나아가는 타입',
+        strengths: '분석력, 계획력, 독립성, 결단력이 뛰어남',
+        weaknesses: '완벽주의 성향, 감정 표현 어려움, 타인 의견 무시 경향',
+        advice: '때로는 완벽하지 않아도 괜찮아요. 주변 사람들의 감정도 고려해보세요.'
+      },
+      'INTP': {
+        traits: '논리적이고 분석적이며, 지적 호기심이 강한 사색가 타입',
+        strengths: '논리적 사고, 창의성, 문제 해결 능력',
+        weaknesses: '우유부단함, 감정적 교류 어려움, 현실 감각 부족',
+        advice: '생각만 하지 말고 행동으로 옮겨보세요. 결정을 미루지 마세요.'
+      },
+      'ENTJ': {
+        traits: '카리스마 있고 결단력 있는 리더 타입, 목표 달성에 강한 의지',
+        strengths: '리더십, 전략적 사고, 효율성, 자신감',
+        weaknesses: '독단적, 감정 무시, 참을성 부족',
+        advice: '다른 사람의 속도도 존중해주세요. 때로는 천천히 가는 것도 방법이에요.'
+      },
+      'ENTP': {
+        traits: '재치 있고 창의적이며, 새로운 아이디어와 도전을 즐기는 발명가 타입',
+        strengths: '창의성, 적응력, 논쟁 능력, 문제 해결',
+        weaknesses: '산만함, 끈기 부족, 논쟁 과다',
+        advice: '시작한 일은 끝까지 마무리해보세요. 집중력을 기르는 것이 중요해요.'
+      },
+      'INFJ': {
+        traits: '통찰력 있고 이상주의적이며, 타인을 돕고자 하는 선의를 가진 타입',
+        strengths: '통찰력, 헌신성, 창의성, 공감 능력',
+        weaknesses: '완벽주의, 번아웃 경향, 비판에 민감',
+        advice: '자신을 위한 시간도 가지세요. 모든 사람을 구할 필요는 없어요.'
+      },
+      'INFP': {
+        traits: '이상주의적이고 감성적이며, 내면의 가치를 중시하는 중재자 타입',
+        strengths: '공감 능력, 창의성, 충성심, 진정성',
+        weaknesses: '현실 도피, 비판에 민감, 우유부단',
+        advice: '꿈도 중요하지만 현실적인 계획도 세워보세요. 비판을 성장의 기회로!'
+      },
+      'ENFJ': {
+        traits: '따뜻하고 카리스마 있으며, 타인의 성장을 돕는 것을 즐기는 리더 타입',
+        strengths: '리더십, 공감 능력, 소통 능력, 헌신성',
+        weaknesses: '타인 의존, 자기 희생 과다, 갈등 회피',
+        advice: '자신의 욕구도 중요해요. "아니오"라고 말하는 연습을 해보세요.'
+      },
+      'ENFP': {
+        traits: '열정적이고 창의적이며, 새로운 가능성을 탐색하는 활동가 타입',
+        strengths: '열정, 창의성, 사교성, 적응력',
+        weaknesses: '집중력 부족, 과도한 낙관, 현실 감각 부족',
+        advice: '한 가지에 집중해보세요. 계획을 세우고 실행하는 연습이 필요해요.'
+      },
+      'ISTJ': {
+        traits: '책임감 있고 신뢰할 수 있으며, 체계적이고 꼼꼼한 관리자 타입',
+        strengths: '신뢰성, 책임감, 체계성, 인내심',
+        weaknesses: '융통성 부족, 변화 거부, 감정 표현 어려움',
+        advice: '때로는 규칙을 벗어나도 괜찮아요. 새로운 방법도 시도해보세요.'
+      },
+      'ISFJ': {
+        traits: '헌신적이고 따뜻하며, 타인을 돌보는 것을 좋아하는 수호자 타입',
+        strengths: '헌신성, 신뢰성, 인내심, 세심함',
+        weaknesses: '자기 희생 과다, 변화 거부, 거절 어려움',
+        advice: '자신을 위한 시간을 가지세요. 도움을 요청하는 것도 괜찮아요.'
+      },
+      'ESTJ': {
+        traits: '체계적이고 실용적이며, 질서와 전통을 중시하는 관리자 타입',
+        strengths: '조직력, 신뢰성, 결단력, 리더십',
+        weaknesses: '융통성 부족, 감정 무시, 권위적',
+        advice: '다른 의견도 존중해주세요. 감정도 중요한 정보예요.'
+      },
+      'ESFJ': {
+        traits: '사교적이고 헌신적이며, 조화와 협력을 중시하는 사교가 타입',
+        strengths: '사교성, 헌신성, 협력, 실용성',
+        weaknesses: '인정 욕구, 비판에 민감, 갈등 회피',
+        advice: '모든 사람을 기쁘게 할 필요는 없어요. 자신의 의견도 중요해요.'
+      },
+      'ISTP': {
+        traits: '논리적이고 실용적이며, 문제 해결을 즐기는 장인 타입',
+        strengths: '분석력, 적응력, 실용성, 위기 대처 능력',
+        weaknesses: '감정 표현 어려움, 장기 계획 부족, 약속 어려움',
+        advice: '감정도 표현해보세요. 장기적인 목표도 세워보는 것이 좋아요.'
+      },
+      'ISFP': {
+        traits: '온화하고 감성적이며, 현재를 즐기는 예술가 타입',
+        strengths: '감수성, 유연성, 충성심, 심미안',
+        weaknesses: '자기 비하, 갈등 회피, 장기 계획 부족',
+        advice: '자신감을 가지세요. 갈등을 피하지 말고 건강하게 표현해보세요.'
+      },
+      'ESTP': {
+        traits: '에너지 넘치고 실용적이며, 행동과 모험을 즐기는 사업가 타입',
+        strengths: '적응력, 관찰력, 위기 대처, 사교성',
+        weaknesses: '충동적, 인내심 부족, 장기 계획 무시',
+        advice: '행동 전에 잠시 생각해보세요. 장기적인 결과도 고려하세요.'
+      },
+      'ESFP': {
+        traits: '활발하고 사교적이며, 순간을 즐기는 연예인 타입',
+        strengths: '사교성, 낙천성, 실용성, 적응력',
+        weaknesses: '산만함, 장기 계획 부족, 비판에 민감',
+        advice: '즐거움도 좋지만 미래 계획도 세워보세요. 진지한 대화도 필요해요.'
+      }
+    };
+
+    const mbtiInfo = userMbti && mbtiDescriptions[userMbti] ? mbtiDescriptions[userMbti] : null;
+    const mbtiSection = mbtiInfo ? `
+MBTI: ${userMbti}
+- 특성: ${mbtiInfo.traits}
+- 강점: ${mbtiInfo.strengths}
+- 주의점: ${mbtiInfo.weaknesses}
+` : '';
+
     const prompt = `
 동양 철학과 타로를 융합한 전문가로서 친근하게 해석해주세요.
 
@@ -333,7 +442,7 @@ ${previousContext.map((ctx, i) => `${i + 1}. [${ctx.date}] "${ctx.question}"
 ${userName ? `이름: ${userName}님` : ''}
 일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
 ${namePrefix}일간은 ${elementDesc}
-강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
+강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}${mbtiSection}
 ${previousContextText}
 
 [질문] "${question}"
@@ -352,7 +461,9 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ?
 4. 오행 특성을 비유로 풀어서 설명 (예: "물의 기운처럼 유연하고 투명한 ${userName ? userName + '님의' : '당신의'} 성향이...")
 5. 카드가 역방향이거나 부정적인 의미를 담고 있다면 솔직하게 전달하세요
 6. 좋은 점만 말하지 말고, 주의해야 할 점이나 어려움도 함께 알려주세요
-7. 현실적이고 균형 잡힌 조언을 제공하세요
+7. 현실적이고 균형 잡힌 조언을 제공하세요${mbtiInfo ? `
+8. MBTI 성격(${userMbti})을 반영하여 해석하세요. "${mbtiInfo.weaknesses}" 같은 ${userMbti} 특유의 약점이 현재 상황에서 어떻게 나타날 수 있는지 언급하고, 이를 어떻게 주의해야 하는지 조언해주세요.
+9. 예를 들어 "${userName ? userName + '님' : '당신'}은 ${userMbti}이시니 ${mbtiInfo.weaknesses.split(',')[0]} 성향이 있어서 이런 상황에서 [구체적 행동]을 할 수 있는데, 그렇게 하지 않도록 조심하세요" 같은 형태로 MBTI 기반 조언을 포함하세요.` : ''}
 
 ⚠️ 카드 방향 해석 규칙 (매우 중요!):
 - 각 카드의 (역방향) 또는 (정방향) 표시를 반드시 확인하세요
@@ -488,6 +599,24 @@ ${adviceCard.isReversed ? adviceCard.card.reversedMeaning : adviceCard.card.upri
 ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 이 조언 카드${adviceCard.card.element ? `의 ${adviceCard.card.element} 기운` : ''}이 만나, 앞으로 어떻게 행동해야 가장 좋은 결과를 얻을 수 있는지 구체적이고 실천 가능한 조언을 제시해주세요.
 ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻게 활용하면 좋을지 포함` : ''}해주세요. (300자)`;
 })()}` : ''}
+${mbtiInfo ? `
+---
+
+[MBTI 성격 기반 특별 조언]
+${userName ? userName + '님' : '당신'}은 ${userMbti} 타입이시네요!
+
+${userMbti}의 특성: ${mbtiInfo.traits}
+
+⚠️ ${userMbti}가 현재 상황에서 주의해야 할 점:
+${userName ? userName + '님' : '당신'}은 ${userMbti}이시니 "${mbtiInfo.weaknesses}" 같은 성향이 있어요. 
+이번 질문("${question}")과 관련하여, ${userMbti} 타입이 빠지기 쉬운 함정이나 주의해야 할 행동 패턴을 구체적으로 설명하고, "이런 상황에서 [구체적인 행동]을 하지 않도록 조심하세요"라는 형태로 조언해주세요.
+
+💪 ${userMbti}의 강점 활용법:
+${mbtiInfo.strengths}를 가진 ${userName ? userName + '님' : '당신'}이 이 상황에서 강점을 어떻게 활용할 수 있는지 구체적으로 조언해주세요.
+
+🎯 ${userMbti}를 위한 맞춤 조언:
+${mbtiInfo.advice}를 바탕으로, 현재 질문 상황에 맞는 구체적이고 실천 가능한 조언을 제시해주세요. (250자)
+` : ''}
 `;
 
     try {
@@ -523,6 +652,11 @@ ${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻�
       // 조언 카드 포함 시 추가 토큰
       if (includeAdviceCard) {
         maxTokens += 1500;
+      }
+      
+      // MBTI 포함 시 추가 토큰
+      if (userMbti) {
+        maxTokens += 1000;
       }
       
       if (this.gemini) {

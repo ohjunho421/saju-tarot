@@ -152,6 +152,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
         name: true,
         birthInfo: true,
         sajuAnalysis: true,
+        mbti: true,
         createdAt: true,
         lastLoginAt: true
       }
@@ -169,5 +170,54 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error('사용자 정보 조회 오류:', error);
     res.status(500).json({ error: '사용자 정보 조회 중 오류가 발생했습니다.' });
+  }
+};
+
+// MBTI 업데이트
+export const updateMbti = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: '인증이 필요합니다.' });
+      return;
+    }
+
+    const { mbti }: { mbti: string | null } = req.body;
+
+    // MBTI 유효성 검사 (null이면 삭제, 아니면 유효한 MBTI인지 확인)
+    const validMbtis = [
+      'INTJ', 'INTP', 'ENTJ', 'ENTP',
+      'INFJ', 'INFP', 'ENFJ', 'ENFP',
+      'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+      'ISTP', 'ISFP', 'ESTP', 'ESFP'
+    ];
+
+    if (mbti !== null && !validMbtis.includes(mbti.toUpperCase())) {
+      res.status(400).json({ error: '유효하지 않은 MBTI 유형입니다.' });
+      return;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: { mbti: mbti ? mbti.toUpperCase() : null },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        birthInfo: true,
+        sajuAnalysis: true,
+        mbti: true,
+        createdAt: true,
+        lastLoginAt: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: mbti ? 'MBTI가 설정되었습니다.' : 'MBTI가 삭제되었습니다.',
+      data: updatedUser
+    });
+  } catch (error) {
+    console.error('MBTI 업데이트 오류:', error);
+    res.status(500).json({ error: 'MBTI 업데이트 중 오류가 발생했습니다.' });
   }
 };

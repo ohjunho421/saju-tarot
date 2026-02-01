@@ -56,10 +56,10 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    // 사용자 정보 조회
+    // 사용자 정보 조회 (mbti 필드는 Prisma 마이그레이션 후 사용 가능)
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId }
-    });
+    }) as any;
     
     if (!user) {
       res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
@@ -100,7 +100,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       question,
       previousContext,
       user.name || undefined,
-      includeAdviceCard || false  // 조언 카드 포함 여부
+      includeAdviceCard || false,  // 조언 카드 포함 여부
+      user.mbti || undefined  // MBTI 성격 유형
     );
 
     // 리딩 결과 저장
