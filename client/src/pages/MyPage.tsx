@@ -176,48 +176,49 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
           </div>
         )}
 
-        {/* MBTI 선택 모달 */}
-        {showMbtiSelector && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-gradient-to-br from-dark-800 to-dark-900 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-white/10">
-                <h3 className="text-xl font-bold">MBTI 선택</h3>
-                <button
-                  onClick={() => setShowMbtiSelector(false)}
-                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-4 overflow-y-auto max-h-[60vh]">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {MBTI_TYPES.map((mbti) => (
-                    <button
-                      key={mbti}
-                      onClick={() => handleMbtiChange(mbti)}
-                      disabled={mbtiLoading}
-                      className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
-                        user.mbti === mbti
-                          ? 'border-primary-400 bg-primary-400/20'
-                          : 'border-white/10 bg-white/5 hover:border-white/30'
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{MBTI_DESCRIPTIONS[mbti].emoji}</div>
-                      <div className="font-bold">{mbti}</div>
-                      <div className="text-xs text-white/60">{MBTI_DESCRIPTIONS[mbti].name}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {mbtiLoading && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-400"></div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* MBTI 선택 모달 - 카드 밖에 위치 */}
+      {showMbtiSelector && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-dark-800 to-dark-900 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden relative">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h3 className="text-xl font-bold">MBTI 선택</h3>
+              <button
+                onClick={() => setShowMbtiSelector(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {MBTI_TYPES.map((mbti) => (
+                  <button
+                    key={mbti}
+                    onClick={() => handleMbtiChange(mbti)}
+                    disabled={mbtiLoading}
+                    className={`p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                      user.mbti === mbti
+                        ? 'border-primary-400 bg-primary-400/20'
+                        : 'border-white/10 bg-white/5 hover:border-white/30'
+                    }`}
+                  >
+                    <div className="text-2xl mb-1">{MBTI_DESCRIPTIONS[mbti].emoji}</div>
+                    <div className="font-bold">{mbti}</div>
+                    <div className="text-xs text-white/60">{MBTI_DESCRIPTIONS[mbti].name}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {mbtiLoading && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-400"></div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 사주 만세력 해석 */}
       {sajuAnalysis && <SajuResult analysis={sajuAnalysis} />}
