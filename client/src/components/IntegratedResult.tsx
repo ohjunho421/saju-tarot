@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { IntegratedReading } from '../types';
 import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import ChatBot from './ChatBot';
+import ReadingPaywall from './ReadingPaywall';
 
 interface IntegratedResultProps {
   reading: IntegratedReading;
@@ -51,24 +52,14 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
       const updatedHistory = [historyItem, ...history].slice(0, 50); // 최대 50개까지만 저장
       
       localStorage.setItem('tarot_history', JSON.stringify(updatedHistory));
-      console.log('✅ 히스토리 저장 완료:', historyItem);
     } catch (err) {
-      console.error('❌ 히스토리 저장 실패:', err);
+      // 히스토리 저장 실패 시 무시
     }
   }, [reading]);
   
   // 조언 카드와 일반 카드 분리
   const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
   const mainCards = drawnCards.filter(dc => dc.positionMeaning !== '조언 카드');
-
-  // 디버깅: 카드 이미지 URL 확인
-  useEffect(() => {
-    console.log('📊 카드 데이터:', mainCards.map(c => ({
-      name: c.card.nameKo,
-      imageUrl: c.card.imageUrl,
-      hasImage: !!c.card.imageUrl
-    })));
-  }, [mainCards]);
 
   // interpretation을 요약과 세부로 분리 (===CARD_DETAILS=== 구분자 사용)
   const getSummary = (text: string) => {
@@ -230,102 +221,108 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
         </div>
       )}
 
-      {/* AI가 생성한 각 카드 상세 해석 (그림 설명 + 사주 연결 포함) */}
-      <div className="card bg-gradient-to-br from-primary-600/10 to-purple-600/10 border-2 border-primary-500/30">
-        <button
-          onClick={() => toggleSection('interpretation')}
-          className="w-full flex items-center justify-between mb-3 md:mb-4"
-        >
-          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <span>🔮</span>
-            <span className="text-left">카드가 말해주는 이야기</span>
-          </h2>
-          {expandedSections.interpretation ? (
-            <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-          ) : (
-            <ChevronDown className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-          )}
-        </button>
-        {expandedSections.interpretation && (
-          <div className="text-white/90 leading-loose text-base md:text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
-            {getDetailedContent(interpretation)}
-          </div>
-        )}
-      </div>
-
-      {/* 오행의 흐름 */}
-      <div className="card">
-        <button
-          onClick={() => toggleSection('harmony')}
-          className="w-full flex items-center justify-between mb-3 md:mb-4"
-        >
-          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <span>🌊</span>
-            <span>오행의 흐름</span>
-          </h2>
-          {expandedSections.harmony ? (
-            <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-          ) : (
-            <ChevronDown className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-          )}
-        </button>
-        {expandedSections.harmony && (
-          <div className="text-white/90 leading-loose text-base md:text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
-            {elementalHarmony}
-          </div>
-        )}
-      </div>
-
-      {/* 실천할 수 있는 조언 */}
-      <div className="card bg-gradient-to-br from-primary-600/20 to-mystical-gold/20">
-        <button
-          onClick={() => toggleSection('advice')}
-          className="w-full flex items-center justify-between mb-3 md:mb-4"
-        >
-          <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-            <span>💡</span>
-            <span className="text-left">실천할 수 있는 조언</span>
-          </h2>
-          {expandedSections.advice ? (
-            <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-          ) : (
-            <ChevronDown className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-          )}
-        </button>
-        {expandedSections.advice && (
-          <div className="text-white/90 leading-loose text-base md:text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
-            {personalizedAdvice}
-          </div>
-        )}
-      </div>
-
-      {/* 조언 카드의 메시지 */}
-      {adviceCardInterpretation && (
-        <div className="card bg-gradient-to-br from-mystical-gold/30 to-primary-600/30 border-2 border-mystical-gold">
+      {/* 상세 해석 - 포인트 결제 후 열람 */}
+      <ReadingPaywall
+        spreadType={spreadType}
+        readingId={reading.readingId}
+      >
+        {/* AI가 생성한 각 카드 상세 해석 (그림 설명 + 사주 연결 포함) */}
+        <div className="card bg-gradient-to-br from-primary-600/10 to-purple-600/10 border-2 border-primary-500/30">
           <button
-            onClick={() => toggleSection('adviceCard')}
-            className="w-full flex items-center justify-between mb-4"
+            onClick={() => toggleSection('interpretation')}
+            className="w-full flex items-center justify-between mb-3 md:mb-4"
           >
-            <h2 className="text-2xl font-bold flex items-center gap-2">
-              <span className="text-mystical-gold">✨</span>
-              조언 카드의 메시지
+            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+              <span>🔮</span>
+              <span className="text-left">카드가 말해주는 이야기</span>
             </h2>
-            {expandedSections.adviceCard ? (
-              <ChevronUp className="w-6 h-6 text-mystical-gold" />
+            {expandedSections.interpretation ? (
+              <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
             ) : (
-              <ChevronDown className="w-6 h-6 text-mystical-gold" />
+              <ChevronDown className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
             )}
           </button>
-          {expandedSections.adviceCard && (
-            <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
-              {adviceCardInterpretation}
+          {expandedSections.interpretation && (
+            <div className="text-white/90 leading-loose text-base md:text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
+              {getDetailedContent(interpretation)}
             </div>
           )}
         </div>
-      )}
 
-      {/* 챗봇 */}
-      <ChatBot reading={reading} />
+        {/* 오행의 흐름 */}
+        <div className="card">
+          <button
+            onClick={() => toggleSection('harmony')}
+            className="w-full flex items-center justify-between mb-3 md:mb-4"
+          >
+            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+              <span>🌊</span>
+              <span>오행의 흐름</span>
+            </h2>
+            {expandedSections.harmony ? (
+              <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
+            ) : (
+              <ChevronDown className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
+            )}
+          </button>
+          {expandedSections.harmony && (
+            <div className="text-white/90 leading-loose text-base md:text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
+              {elementalHarmony}
+            </div>
+          )}
+        </div>
+
+        {/* 실천할 수 있는 조언 */}
+        <div className="card bg-gradient-to-br from-primary-600/20 to-mystical-gold/20">
+          <button
+            onClick={() => toggleSection('advice')}
+            className="w-full flex items-center justify-between mb-3 md:mb-4"
+          >
+            <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+              <span>💡</span>
+              <span className="text-left">실천할 수 있는 조언</span>
+            </h2>
+            {expandedSections.advice ? (
+              <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
+            ) : (
+              <ChevronDown className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
+            )}
+          </button>
+          {expandedSections.advice && (
+            <div className="text-white/90 leading-loose text-base md:text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
+              {personalizedAdvice}
+            </div>
+          )}
+        </div>
+
+        {/* 조언 카드의 메시지 */}
+        {adviceCardInterpretation && (
+          <div className="card bg-gradient-to-br from-mystical-gold/30 to-primary-600/30 border-2 border-mystical-gold">
+            <button
+              onClick={() => toggleSection('adviceCard')}
+              className="w-full flex items-center justify-between mb-4"
+            >
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <span className="text-mystical-gold">✨</span>
+                조언 카드의 메시지
+              </h2>
+              {expandedSections.adviceCard ? (
+                <ChevronUp className="w-6 h-6 text-mystical-gold" />
+              ) : (
+                <ChevronDown className="w-6 h-6 text-mystical-gold" />
+              )}
+            </button>
+            {expandedSections.adviceCard && (
+              <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
+                {adviceCardInterpretation}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 챗봇 */}
+        <ChatBot reading={reading} />
+      </ReadingPaywall>
 
       {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-4 justify-center">

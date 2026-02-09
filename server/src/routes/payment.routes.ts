@@ -1,10 +1,9 @@
-import { Router, raw } from 'express';
+import { Router } from 'express';
 import {
   getPointPackages,
   getMyPoints,
   getPointHistory,
   createCheckout,
-  handleWebhook,
   getSpreadCost,
   usePointsForReading,
   checkPoints
@@ -17,8 +16,7 @@ const router = Router();
 router.get('/packages', getPointPackages);
 router.get('/spread-cost/:spreadType', getSpreadCost);
 
-// 웹훅 (raw body 필요, 인증 불필요)
-router.post('/webhook', raw({ type: 'application/json' }), handleWebhook);
+// 웹훅은 index.ts에서 express.json() 전에 등록됨 (raw body 필요)
 
 // 인증 필요 엔드포인트
 router.get('/points', authMiddleware, getMyPoints);

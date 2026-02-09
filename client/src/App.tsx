@@ -8,11 +8,12 @@ import MyPage from './pages/MyPage';
 import HistoryPage from './pages/HistoryPage';
 import PointBadge from './components/PointBadge';
 import PointChargeModal from './components/PointChargeModal';
+import PaymentSuccess from './components/PaymentSuccess';
 import { authApi } from './services/api';
 import { LogIn, LogOut, User, BookOpen } from 'lucide-react';
 
 function App() {
-  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history'>('home');
+  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history' | 'payment-success'>('home');
   const [reading, setReading] = useState<IntegratedReading | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showChargeModal, setShowChargeModal] = useState(false);
@@ -20,6 +21,13 @@ function App() {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
+    // 결제 성공 리다이렉트 감지
+    if (window.location.pathname.includes('/payment/success')) {
+      setCurrentStep('payment-success');
+      // URL 정리 (히스토리에서 제거)
+      window.history.replaceState({}, '', '/');
+    }
+
     // 페이지 로드 시 로그인 상태 확인
     const checkLoginStatus = async () => {
       const token = localStorage.getItem('token');
@@ -169,9 +177,13 @@ function App() {
         )}
 
         {currentStep === 'history' && isLoggedIn && (
-          <HistoryPage 
+          <HistoryPage
             onBack={handleReset}
           />
+        )}
+
+        {currentStep === 'payment-success' && (
+          <PaymentSuccess onGoHome={handleReset} />
         )}
       </main>
 

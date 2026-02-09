@@ -15,37 +15,20 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log('🔐 API 요청:', config.url);
-    console.log('🔑 토큰:', token ? `${token.substring(0, 20)}...` : '없음');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('✅ Authorization 헤더 추가됨');
-    } else {
-      console.warn('⚠️ 토큰이 없습니다!');
     }
     return config;
   },
-  (error) => {
-    console.error('❌ Request 인터셉터 에러:', error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response 인터셉터: 에러 로깅
+// Response 인터셉터: 에러 처리
 api.interceptors.response.use(
-  (response) => {
-    console.log('✅ API 응답 성공:', response.config.url, response.status);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error('❌ API 응답 에러:', error.config?.url, error.response?.status);
-    console.error('에러 상세:', error.response?.data);
-    
     if (error.response?.status === 401) {
-      console.error('🔒 인증 실패: 401 Unauthorized');
-      console.error('현재 토큰:', localStorage.getItem('token') ? '있음' : '없음');
-      console.error('요청 헤더:', error.config?.headers);
-      // 자동 로그아웃 제거 - 디버깅을 위해
+      // 필요 시 자동 로그아웃 처리 가능
     }
     return Promise.reject(error);
   }

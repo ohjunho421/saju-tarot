@@ -2,11 +2,15 @@
 
 // 스프레드별 필요 포인트 (카드 수 * 1000원)
 export const SPREAD_POINTS: Record<string, number> = {
-  'one-card': 1000,      // 1카드 = 1,000원
-  'three-card': 3000,    // 3카드 = 3,000원
-  'five-card': 5000,     // 5카드 = 5,000원
-  'celtic-cross': 10000, // 켈틱크로스(10카드) = 10,000원
-  'saju-custom': 5000,   // 사주 커스텀 = 5,000원
+  'one-card': 1000,            // 1카드 = 1,000원
+  'two-card': 2000,            // 2카드 = 2,000원
+  'three-card': 3000,          // 3카드 = 3,000원
+  'five-card': 5000,           // 5카드 = 5,000원
+  'celtic-cross': 10000,       // 켈틱크로스(10카드) = 10,000원
+  'saju-custom': 5000,         // 사주 커스텀 = 5,000원
+  'six-months': 6000,          // 6개월 운세 = 6,000원
+  'yes-no': 2000,              // 예스/노 = 2,000원
+  'problem-solution': 4000,    // 문제-해결 = 4,000원
 };
 
 // 포인트 충전 상품 (레몬스퀴지 variant ID와 매핑)
@@ -50,14 +54,20 @@ export function getCardCountFromSpread(spreadType: string): number {
   switch (spreadType) {
     case 'one-card':
       return 1;
+    case 'two-card':
+    case 'yes-no':
+      return 2;
     case 'three-card':
       return 3;
+    case 'problem-solution':
+      return 4;
     case 'five-card':
-      return 5;
-    case 'celtic-cross':
-      return 10;
     case 'saju-custom':
       return 5;
+    case 'six-months':
+      return 6;
+    case 'celtic-cross':
+      return 10;
     default:
       return 3;
   }
