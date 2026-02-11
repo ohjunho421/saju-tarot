@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { IntegratedReading } from '../types';
 import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import ChatBot from './ChatBot';
-import ReadingPaywall from './ReadingPaywall';
 
 interface IntegratedResultProps {
   reading: IntegratedReading;
@@ -221,12 +220,8 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
         </div>
       )}
 
-      {/* 상세 해석 - 포인트 결제 후 열람 */}
-      <ReadingPaywall
-        spreadType={spreadType}
-        readingId={reading.readingId}
-      >
-        {/* AI가 생성한 각 카드 상세 해석 (그림 설명 + 사주 연결 포함) */}
+      {/* 상세 해석 */}
+      {/* AI가 생성한 각 카드 상세 해석 (그림 설명 + 사주 연결 포함) */}
         <div className="card bg-gradient-to-br from-primary-600/10 to-purple-600/10 border-2 border-primary-500/30">
           <button
             onClick={() => toggleSection('interpretation')}
@@ -322,7 +317,6 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
 
         {/* 챗봇 */}
         <ChatBot reading={reading} />
-      </ReadingPaywall>
 
       {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-4 justify-center">

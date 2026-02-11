@@ -6,28 +6,17 @@ import IntegratedResult from './components/IntegratedResult';
 import AuthModal from './components/AuthModal';
 import MyPage from './pages/MyPage';
 import HistoryPage from './pages/HistoryPage';
-import PointBadge from './components/PointBadge';
-import PointChargeModal from './components/PointChargeModal';
-import PaymentSuccess from './components/PaymentSuccess';
 import { authApi } from './services/api';
 import { LogIn, LogOut, User, BookOpen } from 'lucide-react';
 
 function App() {
-  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history' | 'payment-success'>('home');
+  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history'>('home');
   const [reading, setReading] = useState<IntegratedReading | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showChargeModal, setShowChargeModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    // 결제 성공 리다이렉트 감지
-    if (window.location.pathname.includes('/payment/success')) {
-      setCurrentStep('payment-success');
-      // URL 정리 (히스토리에서 제거)
-      window.history.replaceState({}, '', '/');
-    }
-
     // 페이지 로드 시 로그인 상태 확인
     const checkLoginStatus = async () => {
       const token = localStorage.getItem('token');
@@ -106,9 +95,6 @@ function App() {
             <div className="flex items-center justify-center md:justify-end gap-2">
               {isLoggedIn ? (
                 <>
-                  {/* 포인트 배지 */}
-                  <PointBadge onChargeClick={() => setShowChargeModal(true)} />
-                  
                   {userName && (
                     <span className="text-xs md:text-sm text-white/80 hidden sm:inline">
                       {userName}님
@@ -182,9 +168,6 @@ function App() {
           />
         )}
 
-        {currentStep === 'payment-success' && (
-          <PaymentSuccess onGoHome={handleReset} />
-        )}
       </main>
 
       <footer className="py-6 text-center text-white/50 text-sm border-t border-white/20 mt-12">
@@ -204,11 +187,6 @@ function App() {
         onSuccess={handleAuthSuccess}
       />
 
-      {/* 포인트 충전 모달 */}
-      <PointChargeModal
-        isOpen={showChargeModal}
-        onClose={() => setShowChargeModal(false)}
-      />
     </div>
   );
 }

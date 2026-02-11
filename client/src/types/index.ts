@@ -92,35 +92,6 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-// 포인트 관련 타입
-export interface PointPackage {
-  id: string;
-  name: string;
-  points: number;
-  price: number;
-  description: string;
-  bonus: number;
-  variantId?: string; // 레몬스퀴지 variant ID
-}
-
-export interface PointTransaction {
-  id: string;
-  type: 'charge' | 'use' | 'refund';
-  amount: number;
-  balance: number;
-  description: string;
-  orderId?: string;
-  readingId?: string;
-  createdAt: string;
-}
-
-export interface SpreadCost {
-  spreadType: string;
-  requiredPoints: number;
-  currentPoints: number;
-  hasEnough: boolean;
-}
-
 // MBTI 타입
 export type MBTIType = 
   | 'INTJ' | 'INTP' | 'ENTJ' | 'ENTP'
