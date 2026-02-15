@@ -6,6 +6,8 @@ import {
   Element,
   ElementBalance,
   SajuAnalysis,
+  SalInfo,
+  SalType,
   HEAVENLY_STEMS,
   EARTHLY_BRANCHES
 } from '../models/saju.model';
@@ -150,6 +152,221 @@ export class SajuService {
     return { personality, strengths, weaknesses, recommendations };
   }
 
+  // 살(煞) 분석
+  private analyzeSal(chart: SajuChart): SalInfo[] {
+    const salList: SalInfo[] = [];
+    const allBranches: string[] = [
+      chart.year.earthlyBranch,
+      chart.month.earthlyBranch,
+      chart.day.earthlyBranch,
+      ...(chart.hour ? [chart.hour.earthlyBranch] : [])
+    ];
+    const yearBranch = chart.year.earthlyBranch;
+    const dayBranch = chart.day.earthlyBranch;
+    const dayStem = chart.day.heavenlyStem;
+
+    // === 도화살(桃花煞) ===
+    // 삼합 기준: 인오술→묘, 사유축→오, 신자진→유, 해묘미→자
+    const doHwaMap: Record<string, string> = {
+      '인': '묘', '오': '묘', '술': '묘',
+      '사': '오', '유': '오', '축': '오',
+      '신': '유', '자': '유', '진': '유',
+      '해': '자', '묘': '자', '미': '자'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = doHwaMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        const basisLabel = basis === yearBranch ? '년지' : '일지';
+        if (!salList.find(s => s.name === '도화살')) {
+          salList.push({
+            name: '도화살',
+            description: '이성에 대한 매력과 인연이 강한 살입니다. 연애운과 대인관계에 큰 영향을 미칩니다.',
+            effect: '이성에게 매력적이고 사교성이 뛰어나지만, 바람기나 구설수에 주의가 필요합니다. 감정에 휘둘리기 쉬운 면이 있어요.',
+            isPositive: false,
+            location: `${basisLabel}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 역마살(驛馬煞) ===
+    // 삼합 기준: 인오술→신, 사유축→해, 신자진→인, 해묘미→사
+    const yeokMaMap: Record<string, string> = {
+      '인': '신', '오': '신', '술': '신',
+      '사': '해', '유': '해', '축': '해',
+      '신': '인', '자': '인', '진': '인',
+      '해': '사', '묘': '사', '미': '사'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = yeokMaMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        const basisLabel = basis === yearBranch ? '년지' : '일지';
+        if (!salList.find(s => s.name === '역마살')) {
+          salList.push({
+            name: '역마살',
+            description: '이동과 변화의 기운이 강한 살입니다. 여행, 이사, 이직 등 움직임이 많습니다.',
+            effect: '활동적이고 변화를 추구하지만, 한 곳에 정착하기 어렵고 안정감이 부족할 수 있습니다. 해외 인연이나 출장이 잦을 수 있어요.',
+            isPositive: false,
+            location: `${basisLabel}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 화개살(華蓋煞) ===
+    // 삼합 기준: 인오술→술, 사유축→축, 신자진→진, 해묘미→미
+    const hwaGaeMap: Record<string, string> = {
+      '인': '술', '오': '술', '술': '술',
+      '사': '축', '유': '축', '축': '축',
+      '신': '진', '자': '진', '진': '진',
+      '해': '미', '묘': '미', '미': '미'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = hwaGaeMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        const basisLabel = basis === yearBranch ? '년지' : '일지';
+        if (!salList.find(s => s.name === '화개살')) {
+          salList.push({
+            name: '화개살',
+            description: '예술적 감각과 종교적 영성이 강한 살입니다. 학문과 예술에 뛰어난 재능을 보입니다.',
+            effect: '창의력과 영적 감수성이 뛰어나지만, 고독하거나 현실과 동떨어진 생각에 빠질 수 있습니다. 혼자만의 시간을 중요시해요.',
+            isPositive: false,
+            location: `${basisLabel}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 겁살(劫殺) ===
+    // 삼합 기준: 인오술→해, 사유축→인, 신자진→사, 해묘미→신
+    const geobSalMap: Record<string, string> = {
+      '인': '해', '오': '해', '술': '해',
+      '사': '인', '유': '인', '축': '인',
+      '신': '사', '자': '사', '진': '사',
+      '해': '신', '묘': '신', '미': '신'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = geobSalMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        const basisLabel = basis === yearBranch ? '년지' : '일지';
+        if (!salList.find(s => s.name === '겁살')) {
+          salList.push({
+            name: '겁살',
+            description: '재물과 인연에서 경쟁과 손실이 발생할 수 있는 살입니다.',
+            effect: '경쟁심이 강하고 승부욕이 있지만, 재물 손실이나 사기를 당할 위험이 있습니다. 투자나 보증에 신중해야 해요.',
+            isPositive: false,
+            location: `${basisLabel}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 망신살(亡身煞) ===
+    // 삼합 기준: 인오술→유, 사유축→자, 신자진→묘, 해묘미→오
+    const mangShinMap: Record<string, string> = {
+      '인': '유', '오': '유', '술': '유',
+      '사': '자', '유': '자', '축': '자',
+      '신': '묘', '자': '묘', '진': '묘',
+      '해': '오', '묘': '오', '미': '오'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = mangShinMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        const basisLabel = basis === yearBranch ? '년지' : '일지';
+        if (!salList.find(s => s.name === '망신살')) {
+          salList.push({
+            name: '망신살',
+            description: '명예와 체면에 손상이 올 수 있는 살입니다. 구설수나 평판 하락에 주의가 필요합니다.',
+            effect: '자존심이 강하고 체면을 중시하지만, 뜻하지 않은 실수나 구설로 명예가 손상될 수 있습니다. 말과 행동에 신중해야 해요.',
+            isPositive: false,
+            location: `${basisLabel}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 백호살(白虎煞) ===
+    // 특정 일주(천간+지지 조합) 기준
+    const baekHoIlju = ['무진', '정축', '병술', '을미', '갑진', '계축', '임술'];
+    const currentIlju = chart.day.heavenlyStem + chart.day.earthlyBranch;
+    if (baekHoIlju.includes(currentIlju)) {
+      salList.push({
+        name: '백호살',
+        description: '사고나 부상의 위험이 있는 강력한 살입니다. 수술, 교통사고 등에 주의가 필요합니다.',
+        effect: '강한 추진력과 결단력이 있지만, 급격한 변화나 사고를 겪을 수 있습니다. 건강 관리와 안전에 특별히 신경 써야 해요.',
+        isPositive: false,
+        location: `일주(${currentIlju})에서 발견`
+      });
+    }
+
+    // === 천을귀인(天乙貴人) === (길신)
+    const cheonEulMap: Record<string, string[]> = {
+      '갑': ['축', '미'], '무': ['축', '미'],
+      '을': ['자', '신'], '기': ['자', '신'],
+      '병': ['해', '유'], '정': ['해', '유'],
+      '경': ['축', '미'], '신': ['인', '오'],
+      '임': ['묘', '사'], '계': ['묘', '사']
+    };
+    const guiinTargets = cheonEulMap[dayStem];
+    if (guiinTargets) {
+      const found = allBranches.filter(b => guiinTargets.includes(b));
+      if (found.length > 0) {
+        salList.push({
+          name: '천을귀인',
+          description: '가장 강력한 길신(吉神)입니다. 어려울 때 귀인의 도움을 받을 수 있습니다.',
+          effect: '위기 상황에서 도움을 주는 사람이 나타나고, 대인관계가 원만합니다. 사회적으로 인정받기 쉽고 운이 좋은 편이에요.',
+          isPositive: true,
+          location: `일간(${dayStem}) 기준 → ${found.join(', ')}에서 발견`
+        });
+      }
+    }
+
+    // === 귀문관살(鬼門關煞) ===
+    const guiMunPairs: [string, string][] = [
+      ['자', '유'], ['유', '오'], ['오', '묘'], ['묘', '자'],
+      ['축', '술'], ['술', '미'], ['미', '진'], ['진', '축'],
+      ['인', '해'], ['해', '신'], ['신', '사'], ['사', '인']
+    ];
+    // 일지-월지 또는 일지-시지 조합 체크
+    const checkPairs: [string, string, string][] = [
+      [dayBranch, chart.month.earthlyBranch, '일지-월지'],
+    ];
+    if (chart.hour) {
+      checkPairs.push([dayBranch, chart.hour.earthlyBranch, '일지-시지']);
+    }
+    for (const [a, b, label] of checkPairs) {
+      const hasGuiMun = guiMunPairs.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+      if (hasGuiMun && !salList.find(s => s.name === '귀문관살')) {
+        salList.push({
+          name: '귀문관살',
+          description: '정신적 예민함과 영적 감수성이 강한 살입니다. 직감이 뛰어나지만 불안감도 클 수 있습니다.',
+          effect: '직감과 통찰력이 뛰어나지만, 정신적 스트레스나 불안, 악몽에 시달릴 수 있습니다. 명상이나 심리 안정이 중요해요.',
+          isPositive: false,
+          location: `${label}(${a}-${b})에서 발견`
+        });
+      }
+    }
+
+    // === 양인살(羊刃煞) ===
+    const yangInMap: Record<string, string> = {
+      '갑': '묘', '을': '인', '병': '오', '정': '사',
+      '무': '오', '기': '사', '경': '유', '신': '신',
+      '임': '자', '계': '해'
+    };
+    const yangInTarget = yangInMap[dayStem];
+    if (yangInTarget && allBranches.includes(yangInTarget)) {
+      salList.push({
+        name: '양인살',
+        description: '강한 기운과 결단력을 가진 살입니다. 칼날처럼 날카로운 성격을 나타냅니다.',
+        effect: '추진력과 결단력이 매우 강하지만, 과격하거나 독단적일 수 있습니다. 대인관계에서 충돌이 생기기 쉬우니 유연함이 필요해요.',
+        isPositive: false,
+        location: `일간(${dayStem}) 기준 → ${yangInTarget}에서 발견`
+      });
+    }
+
+    return salList;
+  }
+
   // 메인 사주 분석 함수
   public analyzeSaju(birthInfo: BirthInfo): SajuAnalysis {
     let yearPillar: SajuPillar;
@@ -234,6 +451,9 @@ export class SajuService {
     // 성격 분석
     const personalityAnalysis = this.analyzePersonality(dayMasterElement, elementBalance);
 
+    // 살(煞) 분석
+    const sal = this.analyzeSal(chart);
+
     return {
       birthInfo,
       chart,
@@ -242,7 +462,8 @@ export class SajuService {
       dayMasterElement,
       strongElements,
       weakElements,
-      ...personalityAnalysis
+      ...personalityAnalysis,
+      sal
     };
   }
 }

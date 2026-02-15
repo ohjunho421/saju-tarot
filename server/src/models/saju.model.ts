@@ -75,6 +75,17 @@ export interface ElementBalance {
   수: number;
 }
 
+// 살(煞) 관련 타입
+export type SalType = '도화살' | '역마살' | '화개살' | '겁살' | '망신살' | '백호살' | '천을귀인' | '귀문관살' | '양인살';
+
+export interface SalInfo {
+  name: SalType;
+  description: string;
+  effect: string;
+  isPositive: boolean; // 길신(true) vs 흉살(false)
+  location: string; // 어디서 발견되었는지 (예: "년지-일지", "일간-지지")
+}
+
 export interface SajuAnalysis {
   birthInfo: BirthInfo;
   chart: SajuChart;
@@ -87,4 +98,5 @@ export interface SajuAnalysis {
   strengths: string[];
   weaknesses: string[];
   recommendations: string[];
+  sal: SalInfo[]; // 살(煞) 분석 결과
 }

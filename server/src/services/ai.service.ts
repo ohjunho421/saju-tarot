@@ -435,6 +435,14 @@ MBTI: ${userMbti}
 - 주의점: ${mbtiInfo.weaknesses}
 ` : '';
 
+    // 살(煞) 정보 생성
+    const salList = (sajuAnalysis as any).sal as Array<{ name: string; description: string; effect: string; isPositive: boolean }> | undefined;
+    const salSection = salList && salList.length > 0
+      ? `\n[사주에서 발견된 신살(神煞)]
+${salList.map(s => `- ${s.name}${s.isPositive ? '(길신)' : '(흉살)'}: ${s.effect}`).join('\n')}
+`
+      : '';
+
     const prompt = `
 동양 철학과 타로를 융합한 전문가로서 친근하게 해석해주세요.
 
@@ -443,7 +451,7 @@ ${userName ? `이름: ${userName}님` : ''}
 일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
 ${namePrefix}일간은 ${elementDesc}
 강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}${mbtiSection}
-${previousContextText}
+${salSection}${previousContextText}
 
 [질문] "${question}"
 
@@ -461,9 +469,10 @@ ${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ?
 4. 오행 특성을 비유로 풀어서 설명 (예: "물의 기운처럼 유연하고 투명한 ${userName ? userName + '님의' : '당신의'} 성향이...")
 5. 카드가 역방향이거나 부정적인 의미를 담고 있다면 솔직하게 전달하세요
 6. 좋은 점만 말하지 말고, 주의해야 할 점이나 어려움도 함께 알려주세요
-7. 현실적이고 균형 잡힌 조언을 제공하세요${mbtiInfo ? `
-8. MBTI 성격(${userMbti})을 반영하여 해석하세요. "${mbtiInfo.weaknesses}" 같은 ${userMbti} 특유의 약점이 현재 상황에서 어떻게 나타날 수 있는지 언급하고, 이를 어떻게 주의해야 하는지 조언해주세요.
-9. 예를 들어 "${userName ? userName + '님' : '당신'}은 ${userMbti}이시니 ${mbtiInfo.weaknesses.split(',')[0]} 성향이 있어서 이런 상황에서 [구체적 행동]을 할 수 있는데, 그렇게 하지 않도록 조심하세요" 같은 형태로 MBTI 기반 조언을 포함하세요.` : ''}
+7. 현실적이고 균형 잡힌 조언을 제공하세요${salList && salList.length > 0 ? `
+8. 신살(神煞) 분석을 반드시 타로 해석에 자연스럽게 녹여서 설명하세요. 사용자의 사주에서 발견된 살을 언급하며, "~살이 있으셔서 이런 상황을 겪으시는 것 같아요", "~살의 영향으로 ~한 경향이 있으시니 주의하세요" 같은 형태로 카드 해석과 연결하세요. 길신(천을귀인 등)이 있다면 "다행히 천을귀인이 있으셔서 어려운 상황에서도 도움을 받으실 수 있어요" 같은 긍정적 메시지도 포함하세요.` : ''}${mbtiInfo ? `
+${salList && salList.length > 0 ? '9' : '8'}. MBTI 성격(${userMbti})을 반영하여 해석하세요. "${mbtiInfo.weaknesses}" 같은 ${userMbti} 특유의 약점이 현재 상황에서 어떻게 나타날 수 있는지 언급하고, 이를 어떻게 주의해야 하는지 조언해주세요.
+${salList && salList.length > 0 ? '10' : '9'}. 예를 들어 "${userName ? userName + '님' : '당신'}은 ${userMbti}이시니 ${mbtiInfo.weaknesses.split(',')[0]} 성향이 있어서 이런 상황에서 [구체적 행동]을 할 수 있는데, 그렇게 하지 않도록 조심하세요" 같은 형태로 MBTI 기반 조언을 포함하세요.` : ''}
 
 ⚠️ 카드 방향 해석 규칙 (매우 중요!):
 - 각 카드의 (역방향) 또는 (정방향) 표시를 반드시 확인하세요
@@ -514,7 +523,7 @@ ${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) =>
    ${dc.card.element && dc.card.element !== userElement ? `${dc.card.element}과 ${userElement}의 상생/상극 관계를 고려한 해석을 포함해주세요.` : ''}
    
    [현재 상황 해석]
-   이 카드가 ${dc.isReversed ? '역방향으로' : '정방향으로'} ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요. (각 카드당 250-350자)`
+   이 카드가 ${dc.isReversed ? '역방향으로' : '정방향으로'} ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요.${salList && salList.length > 0 ? ` 특히 사주에서 발견된 신살(${salList.map(s => s.name).join(', ')})과 이 카드의 의미를 연결하여, "~살이 있으셔서 이런 상황을 겪으시는 것 같아요" 같은 형태로 자연스럽게 설명해주세요.` : ''} (각 카드당 250-350자)`
 }).join('\n\n')}
 
 [전체 카드의 흐름과 사주 조화]
@@ -659,6 +668,11 @@ ${mbtiInfo.advice}를 바탕으로, 현재 질문 상황에 맞는 구체적이�
         maxTokens += 1000;
       }
       
+      // 신살(煞) 포함 시 추가 토큰
+      if (salList && salList.length > 0) {
+        maxTokens += 800;
+      }
+      
       if (this.gemini) {
         response = await this.tryGeminiWithFallback(prompt, maxTokens);
       } else if (this.claude) {
@@ -769,41 +783,93 @@ ${mbtiInfo.advice}를 바탕으로, 현재 질문 상황에 맞는 구체적이�
 
     // [질문에 대한 결론] + [각 타로 카드의 상세 해석] 합쳐서 interpretation으로
     // ※ 핵심 요약(결론)과 카드 상세 해석 사이에 "===CARD_DETAILS===" 구분자 삽입
-    // 정규식: 다음 섹션([로 시작) 또는 --- 또는 끝까지 캡처
-    const conclusionMatch = response.match(/\[질문에 대한 결론\]\s*([\s\S]*?)(?=\[각 타로|\[오행|---|$)/i);
-    const cardDetailsMatch = response.match(/\[각 타로 카드의 상세 해석\]\s*([\s\S]*?)(?=\[전체 카드|\[오행|---|$)/i);
-    
+
+    // 결론 추출 - 여러 패턴 시도 (AI가 헤더를 다르게 쓸 수 있음)
+    const conclusionPatterns = [
+      /\[질문에 대한 결론\]\s*([\s\S]*?)(?=\[각 타로 카드|\[카드가 말해주는)/i,
+      /\[질문에 대한 결론\]\s*([\s\S]*?)(?=\n\n\[)/i,
+      /\[핵심 ?요약\]\s*([\s\S]*?)(?=\n\n\[)/i,
+      /\[결론\]\s*([\s\S]*?)(?=\n\n\[)/i,
+    ];
+    let conclusionText = '';
+    for (const pattern of conclusionPatterns) {
+      const match = response.match(pattern);
+      if (match && match[1].trim().length > 10) {
+        conclusionText = match[1].trim();
+        break;
+      }
+    }
+
+    // 카드 상세 해석 추출 - 여러 패턴 시도
+    const cardDetailPatterns = [
+      /\[각 타로 카드의 상세 해석\]\s*([\s\S]*?)(?=\[전체 카드의 흐름|\[오행의 흐름)/i,
+      /\[각 타로 카드의 상세 해석\]\s*([\s\S]*?)(?=\n---\n)/i,
+      /\[카드가 말해주는 이야기\]\s*([\s\S]*?)(?=\[전체 카드|\[오행|---)/i,
+      /\[카드 해석\]\s*([\s\S]*?)(?=\[전체|\[오행|---)/i,
+    ];
+    let cardDetailsText = '';
+    for (const pattern of cardDetailPatterns) {
+      const match = response.match(pattern);
+      if (match && match[1].trim().length > 10) {
+        cardDetailsText = match[1].trim();
+        break;
+      }
+    }
+
     // 디버깅 로그
     console.log('=== 파싱 디버깅 ===');
-    console.log('conclusionMatch 존재:', !!conclusionMatch);
-    console.log('cardDetailsMatch 존재:', !!cardDetailsMatch);
-    if (conclusionMatch) {
-      console.log('결론 내용 (앞 200자):', conclusionMatch[1]?.substring(0, 200));
+    console.log('conclusionText 길이:', conclusionText.length);
+    console.log('cardDetailsText 길이:', cardDetailsText.length);
+    if (conclusionText) {
+      console.log('결론 내용 (앞 200자):', conclusionText.substring(0, 200));
     }
-    
-    if (conclusionMatch && cardDetailsMatch) {
-      const conclusion = conclusionMatch[1].trim();
-      const cardDetails = cardDetailsMatch[1].trim();
-      // 구분자로 확실히 분리 (클라이언트에서 이 구분자로 split)
-      sections.interpretation = `${conclusion}\n\n===CARD_DETAILS===\n\n${cardDetails}`;
-    } else if (cardDetailsMatch) {
-      sections.interpretation = `===CARD_DETAILS===\n\n${cardDetailsMatch[1].trim()}`;
-    } else if (conclusionMatch) {
-      sections.interpretation = conclusionMatch[1].trim();
+
+    if (conclusionText && cardDetailsText) {
+      sections.interpretation = `${conclusionText}\n\n===CARD_DETAILS===\n\n${cardDetailsText}`;
+    } else if (cardDetailsText) {
+      sections.interpretation = `===CARD_DETAILS===\n\n${cardDetailsText}`;
+    } else if (conclusionText) {
+      sections.interpretation = conclusionText;
     } else {
       // Fallback: 이전 형식 지원
-      const answerMatch = response.match(/\[질문에 대한 답변\]\s*([\s\S]*?)(?=\[|---|$)/i);
-      const situationMatch = response.match(/\[현재 상황과 흐름\]\s*([\s\S]*?)(?=\[|---|$)/i);
-      
-      if (answerMatch && situationMatch) {
-        const answer = answerMatch[1].trim();
-        const situation = situationMatch[1].trim();
-        sections.interpretation = `${answer}\n\n===CARD_DETAILS===\n\n${situation}`;
-      } else if (answerMatch) {
+      const answerMatch = response.match(/\[질문에 대한 답변\]\s*([\s\S]*?)(?=\n\n\[|$)/i);
+      const situationMatch = response.match(/\[현재 상황과 흐름\]\s*([\s\S]*?)(?=\n\n\[|$)/i);
+
+      if (answerMatch && answerMatch[1].trim().length > 10 && situationMatch && situationMatch[1].trim().length > 10) {
+        sections.interpretation = `${answerMatch[1].trim()}\n\n===CARD_DETAILS===\n\n${situationMatch[1].trim()}`;
+      } else if (answerMatch && answerMatch[1].trim().length > 10) {
         sections.interpretation = answerMatch[1].trim();
       }
     }
-    
+
+    // 최종 안전장치: interpretation이 여전히 비어있으면 --- 기반 fallback 즉시 적용
+    if (!sections.interpretation || sections.interpretation.length < 20) {
+      const parts = response.split(/\n---\n|\n-{3,}\n/).map(p => p.trim()).filter(p => p.length > 0);
+      if (parts.length > 0) {
+        // 첫 번째 의미 있는 파트를 핵심요약으로 사용 (헤더 제거)
+        const cleanPart = (text: string) => text.replace(/^\[.*?\]\s*/gm, '').trim();
+        const summary = cleanPart(parts[0]);
+        const details = parts.length > 1 ? cleanPart(parts[1]) : '';
+        if (summary.length > 10) {
+          sections.interpretation = details.length > 10
+            ? `${summary}\n\n===CARD_DETAILS===\n\n${details}`
+            : summary;
+        }
+      }
+    }
+
+    // 마지막 안전장치: 그래도 비어있으면 응답 전체에서 첫 의미있는 문단 추출
+    if (!sections.interpretation || sections.interpretation.length < 20) {
+      const paragraphs = response.split(/\n\n+/).filter(p => p.trim().length > 30 && !p.startsWith('['));
+      if (paragraphs.length > 0) {
+        sections.interpretation = paragraphs[0].trim();
+        console.warn('⚠️ 모든 파싱 실패, 첫 문단을 핵심요약으로 사용:', sections.interpretation.substring(0, 100));
+      } else {
+        sections.interpretation = response.substring(0, 500).trim();
+        console.warn('⚠️ 최종 fallback: 응답 앞 500자를 핵심요약으로 사용');
+      }
+    }
+
     console.log('최종 interpretation 길이:', sections.interpretation.length);
     console.log('구분자 포함 여부:', sections.interpretation.includes('===CARD_DETAILS==='));
 
@@ -847,13 +913,20 @@ ${mbtiInfo.advice}를 바탕으로, 현재 질문 상황에 맞는 구체적이�
       }
     }
 
-    // Fallback: --- 로 나뉜 부분 사용
-    const parts = response.split('---').map(p => p.trim());
-    if (!sections.interpretation && parts.length > 0) {
-      sections.interpretation = parts[0] + '\n\n' + (parts[1] || '');
-      sections.elementalHarmony = parts[2] || '오행의 흐름을 분석하고 있어요.';
-      sections.personalizedAdvice = parts[3] || '실천 가능한 조언을 준비하고 있어요.';
-      sections.adviceCardInterpretation = parts[4] || undefined;
+    // Fallback: --- 로 나뉜 부분으로 비어있는 필드 채우기
+    if (!sections.elementalHarmony || !sections.personalizedAdvice) {
+      const parts = response.split(/\n---\n|\n-{3,}\n/).map(p => p.trim()).filter(p => p.length > 10);
+      if (parts.length >= 3) {
+        if (!sections.elementalHarmony) {
+          sections.elementalHarmony = parts[2]?.replace(/^\[.*?\]\s*/gm, '').trim() || '오행의 흐름을 분석하고 있어요.';
+        }
+        if (!sections.personalizedAdvice && parts.length >= 4) {
+          sections.personalizedAdvice = parts[3]?.replace(/^\[.*?\]\s*/gm, '').trim() || '실천 가능한 조언을 준비하고 있어요.';
+        }
+      }
+      // 최종 기본값
+      if (!sections.elementalHarmony) sections.elementalHarmony = '오행의 흐름을 분석하고 있어요.';
+      if (!sections.personalizedAdvice) sections.personalizedAdvice = '실천 가능한 조언을 준비하고 있어요.';
     }
 
     return sections;
