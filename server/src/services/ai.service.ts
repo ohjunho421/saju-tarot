@@ -407,13 +407,15 @@ ${mainCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}($
 ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역' : '정'})` : ''}
 
 아래 JSON으로만 응답하세요. 마크다운 금지. ${userName ? `"${userName}님" 호칭.` : ''} 역방향 카드는 역방향 의미로만 해석. 솔직하게.
+가독성: 문단 사이에 줄바꿈(\\n\\n)을 넣고, 한 문단은 2~3문장까지만.
+카드 해석: (1) 카드 그림/상징 묘사 먼저 (2) 질문과의 연결 (3) 사주 연결은 자연스러울 때만.
 
 {
-  "summary": "인사 + 핵심 결론 + 이유 (250~300자)",
-  "cardReadings": "각 카드 해석을 사주/신살과 연결 (카드당 250~350자)",
-  "elementalHarmony": "${dateContext.season}(${seasonalElement})과 ${userElement} 기운의 조화 (250자)",
-  "practiceAdvice": "카드별 실천 방법 + 오행 활용/보완법 (300자)"${includeAdviceCard && adviceCard ? `,
-  "adviceCardReading": "조언 카드 해석 (250자)"` : ''}
+  "summary": "인사 + 줄바꿈 + 핵심 결론 + 이유 (250~300자)",
+  "cardReadings": "각 카드: 그림/상징 묘사 → 질문 연결 → 사주 연결(선택). 카드당 300~400자. 카드 사이 줄바꿈(\\n\\n)",
+  "elementalHarmony": "${dateContext.season}(${seasonalElement})과 ${userElement} 기운의 조화를 자연 비유로 (250자)",
+  "practiceAdvice": "카드별 실천 방법을 줄바꿈으로 구분 + 오행 활용/보완법 (350자)"${includeAdviceCard && adviceCard ? `,
+  "adviceCardReading": "조언 카드 그림/상징 설명 + 실천 조언 (250자)"` : ''}
 }`;
 
     let response = '';
@@ -479,7 +481,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
     elementInterplay: string;
     readingTone: string;
-    cardConnections: Array<{ card: string; sajuLink: string; salLink: string }>;
+    cardConnections: Array<{ card: string; symbolism: string; sajuLink: string; salLink: string }>;
     overallDirection: string;
     mbtiInsight: string;
   }> {
@@ -515,14 +517,14 @@ ${drawnCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(
   "elementInterplay": "사용자의 오행과 카드들의 오행이 어떤 상생/상극 관계를 만드는지 핵심 분석",
   "readingTone": "이 리딩의 전체 톤 (예: 긍정적이나 주의 필요, 경고성, 희망적 등) 과 그 이유",
   "cardConnections": [
-    {"card": "카드이름", "sajuLink": "이 카드가 사주의 어떤 요소와 연결되는지", "salLink": "이 카드가 어떤 신살과 연결되는지 (없으면 빈 문자열)"}
+    {"card": "카드이름", "symbolism": "이 카드의 그림에 그려진 핵심 상징과 그 의미 (예: 달빛, 탑, 천사, 물 등)", "sajuLink": "이 카드가 사주의 어떤 요소와 자연스럽게 연결되는지 (억지 연결 금지, 없으면 빈 문자열)", "salLink": "이 카드가 어떤 신살과 연결되는지 (없으면 빈 문자열)"}
   ],
   "overallDirection": "이 리딩이 전달해야 할 핵심 메시지 방향 (한 문장)",
   "mbtiInsight": "${userMbti ? `${userMbti} 성격이 이 상황에서 어떤 함정에 빠질 수 있고 어떤 강점을 활용할 수 있는지` : '해당없음'}"
 }
 
 중요: keySals는 질문과 관련 깊은 것만 2~4개 선정하세요. 신살이 없으면 빈 배열로 두세요.
-cardConnections는 주요 카드 2~3장만 분석하세요.`;
+cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림 상징을 반드시 포함하세요.`;
 
     try {
       let response = '';
@@ -561,6 +563,7 @@ cardConnections는 주요 카드 2~3장만 분석하세요.`;
         readingTone: '균형 잡힌 해석',
         cardConnections: drawnCards.slice(0, 3).map(dc => ({
           card: dc.card.nameKo,
+          symbolism: dc.card.uprightMeaning,
           sajuLink: `${sajuAnalysis.dayMasterElement} 기운과의 관계`,
           salLink: ''
         })),
@@ -579,7 +582,7 @@ cardConnections는 주요 카드 2~3장만 분석하세요.`;
       keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
       elementInterplay: string;
       readingTone: string;
-      cardConnections: Array<{ card: string; sajuLink: string; salLink: string }>;
+      cardConnections: Array<{ card: string; symbolism: string; sajuLink: string; salLink: string }>;
       overallDirection: string;
       mbtiInsight: string;
     };
@@ -619,7 +622,7 @@ cardConnections는 주요 카드 2~3장만 분석하세요.`;
 
     // 카드-사주 연결 정보 구성
     const cardConnectionSection = analysisContext.cardConnections.map(c =>
-      `- ${c.card}: 사주연결=${c.sajuLink}${c.salLink ? `, 신살연결=${c.salLink}` : ''}`
+      `- ${c.card}: 상징=${c.symbolism || ''}${c.sajuLink ? `, 사주연결=${c.sajuLink}` : ''}${c.salLink ? `, 신살연결=${c.salLink}` : ''}`
     ).join('\n');
 
     const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
@@ -658,16 +661,26 @@ ${adviceCard ? `조언 카드: ${adviceCard.card.nameKo}(${adviceCard.isReversed
 
 아래 JSON 형식으로만 응답하세요. 각 필드의 내용은 마크다운 없이 순수 텍스트로 작성하세요.
 ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"당신"이라고 호칭하세요.'}
-오행 특성은 자연 비유로 풀어서 설명하세요 (예: "${userElement} 기운이 ${elementNature} 에너지로...").
 역방향 카드는 반드시 역방향 의미로만 해석하세요.
 좋은 점만 말하지 말고 주의점과 어려움도 솔직하게 전달하세요.
 
+⚠️ 가독성 규칙 (매우 중요!):
+- 모든 필드에서 문단 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.
+- 한 문단은 2~3문장을 넘기지 마세요. 긴 덩어리 텍스트는 금지!
+- cardReadings에서 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)으로 구분하세요.
+- practiceAdvice에서도 각 항목 사이에 줄바꿈(\\n\\n)을 넣으세요.
+
+⚠️ 카드 해석 방식 (매우 중요!):
+- 각 카드를 해석할 때, 먼저 카드의 그림과 상징을 묘사하세요. 예: "이 카드에는 달빛 아래 두 개의 탑 사이로 길이 나 있고, 개와 늑대가 달을 향해 울부짖는 모습이 그려져 있어요. 이 그림은 불확실성과 내면의 불안을 상징해요."
+- 그 다음에 카드의 상징이 질문과 어떻게 연결되는지 설명하세요.
+- 사주/신살 연결은 그 뒤에 자연스럽게 덧붙이세요. 모든 카드를 억지로 사주에 연결하지 마세요. 자연스러운 연결이 있을 때만 언급하세요.
+
 {
-  "summary": "${userName ? userName + '님' : ''}에게 전하는 인사 + 핵심 결론 한 문장 + 간단한 이유 (250~300자). ${previousContext && previousContext.length > 0 ? `이전 질문 '${previousContext[0].question}'과의 연결도 언급.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게!",
-  "cardReadings": "${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})`).join(', ')} 각 카드를 사주/신살과 연결하여 해석 (카드당 250~350자). 분석 계획의 카드-사주 연결을 활용하세요. 핵심 신살은 자연스럽게 녹여서 설명하세요.",
-  "elementalHarmony": "현재 ${dateContext.season}(${seasonalElement} 기운)과 사용자의 ${userElement} 기운, 카드들의 오행이 어떻게 조화/충돌하는지 (250자). 분석 계획의 오행 상호작용을 바탕으로 서술.",
-  "practiceAdvice": "카드별 구체적 실천 방법 + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (300자)"${includeAdviceCard && adviceCard ? `,
-  "adviceCardReading": "조언 카드 ${adviceCard.card.nameKo}의 메시지를 사주와 연결하여 구체적 실천 조언 (250자)"` : ''}${userMbti ? `,
+  "summary": "${userName ? userName + '님' : ''}에게 전하는 인사 + 핵심 결론 한 문장 + 간단한 이유 (250~300자). ${previousContext && previousContext.length > 0 ? `이전 질문 '${previousContext[0].question}'과의 연결도 언급.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게! 인사와 결론 사이에 줄바꿈을 넣으세요.",
+  "cardReadings": "${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})`).join(', ')} 각 카드를 해석하되, 반드시 이 순서를 따르세요: (1) 카드 그림/상징 묘사 2~3문장 (2) 이 상징이 질문에 어떤 의미인지 해석 (3) 사주/신살과 자연스러운 연결이 있으면 덧붙이기. 카드당 300~400자. 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.",
+  "elementalHarmony": "현재 ${dateContext.season}(${seasonalElement} 기운)과 사용자의 ${userElement} 기운, 카드들의 오행이 어떻게 조화/충돌하는지 자연 비유로 설명 (250자).",
+  "practiceAdvice": "카드별 구체적 실천 방법을 각각 줄바꿈으로 구분하여 작성 + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (350자)"${includeAdviceCard && adviceCard ? `,
+  "adviceCardReading": "조언 카드 ${adviceCard.card.nameKo}의 그림/상징을 먼저 설명하고, 그 메시지가 현재 상황에서 어떤 실천 조언이 되는지 서술 (250자)"` : ''}${userMbti ? `,
   "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법 (200자)"` : ''}
 }`;
 
