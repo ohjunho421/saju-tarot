@@ -110,6 +110,22 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       data: { lastLoginAt: new Date() }
     });
 
+    // 기존 사용자의 sajuAnalysis에 sal 필드가 없으면 재계산 후 DB 업데이트
+    let sajuAnalysis = user.sajuAnalysis;
+    const existingSaju = sajuAnalysis as any;
+    if (user.birthInfo && existingSaju && !existingSaju.sal) {
+      try {
+        const freshAnalysis = sajuService.analyzeSaju(user.birthInfo as any);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { sajuAnalysis: freshAnalysis as any }
+        });
+        sajuAnalysis = freshAnalysis as any;
+      } catch (e) {
+        console.error('로그인 시 사주 재계산 오류 (무시):', e);
+      }
+    }
+
     // JWT 토큰 생성
     const token = generateToken({
       userId: user.id,
@@ -126,7 +142,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           name: user.name,
           birthInfo: user.birthInfo,
-          sajuAnalysis: user.sajuAnalysis
+          sajuAnalysis
         }
       }
     });
@@ -163,9 +179,25 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 기존 사용자의 sajuAnalysis에 sal 필드가 없으면 재계산 후 DB 업데이트
+    let userData = user;
+    const existingSaju = user.sajuAnalysis as any;
+    if (user.birthInfo && existingSaju && !existingSaju.sal) {
+      try {
+        const freshAnalysis = sajuService.analyzeSaju(user.birthInfo as any);
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { sajuAnalysis: freshAnalysis as any }
+        });
+        userData = { ...user, sajuAnalysis: freshAnalysis as any };
+      } catch (e) {
+        console.error('사주 재계산 오류 (무시하고 기존 데이터 사용):', e);
+      }
+    }
+
     res.json({
       success: true,
-      data: user
+      data: userData
     });
   } catch (error) {
     console.error('사용자 정보 조회 오류:', error);

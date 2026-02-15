@@ -90,7 +90,23 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
     const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false, selectedCards || cardPositions);
 
     // 사주 분석 정보 (클라이언트에서 전달받은 것 우선, 없으면 DB에서)
-    const sajuData = clientSajuAnalysis || user.sajuAnalysis;
+    let sajuData = clientSajuAnalysis || user.sajuAnalysis;
+    
+    // sal 필드가 없는 기존 데이터면 재계산
+    if (sajuData && !(sajuData as any).sal && user.birthInfo) {
+      try {
+        const { SajuService } = require('../services/saju.service');
+        const sajuSvc = new SajuService();
+        sajuData = sajuSvc.analyzeSaju(user.birthInfo as any);
+        // DB도 업데이트 (비동기, 응답 대기 안 함)
+        prisma.user.update({
+          where: { id: user.id },
+          data: { sajuAnalysis: sajuData as any }
+        }).catch((e: any) => console.error('사주 DB 업데이트 실패:', e));
+      } catch (e) {
+        console.error('리딩 시 사주 재계산 오류:', e);
+      }
+    }
 
     // AI 기반 종합 해석 (사주 정보 + 타로 카드 복합 해석)
     const aiInterpretation = await aiService.generateAdvancedInterpretation(
