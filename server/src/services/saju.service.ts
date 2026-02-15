@@ -364,6 +364,326 @@ export class SajuService {
       });
     }
 
+    // === 장성살(將星煞) === (길신)
+    // 삼합 기준 왕지: 인오술→오, 사유축→유, 신자진→자, 해묘미→묘
+    const jangSeongMap: Record<string, string> = {
+      '인': '오', '오': '오', '술': '오',
+      '사': '유', '유': '유', '축': '유',
+      '신': '자', '자': '자', '진': '자',
+      '해': '묘', '묘': '묘', '미': '묘'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = jangSeongMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        if (!salList.find(s => s.name === '장성살')) {
+          salList.push({
+            name: '장성살',
+            description: '권위와 리더십의 별입니다. 삼합의 왕지(旺地)에서 발생하며, 조직을 이끄는 힘을 가집니다.',
+            effect: '리더십이 뛰어나고 자존심이 강합니다. 조직에서 높은 자리에 오르기 쉽지만, 지나치면 독선적이 될 수 있어요.',
+            isPositive: true,
+            location: `${basis === yearBranch ? '년지' : '일지'}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 반안살(攀鞍煞) === (길신)
+    // 삼합 기준: 인오술→미, 사유축→술, 신자진→축, 해묘미→진
+    const banAnMap: Record<string, string> = {
+      '인': '미', '오': '미', '술': '미',
+      '사': '술', '유': '술', '축': '술',
+      '신': '축', '자': '축', '진': '축',
+      '해': '진', '묘': '진', '미': '진'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = banAnMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        if (!salList.find(s => s.name === '반안살')) {
+          salList.push({
+            name: '반안살',
+            description: '안장(鞍)에 오르는 기운으로, 윗사람의 도움과 사회적 체면을 나타냅니다.',
+            effect: '외모나 체면을 중시하고 윗사람의 도움을 잘 받습니다. 사회적 지위 상승에 유리하지만, 과도하면 허영심이 될 수 있어요.',
+            isPositive: true,
+            location: `${basis === yearBranch ? '년지' : '일지'}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 천살(天煞) ===
+    // 삼합 기준: 인오술→술, 사유축→축, 신자진→진, 해묘미→미 의 앞 지지
+    // 인오술→유, 사유축→자, 신자진→묘, 해묘미→오
+    const cheonSalMap: Record<string, string> = {
+      '인': '유', '오': '유', '술': '유',
+      '사': '자', '유': '자', '축': '자',
+      '신': '묘', '자': '묘', '진': '묘',
+      '해': '오', '묘': '오', '미': '오'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = cheonSalMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        if (!salList.find(s => s.name === '천살')) {
+          salList.push({
+            name: '천살',
+            description: '하늘에서 내리는 재앙의 기운입니다. 갑작스러운 천재지변이나 예기치 못한 사고를 암시합니다.',
+            effect: '갑작스러운 재난이나 사고에 노출될 수 있습니다. 자연재해, 갑작스러운 환경 변화에 대비하는 자세가 필요해요.',
+            isPositive: false,
+            location: `${basis === yearBranch ? '년지' : '일지'}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 지살(地煞) ===
+    // 삼합 기준 생지: 인오술→인, 사유축→사, 신자진→신, 해묘미→해
+    const jiSalMap: Record<string, string> = {
+      '인': '인', '오': '인', '술': '인',
+      '사': '사', '유': '사', '축': '사',
+      '신': '신', '자': '신', '진': '신',
+      '해': '해', '묘': '해', '미': '해'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = jiSalMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        if (!salList.find(s => s.name === '지살')) {
+          salList.push({
+            name: '지살',
+            description: '땅에서 오는 고독과 외로움의 기운입니다. 생이별이나 홀로 지내는 시간이 많아질 수 있습니다.',
+            effect: '고독감을 느끼기 쉽고 가족과 떨어져 지내는 경우가 많습니다. 독립심이 강하지만 외로움을 잘 달래는 방법이 필요해요.',
+            isPositive: false,
+            location: `${basis === yearBranch ? '년지' : '일지'}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 년살(年煞) ===
+    // 삼합 기준: 인오술→묘, 사유축→오, 신자진→유, 해묘미→자 (도화살과 동일 위치이나 년지 기준 특화)
+    // 실제로는 도화살의 다른 이름이기도 하므로, 여기서는 '연살'로서 색정/이성문제 특화
+    // 인오술→묘, 사유축→오, 신자진→유, 해묘미→자
+    const nyeonSalMap: Record<string, string> = {
+      '인': '묘', '오': '묘', '술': '묘',
+      '사': '오', '유': '오', '축': '오',
+      '신': '유', '자': '유', '진': '유',
+      '해': '자', '묘': '자', '미': '자'
+    };
+    // 년지 기준으로만 체크하고, 월지/시지에 있을 때 발동
+    const nyeonTarget = nyeonSalMap[yearBranch];
+    if (nyeonTarget) {
+      const monthBranch = chart.month.earthlyBranch;
+      const hourBranch = chart.hour?.earthlyBranch;
+      if ((monthBranch === nyeonTarget || hourBranch === nyeonTarget) && !salList.find(s => s.name === '년살')) {
+        salList.push({
+          name: '년살',
+          description: '색정과 이성 문제에 관련된 살입니다. 도화살과 비슷하나 가정 내 이성 문제에 더 초점이 맞춰져 있습니다.',
+          effect: '이성 관계에서 복잡한 상황이 생기기 쉽습니다. 가정 내 갈등이나 외도 문제에 주의가 필요해요.',
+          isPositive: false,
+          location: `년지(${yearBranch}) 기준 → ${nyeonTarget}에서 발견`
+        });
+      }
+    }
+
+    // === 월살(月煞) ===
+    // 삼합 기준: 인오술→축, 사유축→진, 신자진→미, 해묘미→술
+    const wolSalMap: Record<string, string> = {
+      '인': '축', '오': '축', '술': '축',
+      '사': '진', '유': '진', '축': '진',
+      '신': '미', '자': '미', '진': '미',
+      '해': '술', '묘': '술', '미': '술'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = wolSalMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        if (!salList.find(s => s.name === '월살')) {
+          salList.push({
+            name: '월살',
+            description: '고초와 장애의 기운입니다. 일이 잘 풀리지 않고 장애물이 많이 나타날 수 있습니다.',
+            effect: '일의 진행이 더디고 예상치 못한 장애물을 만나기 쉽습니다. 인내심을 가지고 꾸준히 노력하는 것이 중요해요.',
+            isPositive: false,
+            location: `${basis === yearBranch ? '년지' : '일지'}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 재살(災煞) ===
+    // 삼합 기준: 인오술→자, 사유축→묘, 신자진→오, 해묘미→유
+    const jaeSalMap: Record<string, string> = {
+      '인': '자', '오': '자', '술': '자',
+      '사': '묘', '유': '묘', '축': '묘',
+      '신': '오', '자': '오', '진': '오',
+      '해': '유', '묘': '유', '미': '유'
+    };
+    for (const basis of [yearBranch, dayBranch]) {
+      const target = jaeSalMap[basis];
+      if (target && allBranches.includes(target) && target !== basis) {
+        if (!salList.find(s => s.name === '재살')) {
+          salList.push({
+            name: '재살',
+            description: '12신살 중 가장 강력한 흉살입니다. 혈광(血光)과 관재(官災)의 위험을 나타냅니다.',
+            effect: '사고, 소송, 관재수 등 큰 재앙에 노출될 수 있습니다. 법적 문제나 신체적 위험에 특히 주의해야 해요.',
+            isPositive: false,
+            location: `${basis === yearBranch ? '년지' : '일지'}(${basis}) 기준 → ${target}에서 발견`
+          });
+        }
+      }
+    }
+
+    // === 육해살(六害煞) ===
+    // 육해(六害) 조합: 자-미, 축-오, 인-사, 묘-진, 신-해, 유-술
+    const yukHaePairs: [string, string][] = [
+      ['자', '미'], ['축', '오'], ['인', '사'],
+      ['묘', '진'], ['신', '해'], ['유', '술']
+    ];
+    const yukHaeCheck: [string, string, string][] = [
+      [dayBranch, chart.month.earthlyBranch, '일지-월지'],
+      [dayBranch, yearBranch, '일지-년지'],
+    ];
+    if (chart.hour) {
+      yukHaeCheck.push([dayBranch, chart.hour.earthlyBranch, '일지-시지']);
+    }
+    for (const [a, b, label] of yukHaeCheck) {
+      const hasYukHae = yukHaePairs.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+      if (hasYukHae && !salList.find(s => s.name === '육해살')) {
+        salList.push({
+          name: '육해살',
+          description: '서로 해(害)하는 관계로, 가까운 사람과의 갈등이나 배신을 나타냅니다.',
+          effect: '가족, 친구, 동료 등 가까운 사람과의 관계에서 갈등이 생기기 쉽습니다. 신뢰 관계에 금이 갈 수 있으니 소통에 신경 쓰세요.',
+          isPositive: false,
+          location: `${label}(${a}-${b})에서 발견`
+        });
+      }
+    }
+
+    // === 천덕귀인(天德貴人) === (길신)
+    // 월지 기준: 인→정, 묘→신, 진→임, 사→신, 오→갑, 미→계, 신→임, 유→경, 술→병, 해→을, 자→기, 축→경
+    const cheonDeokMap: Record<string, string> = {
+      '인': '정', '묘': '신', '진': '임', '사': '신',
+      '오': '갑', '미': '계', '신': '임', '유': '경',
+      '술': '병', '해': '을', '자': '기', '축': '경'
+    };
+    const monthBranch = chart.month.earthlyBranch;
+    const allStems = [
+      chart.year.heavenlyStem, chart.month.heavenlyStem,
+      chart.day.heavenlyStem, ...(chart.hour ? [chart.hour.heavenlyStem] : [])
+    ];
+    const cheonDeokTarget = cheonDeokMap[monthBranch];
+    if (cheonDeokTarget && allStems.includes(cheonDeokTarget)) {
+      salList.push({
+        name: '천덕귀인',
+        description: '하늘의 덕(德)을 받는 최고의 길신 중 하나입니다. 재앙을 복으로 바꾸는 힘이 있습니다.',
+        effect: '큰 위기에서도 자연스럽게 빠져나올 수 있고, 주변의 도움을 많이 받습니다. 흉살이 있어도 천덕귀인이 있으면 그 흉함이 크게 줄어들어요.',
+        isPositive: true,
+        location: `월지(${monthBranch}) 기준 → 천간 ${cheonDeokTarget}에서 발견`
+      });
+    }
+
+    // === 월덕귀인(月德貴人) === (길신)
+    // 월지 기준: 인오술→병, 사유축→경, 신자진→임, 해묘미→갑
+    const wolDeokMap: Record<string, string> = {
+      '인': '병', '오': '병', '술': '병',
+      '사': '경', '유': '경', '축': '경',
+      '신': '임', '자': '임', '진': '임',
+      '해': '갑', '묘': '갑', '미': '갑'
+    };
+    const wolDeokTarget = wolDeokMap[monthBranch];
+    if (wolDeokTarget && allStems.includes(wolDeokTarget)) {
+      salList.push({
+        name: '월덕귀인',
+        description: '달의 덕(德)을 받는 길신입니다. 온화한 성품과 덕망을 나타냅니다.',
+        effect: '성격이 온화하고 덕이 있어 주변 사람들에게 존경받습니다. 어려운 일이 생겨도 자연스럽게 해결되는 경우가 많아요.',
+        isPositive: true,
+        location: `월지(${monthBranch}) 기준 → 천간 ${wolDeokTarget}에서 발견`
+      });
+    }
+
+    // === 문창귀인(文昌貴人) === (길신)
+    // 일간 기준: 갑→사, 을→오, 병→신, 정→유, 무→신, 기→유, 경→해, 신→자, 임→인, 계→묘
+    const munChangMap: Record<string, string> = {
+      '갑': '사', '을': '오', '병': '신', '정': '유', '무': '신',
+      '기': '유', '경': '해', '신': '자', '임': '인', '계': '묘'
+    };
+    const munChangTarget = munChangMap[dayStem];
+    if (munChangTarget && allBranches.includes(munChangTarget)) {
+      salList.push({
+        name: '문창귀인',
+        description: '문필(文筆)과 학문의 별입니다. 글쓰기, 시험, 학업에서 뛰어난 재능을 발휘합니다.',
+        effect: '학업 성취도가 높고 시험운이 좋습니다. 글쓰기, 연구, 교육 분야에서 두각을 나타내며, 자격증이나 시험에 유리해요.',
+        isPositive: true,
+        location: `일간(${dayStem}) 기준 → ${munChangTarget}에서 발견`
+      });
+    }
+
+    // === 학당귀인(學堂貴人) === (길신)
+    // 일간 기준: 갑→해, 을→해, 병→인, 정→인, 무→인, 기→사, 경→사, 신→신, 임→신, 계→해 (장생지 기준)
+    const hakDangMap: Record<string, string> = {
+      '갑': '해', '을': '오', '병': '인', '정': '유',
+      '무': '사', '기': '오', '경': '사', '신': '자',
+      '임': '신', '계': '묘'
+    };
+    const hakDangTarget = hakDangMap[dayStem];
+    if (hakDangTarget && allBranches.includes(hakDangTarget)) {
+      salList.push({
+        name: '학당귀인',
+        description: '배움의 전당(學堂)을 뜻하는 길신입니다. 학문에 대한 열정과 집중력이 뛰어납니다.',
+        effect: '공부에 대한 집중력이 높고 지적 호기심이 강합니다. 평생 배움을 즐기며, 전문 분야에서 깊은 지식을 쌓을 수 있어요.',
+        isPositive: true,
+        location: `일간(${dayStem}) 기준 → ${hakDangTarget}에서 발견`
+      });
+    }
+
+    // === 원진살(怨嗔煞) ===
+    // 년지/일지 기준 원진 관계: 자-미, 축-오, 인-유, 묘-신, 진-해, 사-술 (서로 원진)
+    const wonJinPairs: [string, string][] = [
+      ['자', '미'], ['축', '오'], ['인', '유'],
+      ['묘', '신'], ['진', '해'], ['사', '술']
+    ];
+    // 년지-일지 간 원진 체크
+    const hasWonJin = wonJinPairs.some(([x, y]) =>
+      (yearBranch === x && dayBranch === y) || (yearBranch === y && dayBranch === x)
+    );
+    if (hasWonJin) {
+      salList.push({
+        name: '원진살',
+        description: '원망(怨)과 성냄(嗔)의 기운으로, 서로 미워하면서도 떨어질 수 없는 관계를 나타냅니다.',
+        effect: '가까운 사람(배우자, 가족)과 애증의 관계가 되기 쉽습니다. 좋을 때는 매우 좋지만 나쁠 때는 극도로 나빠지는 관계 패턴이 있어요.',
+        isPositive: false,
+        location: `년지(${yearBranch})-일지(${dayBranch}) 원진 관계`
+      });
+    }
+
+    // === 공망(空亡) ===
+    // 일주(일간+일지)의 순(旬) 기준으로 공망 지지 2개 결정
+    // 갑자순→술해, 갑술순→신유, 갑신순→오미, 갑오순→진사, 갑진순→인묘, 갑인순→자축
+    const stemIdx: Record<string, number> = {
+      '갑': 0, '을': 1, '병': 2, '정': 3, '무': 4,
+      '기': 5, '경': 6, '신': 7, '임': 8, '계': 9
+    };
+    const branchIdx: Record<string, number> = {
+      '자': 0, '축': 1, '인': 2, '묘': 3, '진': 4, '사': 5,
+      '오': 6, '미': 7, '신': 8, '유': 9, '술': 10, '해': 11
+    };
+    const branchNames = ['자', '축', '인', '묘', '진', '사', '오', '미', '신', '유', '술', '해'];
+    const si = stemIdx[dayStem];
+    const bi = branchIdx[dayBranch];
+    if (si !== undefined && bi !== undefined) {
+      // 순의 시작점: 일간 인덱스만큼 지지에서 뒤로 가면 갑(甲)이 시작하는 지지
+      const startBranch = (bi - si + 12) % 12; // 순의 시작 지지 인덱스
+      // 공망은 순에 포함되지 않는 마지막 2개 지지
+      const gongMang1 = branchNames[(startBranch + 10) % 12];
+      const gongMang2 = branchNames[(startBranch + 11) % 12];
+      const gongMangInChart = allBranches.filter(b => b === gongMang1 || b === gongMang2);
+      if (gongMangInChart.length > 0) {
+        salList.push({
+          name: '공망',
+          description: '비어있는(空) 상태로 사라진다(亡)는 뜻입니다. 해당 지지의 기운이 무력화되어 헛수고가 될 수 있습니다.',
+          effect: '노력한 만큼 결과가 따라오지 않거나, 기대했던 일이 무산될 수 있습니다. 다만 수행이나 종교, 예술 분야에서는 오히려 좋은 작용을 하기도 해요.',
+          isPositive: false,
+          location: `일주(${dayStem}${dayBranch}) 기준 → 공망 지지: ${gongMang1}, ${gongMang2} (사주 내 ${gongMangInChart.join(', ')}에서 발견)`
+        });
+      }
+    }
+
     return salList;
   }
 
