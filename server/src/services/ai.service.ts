@@ -282,7 +282,7 @@ JSON 형식으로 답변:
     };
   }
 
-  // AI 기반 종합 해석
+  // AI 기반 종합 해석 (에이전틱 2단계 파이프라인)
   async generateAdvancedInterpretation(
     sajuAnalysis: SajuAnalysis,
     drawnCards: DrawnCard[],
@@ -298,394 +298,403 @@ JSON 형식으로 답변:
     personalizedAdvice: string;
     adviceCardInterpretation?: string;
   }> {
-    // 현재 날짜 컨텍스트
     const dateContext = DateHelper.getCurrentDateContext();
-    const timingInfo = DateHelper.getTimingDescription(dateContext);
     const seasonalElement = DateHelper.getSeasonalElement(dateContext.season);
+    const salList = (sajuAnalysis as any).sal as Array<{ name: string; description: string; effect: string; isPositive: boolean; location?: string }> | undefined;
 
-    // 이전 리딩 컨텍스트 문자열 생성
-    const previousContextText = previousContext && previousContext.length > 0
-      ? `\n[이전 타로 리딩 기록]
-이 사용자는 과거에 다음과 같은 고민을 하신 적이 있습니다:
-${previousContext.map((ctx, i) => `${i + 1}. [${ctx.date}] "${ctx.question}"
-   → ${ctx.summary}`).join('\n')}
+    console.log('🚀 에이전틱 파이프라인 시작 - Step 1: 컨텍스트 분석');
 
-이전 고민의 흐름과 연결성을 고려하여, 지금의 질문이 과거 고민의 연장선상에 있는지 또는 새로운 국면인지 파악해주세요.
-`
-      : '';
+    // ============ Step 1: AI가 컨텍스트를 분석하여 해석 계획 수립 ============
+    const analysisContext = await this.analyzeContext({
+      sajuAnalysis,
+      drawnCards,
+      spreadType,
+      question,
+      userName,
+      userMbti,
+      salList: salList || undefined,
+      previousContext,
+      dateContext,
+      seasonalElement
+    });
 
-    // 오행별 자연스러운 설명
-    const elementDescriptions: Record<string, string> = {
-      '목': '나무의 기운으로, 봄처럼 성장하고 뻗어나가는 에너지입니다. 목 기운이 강한 사람은 창의적이고 유연하며 발전을 추구합니다.',
-      '화': '불의 기운으로, 여름처럼 뜨겁고 활동적인 에너지입니다. 화 기운이 강한 사람은 열정적이고 적극적이며 밝은 성격을 지닙니다.',
-      '토': '흙의 기운으로, 계절의 전환기처럼 안정되고 중심을 잡는 에너지입니다. 토 기운이 강한 사람은 신뢰할 수 있고 포용력이 있으며 조화를 이룹니다.',
-      '금': '금속의 기운으로, 가을처럼 결실을 맺고 정리하는 에너지입니다. 금 기운이 강한 사람은 논리적이고 원칙을 중시하며 결단력이 있습니다.',
-      '수': '물의 기운으로, 겨울처럼 고요하고 깊이 있는 에너지입니다. 수 기운이 강한 사람은 유연하고 지혜로우며 투명하고 순수한 면이 있습니다.'
-    };
+    console.log('🚀 에이전틱 파이프라인 - Step 2: 분석 계획 기반 해석 생성');
 
+    // ============ Step 2: 분석 계획을 기반으로 구조화된 해석 생성 ============
+    try {
+      const result = await this.generateReading({
+        analysisContext,
+        sajuAnalysis,
+        drawnCards,
+        spreadType,
+        question,
+        userName,
+        userMbti,
+        salList: salList || undefined,
+        previousContext,
+        dateContext,
+        seasonalElement,
+        includeAdviceCard
+      });
+
+      console.log('✅ 에이전틱 파이프라인 완료');
+      return result;
+    } catch (step2Error) {
+      console.error('❌ Step 2 실패, 레거시 단일 프롬프트로 fallback:', step2Error);
+      return this.legacyGenerateInterpretation({
+        sajuAnalysis,
+        drawnCards,
+        spreadType,
+        question,
+        previousContext,
+        userName,
+        includeAdviceCard,
+        userMbti,
+        salList,
+        dateContext,
+        seasonalElement
+      });
+    }
+  }
+
+  // 레거시 단일 프롬프트 방식 (에이전틱 파이프라인 실패 시 fallback)
+  private async legacyGenerateInterpretation(params: {
+    sajuAnalysis: SajuAnalysis;
+    drawnCards: DrawnCard[];
+    spreadType: SpreadType;
+    question: string;
+    previousContext?: Array<{ date: string; question: string; summary: string }> | null;
+    userName?: string;
+    includeAdviceCard: boolean;
+    userMbti?: string | null;
+    salList?: Array<{ name: string; description: string; effect: string; isPositive: boolean }>;
+    dateContext: { month: number; season: string; jieqi: string };
+    seasonalElement: string;
+  }): Promise<{
+    interpretation: string;
+    elementalHarmony: string;
+    personalizedAdvice: string;
+    adviceCardInterpretation?: string;
+  }> {
+    const { sajuAnalysis, drawnCards, spreadType, question, previousContext, userName, includeAdviceCard, userMbti, salList, dateContext, seasonalElement } = params;
     const userElement = sajuAnalysis.dayMasterElement;
-    const elementDesc = elementDescriptions[userElement] || '';
-    const namePrefix = userName ? `${userName}님의 ` : '';
-
-    // MBTI 특성 설명
-    const mbtiDescriptions: Record<string, { traits: string; strengths: string; weaknesses: string; advice: string }> = {
-      'INTJ': {
-        traits: '전략적이고 독립적이며, 장기적인 비전을 가지고 목표를 향해 나아가는 타입',
-        strengths: '분석력, 계획력, 독립성, 결단력이 뛰어남',
-        weaknesses: '완벽주의 성향, 감정 표현 어려움, 타인 의견 무시 경향',
-        advice: '때로는 완벽하지 않아도 괜찮아요. 주변 사람들의 감정도 고려해보세요.'
-      },
-      'INTP': {
-        traits: '논리적이고 분석적이며, 지적 호기심이 강한 사색가 타입',
-        strengths: '논리적 사고, 창의성, 문제 해결 능력',
-        weaknesses: '우유부단함, 감정적 교류 어려움, 현실 감각 부족',
-        advice: '생각만 하지 말고 행동으로 옮겨보세요. 결정을 미루지 마세요.'
-      },
-      'ENTJ': {
-        traits: '카리스마 있고 결단력 있는 리더 타입, 목표 달성에 강한 의지',
-        strengths: '리더십, 전략적 사고, 효율성, 자신감',
-        weaknesses: '독단적, 감정 무시, 참을성 부족',
-        advice: '다른 사람의 속도도 존중해주세요. 때로는 천천히 가는 것도 방법이에요.'
-      },
-      'ENTP': {
-        traits: '재치 있고 창의적이며, 새로운 아이디어와 도전을 즐기는 발명가 타입',
-        strengths: '창의성, 적응력, 논쟁 능력, 문제 해결',
-        weaknesses: '산만함, 끈기 부족, 논쟁 과다',
-        advice: '시작한 일은 끝까지 마무리해보세요. 집중력을 기르는 것이 중요해요.'
-      },
-      'INFJ': {
-        traits: '통찰력 있고 이상주의적이며, 타인을 돕고자 하는 선의를 가진 타입',
-        strengths: '통찰력, 헌신성, 창의성, 공감 능력',
-        weaknesses: '완벽주의, 번아웃 경향, 비판에 민감',
-        advice: '자신을 위한 시간도 가지세요. 모든 사람을 구할 필요는 없어요.'
-      },
-      'INFP': {
-        traits: '이상주의적이고 감성적이며, 내면의 가치를 중시하는 중재자 타입',
-        strengths: '공감 능력, 창의성, 충성심, 진정성',
-        weaknesses: '현실 도피, 비판에 민감, 우유부단',
-        advice: '꿈도 중요하지만 현실적인 계획도 세워보세요. 비판을 성장의 기회로!'
-      },
-      'ENFJ': {
-        traits: '따뜻하고 카리스마 있으며, 타인의 성장을 돕는 것을 즐기는 리더 타입',
-        strengths: '리더십, 공감 능력, 소통 능력, 헌신성',
-        weaknesses: '타인 의존, 자기 희생 과다, 갈등 회피',
-        advice: '자신의 욕구도 중요해요. "아니오"라고 말하는 연습을 해보세요.'
-      },
-      'ENFP': {
-        traits: '열정적이고 창의적이며, 새로운 가능성을 탐색하는 활동가 타입',
-        strengths: '열정, 창의성, 사교성, 적응력',
-        weaknesses: '집중력 부족, 과도한 낙관, 현실 감각 부족',
-        advice: '한 가지에 집중해보세요. 계획을 세우고 실행하는 연습이 필요해요.'
-      },
-      'ISTJ': {
-        traits: '책임감 있고 신뢰할 수 있으며, 체계적이고 꼼꼼한 관리자 타입',
-        strengths: '신뢰성, 책임감, 체계성, 인내심',
-        weaknesses: '융통성 부족, 변화 거부, 감정 표현 어려움',
-        advice: '때로는 규칙을 벗어나도 괜찮아요. 새로운 방법도 시도해보세요.'
-      },
-      'ISFJ': {
-        traits: '헌신적이고 따뜻하며, 타인을 돌보는 것을 좋아하는 수호자 타입',
-        strengths: '헌신성, 신뢰성, 인내심, 세심함',
-        weaknesses: '자기 희생 과다, 변화 거부, 거절 어려움',
-        advice: '자신을 위한 시간을 가지세요. 도움을 요청하는 것도 괜찮아요.'
-      },
-      'ESTJ': {
-        traits: '체계적이고 실용적이며, 질서와 전통을 중시하는 관리자 타입',
-        strengths: '조직력, 신뢰성, 결단력, 리더십',
-        weaknesses: '융통성 부족, 감정 무시, 권위적',
-        advice: '다른 의견도 존중해주세요. 감정도 중요한 정보예요.'
-      },
-      'ESFJ': {
-        traits: '사교적이고 헌신적이며, 조화와 협력을 중시하는 사교가 타입',
-        strengths: '사교성, 헌신성, 협력, 실용성',
-        weaknesses: '인정 욕구, 비판에 민감, 갈등 회피',
-        advice: '모든 사람을 기쁘게 할 필요는 없어요. 자신의 의견도 중요해요.'
-      },
-      'ISTP': {
-        traits: '논리적이고 실용적이며, 문제 해결을 즐기는 장인 타입',
-        strengths: '분석력, 적응력, 실용성, 위기 대처 능력',
-        weaknesses: '감정 표현 어려움, 장기 계획 부족, 약속 어려움',
-        advice: '감정도 표현해보세요. 장기적인 목표도 세워보는 것이 좋아요.'
-      },
-      'ISFP': {
-        traits: '온화하고 감성적이며, 현재를 즐기는 예술가 타입',
-        strengths: '감수성, 유연성, 충성심, 심미안',
-        weaknesses: '자기 비하, 갈등 회피, 장기 계획 부족',
-        advice: '자신감을 가지세요. 갈등을 피하지 말고 건강하게 표현해보세요.'
-      },
-      'ESTP': {
-        traits: '에너지 넘치고 실용적이며, 행동과 모험을 즐기는 사업가 타입',
-        strengths: '적응력, 관찰력, 위기 대처, 사교성',
-        weaknesses: '충동적, 인내심 부족, 장기 계획 무시',
-        advice: '행동 전에 잠시 생각해보세요. 장기적인 결과도 고려하세요.'
-      },
-      'ESFP': {
-        traits: '활발하고 사교적이며, 순간을 즐기는 연예인 타입',
-        strengths: '사교성, 낙천성, 실용성, 적응력',
-        weaknesses: '산만함, 장기 계획 부족, 비판에 민감',
-        advice: '즐거움도 좋지만 미래 계획도 세워보세요. 진지한 대화도 필요해요.'
-      }
+    const elementDescriptions: Record<string, string> = {
+      '목': '나무처럼 성장하고 뻗어나가는',
+      '화': '불처럼 열정적이고 활동적인',
+      '토': '흙처럼 안정적이고 포용력 있는',
+      '금': '금속처럼 단단하고 원칙을 중시하는',
+      '수': '물처럼 유연하고 지혜로운'
     };
+    const elementNature = elementDescriptions[userElement] || '';
+    const mainCards = drawnCards.filter(dc => dc.positionMeaning !== '조언 카드');
+    const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
 
-    const mbtiInfo = userMbti && mbtiDescriptions[userMbti] ? mbtiDescriptions[userMbti] : null;
-    const mbtiSection = mbtiInfo ? `
-MBTI: ${userMbti}
-- 특성: ${mbtiInfo.traits}
-- 강점: ${mbtiInfo.strengths}
-- 주의점: ${mbtiInfo.weaknesses}
-` : '';
-
-    // 살(煞) 정보 생성
-    const salList = (sajuAnalysis as any).sal as Array<{ name: string; description: string; effect: string; isPositive: boolean }> | undefined;
     let salSection = '';
     if (salList && salList.length > 0) {
-      const gilSin = salList.filter(s => s.isPositive);
-      const hyungSal = salList.filter(s => !s.isPositive);
-      salSection = `\n[사주에서 발견된 신살(神煞) - 총 ${salList.length}개]`;
-      if (gilSin.length > 0) {
-        salSection += `\n★ 길신(吉神) ${gilSin.length}개:\n${gilSin.map(s => `- ${s.name}: ${s.effect}`).join('\n')}`;
-      }
-      if (hyungSal.length > 0) {
-        salSection += `\n☆ 흉살(凶煞) ${hyungSal.length}개:\n${hyungSal.map(s => `- ${s.name}: ${s.effect}`).join('\n')}`;
-      }
-      salSection += '\n';
+      salSection = `\n[신살] ${salList.map(s => `${s.name}(${s.isPositive ? '길' : '흉'}): ${s.effect}`).join(' / ')}`;
     }
 
-    const prompt = `
-동양 철학과 타로를 융합한 전문가로서 친근하게 해석해주세요.
+    const prompt = `동양 철학과 타로를 융합한 전문 상담사로서 해석해주세요.
 
-[사용자 정보]
-${userName ? `이름: ${userName}님` : ''}
-일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
-${namePrefix}일간은 ${elementDesc}
-강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}${mbtiSection}
-${salSection}${previousContextText}
+[사용자] ${userName ? userName + '님, ' : ''}일간 ${sajuAnalysis.dayMaster}(${userElement}) - ${elementNature} 성향
+강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
+${userMbti ? `MBTI: ${userMbti}` : ''}${salSection}
 
 [질문] "${question}"
 
-[뽑힌 타로 카드]
-${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => 
-  `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(${dc.isReversed ? '역' : '정'}) - ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}`
-).join('\n')}
-${drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? 
-  `\n조언: ${drawnCards.find(dc => dc.positionMeaning === '조언 카드')!.card.nameKo}(${drawnCards.find(dc => dc.positionMeaning === '조언 카드')!.isReversed ? '역' : '정'})` : ''}
+[카드 - ${spreadType}]
+${mainCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(${dc.isReversed ? '역' : '정'}) - ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}`).join('\n')}
+${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역' : '정'})` : ''}
 
-⚠️ 필수 규칙:
-1. 마크다운 절대 금지(*, **, #, -, > 등 일체 사용 금지)
-2. "---"로만 섹션 구분
-3. ${userName ? userName + '님' : '당신'}을 자연스럽게 호칭
-4. 오행 특성을 비유로 풀어서 설명 (예: "물의 기운처럼 유연하고 투명한 ${userName ? userName + '님의' : '당신의'} 성향이...")
-5. 카드가 역방향이거나 부정적인 의미를 담고 있다면 솔직하게 전달하세요
-6. 좋은 점만 말하지 말고, 주의해야 할 점이나 어려움도 함께 알려주세요
-7. 현실적이고 균형 잡힌 조언을 제공하세요${salList && salList.length > 0 ? `
-8. 신살(神煞) 분석을 타로 해석에 자연스럽게 녹여서 설명하세요. 모든 살을 나열하지 말고, 질문과 가장 관련 깊은 신살 2~4개를 골라 깊이 있게 연결하세요. "~살이 있으셔서 이런 상황을 겪으시는 것 같아요", "~살의 영향으로 ~한 경향이 있으시니 주의하세요" 같은 형태로 카드 해석과 연결하세요. 길신(천을귀인, 천덕귀인, 문창귀인 등)이 있다면 "다행히 ~귀인이 있으셔서 어려운 상황에서도 도움을 받으실 수 있어요" 같은 긍정적 메시지도 포함하세요. 나머지 신살은 결론이나 조언 부분에서 간략히 언급해도 됩니다.` : ''}${mbtiInfo ? `
-${salList && salList.length > 0 ? '9' : '8'}. MBTI 성격(${userMbti})을 반영하여 해석하세요. "${mbtiInfo.weaknesses}" 같은 ${userMbti} 특유의 약점이 현재 상황에서 어떻게 나타날 수 있는지 언급하고, 이를 어떻게 주의해야 하는지 조언해주세요.
-${salList && salList.length > 0 ? '10' : '9'}. 예를 들어 "${userName ? userName + '님' : '당신'}은 ${userMbti}이시니 ${mbtiInfo.weaknesses.split(',')[0]} 성향이 있어서 이런 상황에서 [구체적 행동]을 할 수 있는데, 그렇게 하지 않도록 조심하세요" 같은 형태로 MBTI 기반 조언을 포함하세요.` : ''}
+아래 JSON으로만 응답하세요. 마크다운 금지. ${userName ? `"${userName}님" 호칭.` : ''} 역방향 카드는 역방향 의미로만 해석. 솔직하게.
 
-⚠️ 카드 방향 해석 규칙 (매우 중요!):
-- 각 카드의 (역방향) 또는 (정방향) 표시를 반드시 확인하세요
-- 역방향 카드는 반드시 역방향의 의미로만 해석하세요 (정방향 의미 사용 금지)
-- 정방향 카드는 반드시 정방향의 의미로만 해석하세요
-- 역방향 카드가 나왔다면 "이 카드가 역방향으로 나왔기 때문에..."라고 명시하며 해석하세요
+{
+  "summary": "인사 + 핵심 결론 + 이유 (250~300자)",
+  "cardReadings": "각 카드 해석을 사주/신살과 연결 (카드당 250~350자)",
+  "elementalHarmony": "${dateContext.season}(${seasonalElement})과 ${userElement} 기운의 조화 (250자)",
+  "practiceAdvice": "카드별 실천 방법 + 오행 활용/보완법 (300자)"${includeAdviceCard && adviceCard ? `,
+  "adviceCardReading": "조언 카드 해석 (250자)"` : ''}
+}`;
 
-[질문에 대한 결론]
-⚠️ 이 섹션은 "핵심 요약"으로 표시됩니다. 아래 순서대로 작성하세요:
+    let response = '';
+    const cardCount = drawnCards.length;
+    let maxTokens = cardCount >= 6 ? 10000 : cardCount >= 4 ? 7000 : 5000;
+    if (includeAdviceCard) maxTokens += 1000;
 
-1. 친근한 인사: "${userName ? userName + '님' : '안녕하세요'}, 반가워요!" 또는 "오늘도 찾아주셨군요!"
-${previousContext && previousContext.length > 0 ? `2. 이전 질문 연결: "지난번에 '${previousContext[0]?.question || ''}'에 대해 물어보셨었죠? 그 고민의 연장선에서 오늘의 카드를 봐드릴게요."` : '2. (이전 질문 없으면 생략)'}
-3. 한 줄 결론: 카드들이 말하는 핵심 메시지를 한 문장으로! 
-   예: "결론적으로, 지금은 움직일 때가 아니에요" / "결론은 '가세요!'입니다" / "한마디로, 기다리면 좋은 소식이 와요"
-4. 간단한 이유: 왜 그런 결론인지 1-2문장으로 설명
+    if (this.gemini) {
+      response = await this.tryGeminiWithFallback(prompt, maxTokens);
+    } else if (this.claude) {
+      const message = await this.claude.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: maxTokens,
+        messages: [{ role: 'user', content: prompt }]
+      });
+      response = message.content[0].type === 'text' ? message.content[0].text : '';
+    } else {
+      throw new Error('AI 서비스를 사용할 수 없습니다.');
+    }
 
-⚠️ 결론 방향:
-- 역방향/부정 카드 많으면 → "결론적으로 지금은 피하세요", "한마디로 시기상조예요"
-- 정방향/긍정 카드 많으면 → "결론은 '진행하세요!'", "한마디로 좋은 기회예요"
-- 모호한 답변 금지! 타로는 점이니까 명확하게!
+    console.log(`📊 [Legacy] 카드 ${cardCount}장, 응답 길이: ${response.length}자`);
 
-형식 예시:
-"${userName ? userName + '님' : ''}! 반가워요~ ${previousContext && previousContext.length > 0 ? '지난번 고민 아직 마음에 남아있으시죠? ' : ''}오늘 카드를 보니, 결론적으로 [명확한 답]이에요. [1-2문장 이유]"
+    // JSON 파싱 시도
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const interpretation = parsed.summary && parsed.cardReadings
+          ? `${parsed.summary}\n\n===CARD_DETAILS===\n\n${parsed.cardReadings}`
+          : parsed.summary || parsed.cardReadings || response.substring(0, 500);
+        
+        return {
+          interpretation,
+          elementalHarmony: parsed.elementalHarmony || '오행의 흐름을 분석하고 있어요.',
+          personalizedAdvice: parsed.practiceAdvice || '실천 가능한 조언을 준비하고 있어요.',
+          ...(parsed.adviceCardReading ? { adviceCardInterpretation: parsed.adviceCardReading } : {})
+        };
+      } catch (e) {
+        console.warn('Legacy JSON 파싱 실패, regex fallback');
+      }
+    }
 
-(250~300자)
-
----
-
-[각 타로 카드의 상세 해석]
-${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
-  const cardElement = dc.card.element ? ` (오행: ${dc.card.element})` : '';
-  const currentMonth = dateContext.month;
-  const targetMonth = spreadType === 'six-months' ? ((currentMonth + i - 1) % 12) + 1 : null;
-  const monthLabel = targetMonth ? `${targetMonth}월` : '';
-  const directionText = dc.isReversed ? '⚠️ 역방향' : '정방향';
-  const directionWarning = dc.isReversed 
-    ? `\n   ⚠️ 이 카드는 역방향입니다! 반드시 역방향 의미("${dc.card.reversedMeaning}")로만 해석하세요.` 
-    : '';
-  return `${i + 1}. ${dc.positionMeaning}${monthLabel ? ` (${monthLabel})` : ''} - ${dc.card.nameKo}${cardElement} [${directionText}]:${directionWarning}
-   
-   [카드의 기본 의미 - ${dc.isReversed ? '역방향' : '정방향'}]
-   ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}
-   
-   [사주와의 연결]
-   ${userName ? userName + '님의' : '당신의'} 일간 ${sajuAnalysis.dayMaster}(${userElement})은 ${elementDesc.split('.')[0]}입니다.
-   이 ${dc.card.nameKo} 카드(${dc.isReversed ? '역방향' : '정방향'})${dc.card.element ? `의 ${dc.card.element} 기운` : ''}이 ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 만나 어떤 의미를 만드는지 자연스럽게 풀어서 설명해주세요.
-   ${dc.card.element && dc.card.element === userElement ? '같은 오행이므로 에너지가 증폭됩니다.' : ''}
-   ${dc.card.element && dc.card.element !== userElement ? `${dc.card.element}과 ${userElement}의 상생/상극 관계를 고려한 해석을 포함해주세요.` : ''}
-   
-   [현재 상황 해석]
-   이 카드가 ${dc.isReversed ? '역방향으로' : '정방향으로'} ${dc.positionMeaning} 위치에 나왔다는 것은, ${userName ? userName + '님의' : '당신의'} ${userElement} 성향 때문에 현재 어떤 상황이나 고민이 생겼는지 구체적으로 해석해주세요.${salList && salList.length > 0 ? ` 특히 사주에서 발견된 신살(${salList.map(s => s.name).join(', ')})과 이 카드의 의미를 연결하여, "~살이 있으셔서 이런 상황을 겪으시는 것 같아요" 같은 형태로 자연스럽게 설명해주세요.` : ''} (각 카드당 250-350자)`
-}).join('\n\n')}
-
-[전체 카드의 흐름과 사주 조화]
-위에 나온 모든 카드들이 ${userName ? userName + '님의' : '당신의'} 사주(강한 오행: ${sajuAnalysis.strongElements.join(', ')}, 약한 오행: ${sajuAnalysis.weakElements.join(', ')})와 어떻게 조화를 이루거나 충돌하는지, 그리고 이것이 현재 질문과 어떻게 연결되는지 종합적으로 설명 (300자)
-${(() => {
-  // 스프레드별 특화 섹션
-  switch(spreadType) {
-    case 'six-months':
-      return `\n\n[향후 6개월 흐름의 핵심 포인트]\n현재 ${dateContext.month}월부터 시작하여 향후 6개월 동안 ${userName ? userName + '님' : '당신'}이 경험하게 될 변화의 흐름을 요약해주세요. 특히 언제쯤 중요한 전환점이 찾아올지, 어느 시기가 가장 유리한지 구체적으로 알려주세요 (250자)`;
-    case 'celtic-cross':
-      return `\n\n[켈틱 크로스 종합 분석]
-10장의 카드가 보여주는 전체 그림을 종합해주세요:
-1. 현재 상황(1번)과 장애물(2번)의 관계: 무엇이 ${userName ? userName + '님을' : '당신을'} 막고 있는지
-2. 의식(3번)과 무의식(4번)의 갈등: 표면적 목표와 내면의 진짜 욕구 차이
-3. 과거(5번)에서 가까운 미래(6번)로의 흐름: 어떤 변화가 예상되는지
-4. 자신(7번)과 외부(8번)의 상호작용: 주변 환경이 어떻게 영향을 주는지
-5. 희망과 두려움(9번)이 최종 결과(10번)에 미치는 영향
-${userName ? userName + '님의' : '당신의'} 사주 특성과 연결하여 가장 주의해야 할 점과 활용해야 할 기회를 명확히 제시 (400자)`;
-    case 'saju-custom':
-      return `\n\n[오행별 에너지 균형 분석]
-5장의 카드가 각각 목(木), 화(火), 토(土), 금(金), 수(水) 위치에 배치되었습니다.
-${userName ? userName + '님의' : '당신의'} 사주에서 강한 오행(${sajuAnalysis.strongElements.join(', ')})과 약한 오행(${sajuAnalysis.weakElements.join(', ')})을 고려하여:
-1. 강한 오행 위치의 카드: 이미 가진 에너지를 어떻게 활용할지
-2. 약한 오행 위치의 카드: 부족한 에너지를 어떻게 보완할지
-3. 오행 간 상생/상극 관계: 카드들이 서로 어떻게 영향을 주고받는지
-전체적인 오행 균형 상태와 조화를 이루기 위한 방향 제시 (350자)`;
-    case 'problem-solution':
-      return `\n\n[문제와 해결책의 연결]
-첫 번째 카드(문제의 원인)와 두 번째 카드(해결책)가 어떻게 연결되는지 분석해주세요.
-${userName ? userName + '님의' : '당신의'} ${userElement} 성향이 문제 발생에 어떤 영향을 미쳤는지, 그리고 해결책 카드가 제시하는 방향이 ${userName ? userName + '님의' : '당신의'} 사주와 어떻게 조화를 이룰 수 있는지 구체적으로 설명 (250자)`;
-    case 'two-card':
-      return `\n\n[두 선택지 비교 분석]
-선택지 A와 선택지 B를 ${userName ? userName + '님의' : '당신의'} 사주 특성과 연결하여 비교해주세요:
-1. 어느 쪽이 ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 더 잘 맞는지
-2. 각 선택의 장단점을 솔직하게
-3. 최종적으로 어느 쪽을 추천하는지 명확하게 (200자)`;
-    case 'yes-no':
-      return `\n\n[예/아니오 판단]
-이 카드가 ${userName ? userName + '님의' : '당신의'} 질문에 대해 "예" 또는 "아니오" 중 어느 쪽을 가리키는지 명확하게 답해주세요.
-카드의 정/역방향, 카드 자체의 에너지, 그리고 ${userName ? userName + '님의' : '당신의'} 사주와의 조화를 고려하여 판단 근거도 함께 설명 (150자)`;
-    default:
-      return '';
+    // 최종 fallback: 텍스트 기반 파싱
+    return this.parseAIResponse(response);
   }
-})()}
 
----
+  // ============================================================
+  // 에이전틱 파이프라인: Step 1 - 컨텍스트 분석
+  // AI가 질문+사주+신살+카드를 분석하여 해석 계획을 수립
+  // ============================================================
+  private async analyzeContext(params: {
+    sajuAnalysis: SajuAnalysis;
+    drawnCards: DrawnCard[];
+    spreadType: SpreadType;
+    question: string;
+    userName?: string;
+    userMbti?: string | null;
+    salList?: Array<{ name: string; description: string; effect: string; isPositive: boolean; location?: string }>;
+    previousContext?: Array<{ date: string; question: string; summary: string }> | null;
+    dateContext: { month: number; season: string; jieqi: string };
+    seasonalElement: string;
+  }): Promise<{
+    keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
+    elementInterplay: string;
+    readingTone: string;
+    cardConnections: Array<{ card: string; sajuLink: string; salLink: string }>;
+    overallDirection: string;
+    mbtiInsight: string;
+  }> {
+    const { sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement } = params;
 
-[오행의 흐름과 현재 시기]
-지금은 ${dateContext.season}, ${dateContext.jieqi} 시기로 ${seasonalElement} 기운이 강합니다.
-${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 현재 계절의 기운, 그리고 뽑힌 카드들이 어떻게 서로 영향을 주는지 자연스럽게 설명해주세요. 
-마치 ${userElement === '수' ? '물이 흐르듯' : userElement === '목' ? '나무가 자라듯' : userElement === '화' ? '불이 타오르듯' : userElement === '토' ? '흙이 품듯' : '금속이 단단해지듯'} ${userName ? userName + '님의' : '당신의'} 에너지가 현재 어떤 상태인지 비유적으로 표현 (250자)
+    const prompt = `당신은 사주명리학과 타로를 융합하는 전문 분석가입니다.
+아래 데이터를 분석하여, 이 사용자에게 가장 적합한 해석 전략을 수립하세요.
+직접 해석하지 말고, "어떻게 해석할 것인가"에 대한 분석 계획만 세우세요.
 
----
+[사용자 사주]
+일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
+강한 오행: ${sajuAnalysis.strongElements.join(', ')}
+약한 오행: ${sajuAnalysis.weakElements.join(', ')}
+성격: ${sajuAnalysis.personality}
+${userMbti ? `MBTI: ${userMbti}` : ''}
 
-[카드별 실천 메시지]
-각 카드에서 얻은 메시지를 바탕으로 ${userName ? userName + '님' : '당신'}이 실제로 행동할 수 있는 구체적인 실천 방법을 카드별로 정리해주세요:
-${drawnCards.filter(dc => dc.positionMeaning !== '조언 카드').map((dc, i) => {
-  const currentMonth = dateContext.month;
-  const targetMonth = spreadType === 'six-months' ? ((currentMonth + i - 1) % 12) + 1 : null;
-  const monthLabel = targetMonth ? ` (${targetMonth}월)` : '';
-  return `${i + 1}. ${dc.card.nameKo}${monthLabel}: 이 카드의 에너지를 활용한 구체적인 실천 방법 1-2가지 (50-80자)`;
-}).join('\n')}
+${salList && salList.length > 0 ? `[발견된 신살 ${salList.length}개]
+${salList.map(s => `- ${s.name}(${s.isPositive ? '길신' : '흉살'}): ${s.effect}`).join('\n')}` : '[신살 없음]'}
 
----
+[질문] "${question}"
+${previousContext && previousContext.length > 0 ? `\n[이전 질문 이력]\n${previousContext.map(c => `- ${c.date}: "${c.question}"`).join('\n')}` : ''}
 
-[종합 실천 조언]
-${dateContext.month}월 현재, ${userName ? userName + '님' : '당신'}이 가진 강한 ${sajuAnalysis.strongElements.join(', ')} 기운을 어떻게 활용하고, 약한 ${sajuAnalysis.weakElements.join(', ')} 기운을 어떻게 보완할지 구체적인 방법을 제시해주세요.
-예를 들어 "수 기운이 약하다면 물처럼 유연한 사고를 기르기 위해..."처럼 오행의 특성을 자연스럽게 연결 (250자)
-${includeAdviceCard && drawnCards.find(dc => dc.positionMeaning === '조언 카드') ? `
----
+[뽑힌 카드 - ${spreadType}]
+${drawnCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(${dc.isReversed ? '역방향' : '정방향'}) - ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}${dc.card.element ? ` [${dc.card.element}]` : ''}`).join('\n')}
 
-[조언 카드의 특별한 메시지]
-${(() => {
-  const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드')!;
-  const adviceCardElement = adviceCard.card.element ? ` (오행: ${adviceCard.card.element})` : '';
-  return `조언 카드: ${adviceCard.card.nameKo}${adviceCardElement} ${adviceCard.isReversed ? '(역방향)' : '(정방향)'}
+[현재 시기] ${dateContext.month}월, ${dateContext.season}, ${dateContext.jieqi}, 계절 기운: ${seasonalElement}
 
-[카드의 기본 의미]
-${adviceCard.isReversed ? adviceCard.card.reversedMeaning : adviceCard.card.uprightMeaning}
+다음 JSON 형식으로만 응답하세요:
+{
+  "keySals": [
+    {"name": "이 질문과 가장 관련 깊은 신살 이름", "reason": "왜 이 신살이 이 질문에 중요한지", "isPositive": true}
+  ],
+  "elementInterplay": "사용자의 오행과 카드들의 오행이 어떤 상생/상극 관계를 만드는지 핵심 분석",
+  "readingTone": "이 리딩의 전체 톤 (예: 긍정적이나 주의 필요, 경고성, 희망적 등) 과 그 이유",
+  "cardConnections": [
+    {"card": "카드이름", "sajuLink": "이 카드가 사주의 어떤 요소와 연결되는지", "salLink": "이 카드가 어떤 신살과 연결되는지 (없으면 빈 문자열)"}
+  ],
+  "overallDirection": "이 리딩이 전달해야 할 핵심 메시지 방향 (한 문장)",
+  "mbtiInsight": "${userMbti ? `${userMbti} 성격이 이 상황에서 어떤 함정에 빠질 수 있고 어떤 강점을 활용할 수 있는지` : '해당없음'}"
+}
 
-[사주와 연결된 조언]
-${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 이 조언 카드${adviceCard.card.element ? `의 ${adviceCard.card.element} 기운` : ''}이 만나, 앞으로 어떻게 행동해야 가장 좋은 결과를 얻을 수 있는지 구체적이고 실천 가능한 조언을 제시해주세요.
-${adviceCard.card.element ? `특히 ${adviceCard.card.element} 기운을 어떻게 활용하면 좋을지 포함` : ''}해주세요. (300자)`;
-})()}` : ''}
-${mbtiInfo ? `
----
-
-[MBTI 성격 기반 특별 조언]
-${userName ? userName + '님' : '당신'}은 ${userMbti} 타입이시네요!
-
-${userMbti}의 특성: ${mbtiInfo.traits}
-
-⚠️ ${userMbti}가 현재 상황에서 주의해야 할 점:
-${userName ? userName + '님' : '당신'}은 ${userMbti}이시니 "${mbtiInfo.weaknesses}" 같은 성향이 있어요. 
-이번 질문("${question}")과 관련하여, ${userMbti} 타입이 빠지기 쉬운 함정이나 주의해야 할 행동 패턴을 구체적으로 설명하고, "이런 상황에서 [구체적인 행동]을 하지 않도록 조심하세요"라는 형태로 조언해주세요.
-
-💪 ${userMbti}의 강점 활용법:
-${mbtiInfo.strengths}를 가진 ${userName ? userName + '님' : '당신'}이 이 상황에서 강점을 어떻게 활용할 수 있는지 구체적으로 조언해주세요.
-
-🎯 ${userMbti}를 위한 맞춤 조언:
-${mbtiInfo.advice}를 바탕으로, 현재 질문 상황에 맞는 구체적이고 실천 가능한 조언을 제시해주세요. (250자)
-` : ''}
-`;
+중요: keySals는 질문과 관련 깊은 것만 2~4개 선정하세요. 신살이 없으면 빈 배열로 두세요.
+cardConnections는 주요 카드 2~3장만 분석하세요.`;
 
     try {
-      let response: string;
+      let response = '';
+      if (this.gemini) {
+        response = await this.tryGeminiWithFallback(prompt, 2048);
+      } else if (this.claude) {
+        const message = await this.claude.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 2048,
+          messages: [{ role: 'user', content: prompt }]
+        });
+        response = message.content[0].type === 'text' ? message.content[0].text : '';
+      }
 
-      // 스프레드 타입과 카드 수에 따라 max_tokens 동적 조절
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('✅ Step 1 컨텍스트 분석 완료:', {
+          keySals: parsed.keySals?.length || 0,
+          tone: parsed.readingTone?.substring(0, 50),
+          direction: parsed.overallDirection?.substring(0, 50)
+        });
+        return parsed;
+      }
+      throw new Error('Step 1 JSON 파싱 실패');
+    } catch (error) {
+      console.warn('⚠️ Step 1 분석 실패, 기본 분석 계획 사용:', error);
+      // Fallback: 규칙 기반 기본 분석 계획
+      return {
+        keySals: (salList || []).slice(0, 3).map(s => ({
+          name: s.name,
+          reason: s.effect,
+          isPositive: s.isPositive
+        })),
+        elementInterplay: `${sajuAnalysis.dayMasterElement} 기운이 중심이며, 강한 ${sajuAnalysis.strongElements.join('/')}과 약한 ${sajuAnalysis.weakElements.join('/')}의 균형이 핵심`,
+        readingTone: '균형 잡힌 해석',
+        cardConnections: drawnCards.slice(0, 3).map(dc => ({
+          card: dc.card.nameKo,
+          sajuLink: `${sajuAnalysis.dayMasterElement} 기운과의 관계`,
+          salLink: ''
+        })),
+        overallDirection: '현재 상황을 직시하고 균형 잡힌 방향을 찾으세요',
+        mbtiInsight: userMbti ? `${userMbti} 성격 특성을 고려한 조언` : '해당없음'
+      };
+    }
+  }
+
+  // ============================================================
+  // 에이전틱 파이프라인: Step 2 - 해석 생성
+  // Step 1의 분석 계획을 기반으로 구조화된 해석을 생성
+  // ============================================================
+  private async generateReading(params: {
+    analysisContext: {
+      keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
+      elementInterplay: string;
+      readingTone: string;
+      cardConnections: Array<{ card: string; sajuLink: string; salLink: string }>;
+      overallDirection: string;
+      mbtiInsight: string;
+    };
+    sajuAnalysis: SajuAnalysis;
+    drawnCards: DrawnCard[];
+    spreadType: SpreadType;
+    question: string;
+    userName?: string;
+    userMbti?: string | null;
+    salList?: Array<{ name: string; description: string; effect: string; isPositive: boolean }>;
+    previousContext?: Array<{ date: string; question: string; summary: string }> | null;
+    dateContext: { month: number; season: string; jieqi: string };
+    seasonalElement: string;
+    includeAdviceCard: boolean;
+  }): Promise<{
+    interpretation: string;
+    elementalHarmony: string;
+    personalizedAdvice: string;
+    adviceCardInterpretation?: string;
+  }> {
+    const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard } = params;
+
+    const userElement = sajuAnalysis.dayMasterElement;
+    const elementDescriptions: Record<string, string> = {
+      '목': '나무처럼 성장하고 뻗어나가는',
+      '화': '불처럼 열정적이고 활동적인',
+      '토': '흙처럼 안정적이고 포용력 있는',
+      '금': '금속처럼 단단하고 원칙을 중시하는',
+      '수': '물처럼 유연하고 지혜로운'
+    };
+    const elementNature = elementDescriptions[userElement] || '';
+
+    // 분석 계획에서 핵심 신살 정보 구성
+    const keySalSection = analysisContext.keySals.length > 0
+      ? `\n[이 질문에 핵심적인 신살]\n${analysisContext.keySals.map(s => `- ${s.name}(${s.isPositive ? '길신' : '흉살'}): ${s.reason}`).join('\n')}`
+      : '';
+
+    // 카드-사주 연결 정보 구성
+    const cardConnectionSection = analysisContext.cardConnections.map(c =>
+      `- ${c.card}: 사주연결=${c.sajuLink}${c.salLink ? `, 신살연결=${c.salLink}` : ''}`
+    ).join('\n');
+
+    const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
+    const mainCards = drawnCards.filter(dc => dc.positionMeaning !== '조언 카드');
+
+    const prompt = `당신은 동양 철학과 타로를 융합한 전문 상담사입니다.
+아래의 "분석 계획"에 따라 해석을 생성하세요. 분석 계획은 사전에 수립된 것이므로 이를 충실히 따르세요.
+
+[분석 계획]
+해석 방향: ${analysisContext.overallDirection}
+전체 톤: ${analysisContext.readingTone}
+오행 상호작용: ${analysisContext.elementInterplay}
+${analysisContext.mbtiInsight !== '해당없음' ? `MBTI 인사이트: ${analysisContext.mbtiInsight}` : ''}
+${keySalSection}
+
+[카드-사주 연결 분석]
+${cardConnectionSection}
+
+[사용자 정보]
+${userName ? `이름: ${userName}님` : ''}
+일간: ${sajuAnalysis.dayMaster}(${userElement}) - ${elementNature} 성향
+강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
+${userMbti ? `MBTI: ${userMbti}` : ''}
+${previousContext && previousContext.length > 0 ? `이전 질문: "${previousContext[0].question}" (${previousContext[0].date})` : ''}
+
+[질문] "${question}"
+
+[뽑힌 카드 - ${spreadType}]
+${mainCards.map((dc, i) => {
+  const targetMonth = spreadType === 'six-months' ? ((dateContext.month + i - 1) % 12) + 1 : null;
+  return `${i + 1}. ${dc.positionMeaning}${targetMonth ? ` (${targetMonth}월)` : ''}: ${dc.card.nameKo}(${dc.isReversed ? '역방향' : '정방향'}) - ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}${dc.card.element ? ` [${dc.card.element}]` : ''}`;
+}).join('\n')}
+${adviceCard ? `조언 카드: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역방향' : '정방향'}) - ${adviceCard.isReversed ? adviceCard.card.reversedMeaning : adviceCard.card.uprightMeaning}` : ''}
+
+[현재 시기] ${dateContext.month}월, ${dateContext.season}, ${dateContext.jieqi}, 계절 기운: ${seasonalElement}
+
+아래 JSON 형식으로만 응답하세요. 각 필드의 내용은 마크다운 없이 순수 텍스트로 작성하세요.
+${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"당신"이라고 호칭하세요.'}
+오행 특성은 자연 비유로 풀어서 설명하세요 (예: "${userElement} 기운이 ${elementNature} 에너지로...").
+역방향 카드는 반드시 역방향 의미로만 해석하세요.
+좋은 점만 말하지 말고 주의점과 어려움도 솔직하게 전달하세요.
+
+{
+  "summary": "${userName ? userName + '님' : ''}에게 전하는 인사 + 핵심 결론 한 문장 + 간단한 이유 (250~300자). ${previousContext && previousContext.length > 0 ? `이전 질문 '${previousContext[0].question}'과의 연결도 언급.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게!",
+  "cardReadings": "${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})`).join(', ')} 각 카드를 사주/신살과 연결하여 해석 (카드당 250~350자). 분석 계획의 카드-사주 연결을 활용하세요. 핵심 신살은 자연스럽게 녹여서 설명하세요.",
+  "elementalHarmony": "현재 ${dateContext.season}(${seasonalElement} 기운)과 사용자의 ${userElement} 기운, 카드들의 오행이 어떻게 조화/충돌하는지 (250자). 분석 계획의 오행 상호작용을 바탕으로 서술.",
+  "practiceAdvice": "카드별 구체적 실천 방법 + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (300자)"${includeAdviceCard && adviceCard ? `,
+  "adviceCardReading": "조언 카드 ${adviceCard.card.nameKo}의 메시지를 사주와 연결하여 구체적 실천 조언 (250자)"` : ''}${userMbti ? `,
+  "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법 (200자)"` : ''}
+}`;
+
+    try {
+      let response = '';
       const cardCount = drawnCards.length;
       let maxTokens: number;
       
       switch(spreadType) {
-        case 'celtic-cross':
-          maxTokens = 14000; // 10장 + 종합 분석
-          break;
-        case 'six-months':
-          maxTokens = 12000; // 6장 + 월별 흐름
-          break;
-        case 'saju-custom':
-          maxTokens = 10000; // 5장 + 오행 분석
-          break;
+        case 'celtic-cross': maxTokens = 10000; break;
+        case 'six-months': maxTokens = 8000; break;
+        case 'saju-custom': maxTokens = 7000; break;
         case 'three-card':
         case 'problem-solution':
-        case 'two-card':
-          maxTokens = 6000; // 2-3장
-          break;
+        case 'two-card': maxTokens = 5000; break;
         case 'one-card':
-        case 'yes-no':
-          maxTokens = 4000; // 1장
-          break;
-        default:
-          maxTokens = cardCount >= 6 ? 12000 : cardCount >= 4 ? 8000 : 6000;
+        case 'yes-no': maxTokens = 3500; break;
+        default: maxTokens = cardCount >= 6 ? 8000 : cardCount >= 4 ? 6000 : 5000;
       }
-      
-      // 조언 카드 포함 시 추가 토큰
-      if (includeAdviceCard) {
-        maxTokens += 1500;
-      }
-      
-      // MBTI 포함 시 추가 토큰
-      if (userMbti) {
-        maxTokens += 1000;
-      }
-      
-      // 신살(煞) 포함 시 추가 토큰 (살 개수에 비례)
-      if (salList && salList.length > 0) {
-        maxTokens += Math.min(salList.length * 150, 2000);
-      }
-      
+      if (includeAdviceCard) maxTokens += 1000;
+      if (userMbti) maxTokens += 800;
+      if (analysisContext.keySals.length > 0) maxTokens += Math.min(analysisContext.keySals.length * 300, 1500);
+
       if (this.gemini) {
         response = await this.tryGeminiWithFallback(prompt, maxTokens);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
-          // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
           model: 'claude-sonnet-4-5-20250929',
           max_tokens: maxTokens,
           messages: [{ role: 'user', content: prompt }]
@@ -694,28 +703,49 @@ ${mbtiInfo.advice}를 바탕으로, 현재 질문 상황에 맞는 구체적이�
       } else {
         throw new Error('AI 서비스를 사용할 수 없습니다.');
       }
-      
-      console.log(`📊 카드 ${cardCount}장, max_tokens: ${maxTokens}, 응답 길이: ${response.length}자`);
 
-      // 디버깅: AI 응답 전체 로깅
-      console.log('=== AI 응답 전체 ===');
-      console.log(response);
-      console.log('=== AI 응답 끝 ===');
+      console.log(`📊 Step 2 해석 생성 완료 - 카드 ${cardCount}장, max_tokens: ${maxTokens}, 응답 길이: ${response.length}자`);
 
-      // 응답 파싱
-      const parsed = this.parseAIResponse(response);
-      
-      // 디버깅: 파싱 결과 로깅
-      console.log('=== 파싱 결과 ===');
-      console.log('interpretation 길이:', parsed.interpretation.length);
-      console.log('elementalHarmony 길이:', parsed.elementalHarmony.length);
-      console.log('personalizedAdvice 길이:', parsed.personalizedAdvice.length);
-      console.log('=== 파싱 끝 ===');
-      
-      return parsed;
+      // JSON 파싱
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Step 2 JSON 파싱 실패');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      // 구조화된 JSON → 기존 반환 형식으로 변환
+      const interpretation = parsed.summary && parsed.cardReadings
+        ? `${parsed.summary}\n\n===CARD_DETAILS===\n\n${parsed.cardReadings}`
+        : parsed.summary || parsed.cardReadings || response.substring(0, 500);
+
+      const personalizedAdviceParts = [parsed.practiceAdvice];
+      if (parsed.mbtiAdvice) personalizedAdviceParts.push(parsed.mbtiAdvice);
+
+      const result: {
+        interpretation: string;
+        elementalHarmony: string;
+        personalizedAdvice: string;
+        adviceCardInterpretation?: string;
+      } = {
+        interpretation,
+        elementalHarmony: parsed.elementalHarmony || '오행의 흐름을 분석하고 있어요.',
+        personalizedAdvice: personalizedAdviceParts.filter(Boolean).join('\n\n') || '실천 가능한 조언을 준비하고 있어요.'
+      };
+
+      if (parsed.adviceCardReading) {
+        result.adviceCardInterpretation = parsed.adviceCardReading;
+      }
+
+      console.log('✅ Step 2 파싱 완료:', {
+        interpretationLen: result.interpretation.length,
+        harmonyLen: result.elementalHarmony.length,
+        adviceLen: result.personalizedAdvice.length,
+        hasAdviceCard: !!result.adviceCardInterpretation
+      });
+
+      return result;
     } catch (error) {
-      console.error('AI 해석 생성 오류:', error);
-      throw new Error('AI 해석을 생성하는 중 오류가 발생했습니다.');
+      console.error('❌ Step 2 해석 생성 실패:', error);
+      throw error;
     }
   }
 
