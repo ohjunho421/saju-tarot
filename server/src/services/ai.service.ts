@@ -524,12 +524,13 @@ ${drawnCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(
 }
 
 중요: keySals는 질문과 관련 깊은 것만 2~4개 선정하세요. 신살이 없으면 빈 배열로 두세요.
-cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림 상징을 반드시 포함하세요.`;
+cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림 상징을 반드시 포함하세요.
+반드시 위의 JSON 형식으로만 응답하세요. 다른 텍스트를 포함하지 마세요.`;
 
     try {
       let response = '';
       if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 2048);
+        response = await this.tryGeminiWithFallback(prompt, 2048, { jsonMode: true, minLength: 300 });
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-5-20250929',
@@ -539,17 +540,30 @@ cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림
         response = message.content[0].type === 'text' ? message.content[0].text : '';
       }
 
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log('✅ Step 1 컨텍스트 분석 완료:', {
-          keySals: parsed.keySals?.length || 0,
-          tone: parsed.readingTone?.substring(0, 50),
-          direction: parsed.overallDirection?.substring(0, 50)
-        });
-        return parsed;
+      // JSON 모드를 사용하므로 직접 파싱 시도, 실패 시 regex fallback
+      let parsed: any;
+      try {
+        parsed = JSON.parse(response);
+      } catch {
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('Step 1 JSON 파싱 실패');
+        }
       }
-      throw new Error('Step 1 JSON 파싱 실패');
+
+      // 필수 필드 검증
+      if (!parsed.readingTone || !parsed.overallDirection) {
+        throw new Error('Step 1 응답에 필수 필드 누락');
+      }
+
+      console.log('✅ Step 1 컨텍스트 분석 완료:', {
+        keySals: parsed.keySals?.length || 0,
+        tone: parsed.readingTone?.substring(0, 50),
+        direction: parsed.overallDirection?.substring(0, 50)
+      });
+      return parsed;
     } catch (error) {
       console.warn('⚠️ Step 1 분석 실패, 기본 분석 계획 사용:', error);
       // Fallback: 규칙 기반 기본 분석 계획
@@ -763,27 +777,38 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
   }
 
   // Gemini 모델 fallback 로직
-  private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024): Promise<string> {
+  private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024, options?: { jsonMode?: boolean; minLength?: number }): Promise<string> {
     if (!this.gemini) {
       throw new Error('Gemini API가 초기화되지 않았습니다.');
+    }
+
+    const generationConfig: Record<string, unknown> = { maxOutputTokens: maxTokens };
+    if (options?.jsonMode) {
+      generationConfig.responseMimeType = 'application/json';
     }
 
     for (const modelName of this.geminiModels) {
       try {
         console.log(`🤖 Gemini 모델 시도: ${modelName}`);
-        const model = this.gemini.getGenerativeModel({ 
+        const model = this.gemini.getGenerativeModel({
           model: modelName,
-          generationConfig: { maxOutputTokens: maxTokens }
+          generationConfig: generationConfig as any
         });
         const result = await model.generateContent(prompt);
-        
+
         // 응답 검증
         const responseText = result.response.text();
         if (!responseText || responseText.trim() === '') {
           console.warn(`⚠️ ${modelName}: 빈 응답 반환됨, 다음 모델 시도...`);
-          continue; // 빈 응답이면 다음 모델 시도
+          continue;
         }
-        
+
+        // 최소 길이 검증 (JSON 모드에서 너무 짧은 응답은 불완전)
+        if (options?.minLength && responseText.length < options.minLength) {
+          console.warn(`⚠️ ${modelName}: 응답이 너무 짧음 (${responseText.length}자 < ${options.minLength}자), 다음 모델 시도...`);
+          continue;
+        }
+
         console.log(`✅ ${modelName} 성공 (응답 길이: ${responseText.length}자)`);
         return responseText;
       } catch (error: any) {
