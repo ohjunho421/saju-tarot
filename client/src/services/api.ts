@@ -97,18 +97,20 @@ export const aiApi = {
   },
 
   getAIReading: async (
-    question: string, 
-    spreadType: SpreadType, 
+    question: string,
+    spreadType: SpreadType,
     sajuAnalysis?: SajuAnalysis,
     selectedCards?: { cardIndex: number; isReversed: boolean }[],
-    includeAdviceCard?: boolean
+    includeAdviceCard?: boolean,
+    partnerBirthInfo?: BirthInfo
   ): Promise<IntegratedReading> => {
     const response = await api.post<ApiResponse<IntegratedReading>>('/ai/ai-reading', {
       question,
       spreadType,
-      sajuAnalysis,  // 사주 분석 정보 전달
-      selectedCards, // { cardIndex, isReversed }[] 형태로 전달
+      sajuAnalysis,
+      selectedCards,
       includeAdviceCard,
+      partnerBirthInfo,  // 상대방 생년월일 (없으면 전송 안 됨)
     });
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || 'AI 해석에 실패했습니다.');

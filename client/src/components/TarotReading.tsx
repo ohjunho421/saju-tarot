@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import type { SpreadType } from '../types';
-import { Sparkles, Wand2, Loader2 } from 'lucide-react';
+import type { SpreadType, BirthInfo } from '../types';
+import { Sparkles, Wand2, Loader2, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { aiApi } from '../services/api';
 
 interface TarotReadingProps {
-  onComplete: (spreadType: SpreadType, question?: string, includeAdviceCard?: boolean) => void;
+  onComplete: (spreadType: SpreadType, question?: string, includeAdviceCard?: boolean, partnerBirthInfo?: BirthInfo) => void;
 }
 
 export default function TarotReading({ onComplete }: TarotReadingProps) {
@@ -17,6 +17,26 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
     reason: string;
   } | null>(null);
   const [analyzingQuestion, setAnalyzingQuestion] = useState(false);
+
+  // 상대방 정보 입력 상태
+  const [showPartnerInfo, setShowPartnerInfo] = useState(false);
+  const [partnerBirthInfo, setPartnerBirthInfo] = useState<{
+    year: string;
+    month: string;
+    day: string;
+    hour: string;
+    hourUnknown: boolean;
+    gender: 'male' | 'female';
+    isLunar: boolean;
+  }>({
+    year: '',
+    month: '',
+    day: '',
+    hour: '',
+    hourUnknown: false,
+    gender: 'female',
+    isLunar: false,
+  });
 
   const spreads = [
     {
@@ -48,6 +68,12 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
       name: '사주 맞춤형',
       description: '오행별 카드 배치',
       cards: 5
+    },
+    {
+      type: 'compatibility' as SpreadType,
+      name: '궁합 리딩',
+      description: '두 사람의 에너지와 관계 흐름',
+      cards: 4
     }
   ];
 
@@ -71,9 +97,32 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
     }
   };
 
+  // 상대방 정보가 유효한지 확인 (최소: 년, 월, 일 입력)
+  const isPartnerInfoValid = () => {
+    if (!showPartnerInfo) return false;
+    const y = parseInt(partnerBirthInfo.year);
+    const m = parseInt(partnerBirthInfo.month);
+    const d = parseInt(partnerBirthInfo.day);
+    return y >= 1900 && y <= 2099 && m >= 1 && m <= 12 && d >= 1 && d <= 31;
+  };
+
+  // BirthInfo 객체로 변환
+  const buildPartnerBirthInfo = (): BirthInfo | undefined => {
+    if (!isPartnerInfoValid()) return undefined;
+    return {
+      year: parseInt(partnerBirthInfo.year),
+      month: parseInt(partnerBirthInfo.month),
+      day: parseInt(partnerBirthInfo.day),
+      hour: partnerBirthInfo.hourUnknown ? undefined : (partnerBirthInfo.hour ? parseInt(partnerBirthInfo.hour) : undefined),
+      isLunar: partnerBirthInfo.isLunar,
+      gender: partnerBirthInfo.gender,
+    };
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onComplete(selectedSpread, question || undefined, includeAdviceCard);
+    const partnerInfo = buildPartnerBirthInfo();
+    onComplete(selectedSpread, question || undefined, includeAdviceCard, partnerInfo);
   };
 
   return (
@@ -112,10 +161,174 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
             <p className="text-xs text-white/50 mt-2">
               * 구체적인 질문일수록 더 명확한 답을 얻을 수 있습니다
             </p>
-            
+          </div>
+
+          {/* 상대방 정보 입력 (질문 바로 아래) */}
+          <div className="border border-white/20 rounded-xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowPartnerInfo(!showPartnerInfo)}
+              className="w-full flex items-center justify-between px-5 py-4 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Heart className="w-5 h-5 text-pink-400" />
+                <div className="text-left">
+                  <span className="font-semibold">상대방 정보 입력</span>
+                  <span className="text-sm text-white/50 ml-2">(선택사항)</span>
+                  {isPartnerInfoValid() && (
+                    <span className="ml-2 text-xs text-pink-400">✓ 입력됨</span>
+                  )}
+                </div>
+              </div>
+              {showPartnerInfo ? (
+                <ChevronUp className="w-5 h-5 text-white/50" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-white/50" />
+              )}
+            </button>
+
+            {showPartnerInfo && (
+              <div className="p-5 bg-white/5 space-y-4 border-t border-white/10">
+                <p className="text-sm text-white/60">
+                  상대방의 생년월일을 입력하면 사주 궁합을 분석해 해석에 반영합니다.
+                </p>
+
+                {/* 음력/양력 선택 */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPartnerBirthInfo(p => ({ ...p, isLunar: false }))}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      !partnerBirthInfo.isLunar
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white/10 text-white/60 hover:bg-white/15'
+                    }`}
+                  >
+                    양력
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPartnerBirthInfo(p => ({ ...p, isLunar: true }))}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      partnerBirthInfo.isLunar
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white/10 text-white/60 hover:bg-white/15'
+                    }`}
+                  >
+                    음력
+                  </button>
+                </div>
+
+                {/* 생년월일 */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-white/60 mb-1">년도</label>
+                    <input
+                      type="number"
+                      value={partnerBirthInfo.year}
+                      onChange={(e) => setPartnerBirthInfo(p => ({ ...p, year: e.target.value }))}
+                      placeholder="예: 1995"
+                      min={1900}
+                      max={2099}
+                      className="input-field text-sm py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/60 mb-1">월</label>
+                    <input
+                      type="number"
+                      value={partnerBirthInfo.month}
+                      onChange={(e) => setPartnerBirthInfo(p => ({ ...p, month: e.target.value }))}
+                      placeholder="1~12"
+                      min={1}
+                      max={12}
+                      className="input-field text-sm py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-white/60 mb-1">일</label>
+                    <input
+                      type="number"
+                      value={partnerBirthInfo.day}
+                      onChange={(e) => setPartnerBirthInfo(p => ({ ...p, day: e.target.value }))}
+                      placeholder="1~31"
+                      min={1}
+                      max={31}
+                      className="input-field text-sm py-2"
+                    />
+                  </div>
+                </div>
+
+                {/* 시간 입력 */}
+                <div>
+                  <label className="block text-xs text-white/60 mb-2">태어난 시간</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={partnerBirthInfo.hourUnknown ? '' : partnerBirthInfo.hour}
+                      onChange={(e) => setPartnerBirthInfo(p => ({ ...p, hour: e.target.value, hourUnknown: false }))}
+                      placeholder="0~23 (24시간)"
+                      min={0}
+                      max={23}
+                      disabled={partnerBirthInfo.hourUnknown}
+                      className={`input-field text-sm py-2 flex-1 ${partnerBirthInfo.hourUnknown ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    />
+                    <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={partnerBirthInfo.hourUnknown}
+                        onChange={(e) => setPartnerBirthInfo(p => ({ ...p, hourUnknown: e.target.checked, hour: '' }))}
+                        className="w-4 h-4 rounded border-white/30 bg-white/10 text-primary-500 focus:ring-primary-500"
+                      />
+                      <span className="text-sm text-white/70">모름</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* 성별 */}
+                <div>
+                  <label className="block text-xs text-white/60 mb-2">성별</label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPartnerBirthInfo(p => ({ ...p, gender: 'male' }))}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        partnerBirthInfo.gender === 'male'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white/10 text-white/60 hover:bg-white/15'
+                      }`}
+                    >
+                      남성
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPartnerBirthInfo(p => ({ ...p, gender: 'female' }))}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        partnerBirthInfo.gender === 'female'
+                          ? 'bg-pink-600 text-white'
+                          : 'bg-white/10 text-white/60 hover:bg-white/15'
+                      }`}
+                    >
+                      여성
+                    </button>
+                  </div>
+                </div>
+
+                {isPartnerInfoValid() && (
+                  <div className="flex items-center gap-2 text-sm text-pink-400 bg-pink-400/10 rounded-lg px-3 py-2">
+                    <Heart className="w-4 h-4" />
+                    <span>상대방 정보가 입력되었습니다. 궁합 분석이 포함됩니다.</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* AI 스프레드 추천 */}
+          <div>
             {/* AI 스프레드 추천 후킹 영역 - 항상 눈에 띄게 표시 */}
             {localStorage.getItem('token') && (
-              <div className="mt-4 p-4 bg-gradient-to-r from-primary-900/50 via-mystical-purple/30 to-primary-900/50 border-2 border-mystical-gold/50 rounded-xl">
+              <div className="p-4 bg-gradient-to-r from-primary-900/50 via-mystical-purple/30 to-primary-900/50 border-2 border-mystical-gold/50 rounded-xl">
                 <div className="text-center mb-3">
                   <span className="inline-flex items-center gap-2 text-mystical-gold font-bold text-lg">
                     <Sparkles className="w-5 h-5 animate-pulse" />
@@ -256,6 +469,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
           )}
           {selectedSpread === 'saju-custom' && (
             <p>사주의 오행(목화토금수)에 맞춰 특별히 고안된 스프레드입니다. 각 오행의 기운이 현재 어떻게 작용하고 있는지 확인합니다.</p>
+          )}
+          {selectedSpread === 'compatibility' && (
+            <p>두 사람의 에너지와 관계를 네 장의 카드로 분석합니다. 나의 기운, 상대방의 기운, 두 사람의 관계, 앞으로의 흐름을 살펴봅니다. 상대방 정보를 입력하면 사주 궁합도 함께 분석됩니다.</p>
           )}
         </div>
       </div>

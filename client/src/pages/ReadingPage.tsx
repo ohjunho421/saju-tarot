@@ -18,6 +18,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [selectedSpread, setSelectedSpread] = useState<SpreadType | null>(null);
   const [question, setQuestion] = useState<string>('');
   const [includeAdviceCard, setIncludeAdviceCard] = useState<boolean>(false);
+  const [partnerBirthInfo, setPartnerBirthInfo] = useState<BirthInfo | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,14 +69,15 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     setStep('tarot');
   };
 
-  const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean) => {
-    console.log('🎴 handleTarotComplete 호출:', { spreadType, userQuestion, includeAdvice });
-    
+  const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean, partnerInfo?: BirthInfo) => {
+    console.log('🎴 handleTarotComplete 호출:', { spreadType, userQuestion, includeAdvice, hasPartner: !!partnerInfo });
+
     // State를 먼저 모두 설정한 후 다음 렌더링에서 step 변경
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
     setIncludeAdviceCard(includeAdvice || false);
-    
+    setPartnerBirthInfo(partnerInfo);
+
     // setTimeout을 사용하여 state 업데이트 후 step 전환 보장
     setTimeout(() => {
       console.log('📍 cardSelection 단계로 전환');
@@ -96,11 +98,12 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       
       // 사주 분석과 조언 카드 포함 여부를 함께 전달 (역방향 정보 포함)
       const reading = await aiApi.getAIReading(
-        question, 
-        selectedSpread, 
+        question,
+        selectedSpread,
         sajuAnalysis,  // 사주 분석 정보 전달
         selectedCards, // { cardIndex, isReversed }[] 형태로 전달
-        includeAdviceCard  // 조언 카드 포함 여부
+        includeAdviceCard,  // 조언 카드 포함 여부
+        partnerBirthInfo   // 상대방 생년월일 (없으면 undefined)
       );
       
       // 결과 표시

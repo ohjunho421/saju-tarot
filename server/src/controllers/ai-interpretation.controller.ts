@@ -42,13 +42,14 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    const { question, spreadType, includeAdviceCard, cardPositions, selectedCards, sajuAnalysis: clientSajuAnalysis }: {
+    const { question, spreadType, includeAdviceCard, cardPositions, selectedCards, sajuAnalysis: clientSajuAnalysis, partnerBirthInfo }: {
       question: string;
       spreadType: SpreadType;
       includeAdviceCard?: boolean;
       cardPositions?: number[]; // 하위 호환성 유지
       selectedCards?: { cardIndex: number; isReversed: boolean }[]; // 새로운 형식
       sajuAnalysis?: any;
+      partnerBirthInfo?: any; // 상대방 생년월일 (궁합용)
     } = req.body;
 
     if (!spreadType) {
@@ -108,6 +109,19 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       }
     }
 
+    // 상대방 사주 분석 (partnerBirthInfo가 있는 경우)
+    let partnerSajuData: any = null;
+    if (partnerBirthInfo) {
+      try {
+        const { SajuService } = require('../services/saju.service');
+        const sajuSvc = new SajuService();
+        partnerSajuData = sajuSvc.analyzeSaju(partnerBirthInfo);
+        console.log('✅ 상대방 사주 분석 완료:', partnerSajuData.dayMaster, partnerSajuData.dayMasterElement);
+      } catch (e) {
+        console.error('상대방 사주 분석 오류:', e);
+      }
+    }
+
     // AI 기반 종합 해석 (사주 정보 + 타로 카드 복합 해석)
     const aiInterpretation = await aiService.generateAdvancedInterpretation(
       sajuData as any,
@@ -117,7 +131,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       previousContext,
       user.name || undefined,
       includeAdviceCard || false,  // 조언 카드 포함 여부
-      user.mbti || undefined  // MBTI 성격 유형
+      user.mbti || undefined,  // MBTI 성격 유형
+      partnerSajuData  // 상대방 사주 (없으면 null)
     );
 
     // 리딩 결과 저장
@@ -143,7 +158,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
         drawnCards,
         spreadType,
         question,
-        ...aiInterpretation
+        ...aiInterpretation,
+        ...(partnerSajuData ? { partnerSajuAnalysis: partnerSajuData } : {})
       }
     });
   } catch (error) {

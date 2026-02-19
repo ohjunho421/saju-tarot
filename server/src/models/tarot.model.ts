@@ -33,7 +33,7 @@ export interface DrawnCard {
   positionMeaning: string;
 }
 
-export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution';
+export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility';
 
 export interface TarotReading {
   id: string;
@@ -65,7 +65,8 @@ export const SPREAD_POSITIONS: Record<SpreadType, string[]> = {
   'saju-custom': ['목(木) 기운', '화(火) 기운', '토(土) 기운', '금(金) 기운', '수(水) 기운'],
   'six-months': ['이번 달', '다음 달', '2개월 후', '3개월 후', '4개월 후', '5개월 후'],
   'yes-no': ['답변'],  // 간단한 예/아니오 질문용
-  'problem-solution': ['문제의 원인', '해결책']  // 문제-해결 구조
+  'problem-solution': ['문제의 원인', '해결책'],  // 문제-해결 구조
+  'compatibility': ['나의 기운', '상대방의 기운', '두 사람의 관계', '앞으로의 흐름']  // 궁합 전용
 };
 
 // 스프레드 설명 (AI 추천 시 사용)
@@ -109,5 +110,10 @@ export const SPREAD_DESCRIPTIONS: Record<SpreadType, { name: string; description
     name: '문제-해결',
     description: '두 장으로 문제의 원인과 해결책 제시',
     bestFor: '현재 어려움의 원인 파악, 구체적 해결 방안'
+  },
+  'compatibility': {
+    name: '궁합 리딩',
+    description: '네 장으로 두 사람의 에너지와 관계 흐름 분석',
+    bestFor: '연인/배우자 궁합, 이성 관계 탐색, 두 사람의 미래'
   }
 };

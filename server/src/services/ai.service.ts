@@ -102,6 +102,7 @@ export class AIService {
 - **saju-custom**: 오행 에너지 분석
 - **six-months**: 향후 6개월 월별 흐름 (**시기 질문에 필수**)
 - **celtic-cross**: 복잡한 상황 종합 분석
+- **compatibility**: 두 사람의 궁합 분석 (**궁합, 잘 맞는지, 우리 사이, 상대방과 등 관계 질문에 필수**)
 
 JSON 형식으로 답변:
 {
@@ -152,6 +153,18 @@ JSON 형식으로 답변:
     reason: string;
   } {
     const lowerQ = question.toLowerCase();
+
+    // 0-1. 궁합 관련 질문 (compatibility) - 최우선 체크
+    const compatibilityKeywords = ['궁합', '잘 맞', '잘맞', '어울리', '맞는지', '우리 사이', '우리사이', '그 사람과', '이 사람과', '상대방과', '연인과', '남친과', '여친과', '남자친구와', '여자친구와', '배우자와', '우리 둘'];
+    const isCompatibilityQuestion = compatibilityKeywords.some(keyword => lowerQ.includes(keyword));
+
+    if (isCompatibilityQuestion) {
+      return {
+        analysis: '두 사람의 관계와 궁합을 알고 싶은 질문입니다.',
+        recommendedSpread: 'compatibility',
+        reason: '두 사람의 에너지를 각각 살펴보고, 관계의 흐름과 앞으로의 방향을 함께 분석하는 궁합 리딩을 추천합니다.'
+      };
+    }
 
     // 0. "언제" 시기 질문 (six-months) - 최우선 체크
     const timingQuestionKeywords = ['언제', '몇월', '몇 월', '몇달', '몇 달', '시기', '때가'];
@@ -291,12 +304,14 @@ JSON 형식으로 답변:
     previousContext?: Array<{ date: string; question: string; summary: string }> | null,
     userName?: string,
     includeAdviceCard: boolean = false,
-    userMbti?: string | null
+    userMbti?: string | null,
+    partnerSajuAnalysis?: SajuAnalysis | null
   ): Promise<{
     interpretation: string;
     elementalHarmony: string;
     personalizedAdvice: string;
     adviceCardInterpretation?: string;
+    compatibilityReading?: string;
   }> {
     const dateContext = DateHelper.getCurrentDateContext();
     const seasonalElement = DateHelper.getSeasonalElement(dateContext.season);
@@ -315,7 +330,8 @@ JSON 형식으로 답변:
       salList: salList || undefined,
       previousContext,
       dateContext,
-      seasonalElement
+      seasonalElement,
+      partnerSajuAnalysis: partnerSajuAnalysis || undefined
     });
 
     console.log('🚀 에이전틱 파이프라인 - Step 2: 분석 계획 기반 해석 생성');
@@ -334,7 +350,8 @@ JSON 형식으로 답변:
         previousContext,
         dateContext,
         seasonalElement,
-        includeAdviceCard
+        includeAdviceCard,
+        partnerSajuAnalysis: partnerSajuAnalysis || undefined
       });
 
       console.log('✅ 에이전틱 파이프라인 완료');
@@ -352,7 +369,8 @@ JSON 형식으로 답변:
         userMbti,
         salList,
         dateContext,
-        seasonalElement
+        seasonalElement,
+        partnerSajuAnalysis: partnerSajuAnalysis || undefined
       });
     }
   }
@@ -477,6 +495,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     previousContext?: Array<{ date: string; question: string; summary: string }> | null;
     dateContext: { month: number; season: string; jieqi: string };
     seasonalElement: string;
+    partnerSajuAnalysis?: SajuAnalysis;
   }): Promise<{
     keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
     elementInterplay: string;
@@ -484,8 +503,24 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     cardConnections: Array<{ card: string; symbolism: string; sajuLink: string; salLink: string }>;
     overallDirection: string;
     mbtiInsight: string;
+    compatibilityInsight?: string;
   }> {
-    const { sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement } = params;
+    const { sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, partnerSajuAnalysis } = params;
+
+    // 궁합 분석 섹션 (상대방 정보가 있을 때)
+    const partnerSection = partnerSajuAnalysis ? `
+[상대방 사주]
+일간: ${partnerSajuAnalysis.dayMaster}(${partnerSajuAnalysis.dayMasterElement})
+강한 오행: ${partnerSajuAnalysis.strongElements.join(', ')}
+약한 오행: ${partnerSajuAnalysis.weakElements.join(', ')}
+성격: ${partnerSajuAnalysis.personality}
+신살: ${((partnerSajuAnalysis as any).sal || []).map((s: any) => `${s.name}(${s.isPositive ? '길신' : '흉살'})`).join(', ') || '없음'}
+
+[사전 궁합 분석]
+오행 관계: 나(${sajuAnalysis.dayMasterElement}) vs 상대(${partnerSajuAnalysis.dayMasterElement}) - ${this.analyzeElementRelation(sajuAnalysis.dayMasterElement, partnerSajuAnalysis.dayMasterElement)}
+일간 합: ${this.analyzeStemRelation(sajuAnalysis.chart.day.heavenlyStem, partnerSajuAnalysis.chart.day.heavenlyStem)}
+일지 충: ${this.analyzeBranchConflict(sajuAnalysis.chart.day.earthlyBranch, partnerSajuAnalysis.chart.day.earthlyBranch)}
+공통 신살: ${this.analyzeSharedSals((sajuAnalysis as any).sal || [], (partnerSajuAnalysis as any).sal || [])}` : '';
 
     const prompt = `당신은 사주명리학과 타로를 융합하는 전문 분석가입니다.
 아래 데이터를 분석하여, 이 사용자에게 가장 적합한 해석 전략을 수립하세요.
@@ -500,6 +535,7 @@ ${userMbti ? `MBTI: ${userMbti}` : ''}
 
 ${salList && salList.length > 0 ? `[발견된 신살 ${salList.length}개]
 ${salList.map(s => `- ${s.name}(${s.isPositive ? '길신' : '흉살'}): ${s.effect}`).join('\n')}` : '[신살 없음]'}
+${partnerSection}
 
 [질문] "${question}"
 ${previousContext && previousContext.length > 0 ? `\n[이전 질문 이력]\n${previousContext.map(c => `- ${c.date}: "${c.question}"`).join('\n')}` : ''}
@@ -520,7 +556,8 @@ ${drawnCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(
     {"card": "카드이름", "symbolism": "이 카드의 그림에 그려진 핵심 상징과 그 의미 (예: 달빛, 탑, 천사, 물 등)", "sajuLink": "이 카드가 사주의 어떤 요소와 자연스럽게 연결되는지 (억지 연결 금지, 없으면 빈 문자열)", "salLink": "이 카드가 어떤 신살과 연결되는지 (없으면 빈 문자열)"}
   ],
   "overallDirection": "이 리딩이 전달해야 할 핵심 메시지 방향 (한 문장)",
-  "mbtiInsight": "${userMbti ? `${userMbti} 성격이 이 상황에서 어떤 함정에 빠질 수 있고 어떤 강점을 활용할 수 있는지` : '해당없음'}"
+  "mbtiInsight": "${userMbti ? `${userMbti} 성격이 이 상황에서 어떤 함정에 빠질 수 있고 어떤 강점을 활용할 수 있는지` : '해당없음'}"${partnerSajuAnalysis ? `,
+  "compatibilityInsight": "두 사람의 오행/일주/신살을 종합한 궁합의 핵심 방향 (한 문장): 어떤 점이 잘 맞고 어떤 점이 충돌하는지"` : ''}
 }
 
 중요: keySals는 질문과 관련 깊은 것만 2~4개 선정하세요. 신살이 없으면 빈 배열로 두세요.
@@ -599,6 +636,7 @@ cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림
       cardConnections: Array<{ card: string; symbolism: string; sajuLink: string; salLink: string }>;
       overallDirection: string;
       mbtiInsight: string;
+      compatibilityInsight?: string;
     };
     sajuAnalysis: SajuAnalysis;
     drawnCards: DrawnCard[];
@@ -611,13 +649,15 @@ cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림
     dateContext: { month: number; season: string; jieqi: string };
     seasonalElement: string;
     includeAdviceCard: boolean;
+    partnerSajuAnalysis?: SajuAnalysis;
   }): Promise<{
     interpretation: string;
     elementalHarmony: string;
     personalizedAdvice: string;
     adviceCardInterpretation?: string;
+    compatibilityReading?: string;
   }> {
-    const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard } = params;
+    const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard, partnerSajuAnalysis } = params;
 
     const userElement = sajuAnalysis.dayMasterElement;
     const elementDescriptions: Record<string, string> = {
@@ -695,18 +735,20 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
   "elementalHarmony": "현재 ${dateContext.season}(${seasonalElement} 기운)과 사용자의 ${userElement} 기운, 카드들의 오행이 어떻게 조화/충돌하는지 자연 비유로 설명 (250자).",
   "practiceAdvice": "카드별 구체적 실천 방법을 각각 줄바꿈으로 구분하여 작성 + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (350자)"${includeAdviceCard && adviceCard ? `,
   "adviceCardReading": "조언 카드 ${adviceCard.card.nameKo}의 그림/상징을 먼저 설명하고, 그 메시지가 현재 상황에서 어떤 실천 조언이 되는지 서술 (250자)"` : ''}${userMbti ? `,
-  "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법 (200자)"` : ''}
+  "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법 (200자)"` : ''}${partnerSajuAnalysis ? `,
+  "compatibilityReading": "두 사람의 궁합 심층 분석 (400~500자):\\n\\n오행 관계: 나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 상생/상극 관계와 그 의미\\n\\n신살 교차: 두 사람의 신살이 관계에 미치는 영향 (분석 계획의 compatibilityInsight 반영)\\n\\n타로 카드 연결: 뽑힌 카드들이 두 사람의 관계에서 어떤 메시지를 전하는지\\n\\n총평: 이 관계의 강점과 주의점, 앞으로를 위한 조언. 각 항목 사이에 줄바꿈(\\\\n\\\\n)으로 구분"` : ''}
 }`;
 
     try {
       let response = '';
       const cardCount = drawnCards.length;
       let maxTokens: number;
-      
+
       switch(spreadType) {
         case 'celtic-cross': maxTokens = 10000; break;
         case 'six-months': maxTokens = 8000; break;
         case 'saju-custom': maxTokens = 7000; break;
+        case 'compatibility': maxTokens = 6000; break;
         case 'three-card':
         case 'problem-solution':
         case 'two-card': maxTokens = 5000; break;
@@ -716,6 +758,7 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
       }
       if (includeAdviceCard) maxTokens += 1000;
       if (userMbti) maxTokens += 800;
+      if (partnerSajuAnalysis) maxTokens += 1500;
       if (analysisContext.keySals.length > 0) maxTokens += Math.min(analysisContext.keySals.length * 300, 1500);
 
       if (this.gemini) {
@@ -752,6 +795,7 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
         elementalHarmony: string;
         personalizedAdvice: string;
         adviceCardInterpretation?: string;
+        compatibilityReading?: string;
       } = {
         interpretation,
         elementalHarmony: parsed.elementalHarmony || '오행의 흐름을 분석하고 있어요.',
@@ -760,6 +804,10 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
 
       if (parsed.adviceCardReading) {
         result.adviceCardInterpretation = parsed.adviceCardReading;
+      }
+
+      if (parsed.compatibilityReading) {
+        result.compatibilityReading = parsed.compatibilityReading;
       }
 
       console.log('✅ Step 2 파싱 완료:', {
@@ -837,6 +885,72 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
     }
     
     throw new Error('모든 Gemini 모델의 할당량이 소진되었습니다. 잠시 후 다시 시도해주세요.');
+  }
+
+  // ============================================================
+  // 궁합 분석 헬퍼 메서드들
+  // ============================================================
+
+  // 두 오행 간 상생/상극 관계 분석
+  private analyzeElementRelation(myElement: string, partnerElement: string): string {
+    const generates: Record<string, string> = { 목: '화', 화: '토', 토: '금', 금: '수', 수: '목' };
+    const controls: Record<string, string> = { 목: '토', 토: '수', 수: '화', 화: '금', 금: '목' };
+
+    if (generates[myElement] === partnerElement) return `상생 관계 (내가 상대를 도움 - ${myElement}생${partnerElement})`;
+    if (generates[partnerElement] === myElement) return `상생 관계 (상대가 나를 도움 - ${partnerElement}생${myElement})`;
+    if (controls[myElement] === partnerElement) return `상극 관계 (내가 상대를 제압 - ${myElement}극${partnerElement})`;
+    if (controls[partnerElement] === myElement) return `상극 관계 (상대가 나를 제압 - ${partnerElement}극${myElement})`;
+    if (myElement === partnerElement) return `비화 관계 (같은 오행 - 서로 경쟁하거나 돕는 동반자)`;
+    return `중립 관계`;
+  }
+
+  // 천간합 분석
+  private analyzeStemRelation(myStem: string, partnerStem: string): string {
+    const heavenlyPairs: [string, string, string][] = [
+      ['갑', '기', '토 기운으로 합화'],
+      ['을', '경', '금 기운으로 합화'],
+      ['병', '신', '수 기운으로 합화'],
+      ['정', '임', '목 기운으로 합화'],
+      ['무', '계', '화 기운으로 합화']
+    ];
+    for (const [a, b, result] of heavenlyPairs) {
+      if ((myStem === a && partnerStem === b) || (myStem === b && partnerStem === a)) {
+        return `천간합 (${a}${b}합 - ${result}, 강한 인연)`;
+      }
+    }
+    return '합 없음';
+  }
+
+  // 지지충 분석
+  private analyzeBranchConflict(myBranch: string, partnerBranch: string): string {
+    const conflictPairs: [string, string][] = [
+      ['자', '오'], ['축', '미'], ['인', '신'],
+      ['묘', '유'], ['진', '술'], ['사', '해']
+    ];
+    for (const [a, b] of conflictPairs) {
+      if ((myBranch === a && partnerBranch === b) || (myBranch === b && partnerBranch === a)) {
+        return `${a}${b}충 - 갈등과 긴장이 있지만 강한 에너지 교환`;
+      }
+    }
+    return '충 없음';
+  }
+
+  // 공통 신살 분석
+  private analyzeSharedSals(mySals: any[], partnerSals: any[]): string {
+    const myNames = new Set(mySals.map((s: any) => s.name));
+    const partnerNames = new Set(partnerSals.map((s: any) => s.name));
+    const shared = [...myNames].filter(name => partnerNames.has(name));
+
+    const relationSals: Record<string, string> = {
+      '도화살': '서로에게 강한 이성적 매력, 바람기 주의',
+      '역마살': '함께 이동/변화가 많은 관계',
+      '천을귀인': '서로가 서로에게 귀인',
+      '원진살': '끌리면서도 상처 주는 관계',
+      '화개살': '영적/예술적으로 깊이 통하는 관계'
+    };
+
+    if (shared.length === 0) return '공통 신살 없음';
+    return shared.map(name => `${name}(${relationSals[name] || '공통 에너지'})`).join(', ');
   }
 
   // AI 응답 파싱

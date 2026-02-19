@@ -18,7 +18,8 @@ const SPREAD_CARD_COUNTS: Record<SpreadType, number> = {
   'celtic-cross': 10,
   'saju-custom': 5,
   'yes-no': 1,
-  'problem-solution': 2
+  'problem-solution': 2,
+  'compatibility': 4
 };
 
 const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
@@ -29,7 +30,8 @@ const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
   'celtic-cross': '당신의 인생 전체를 아우르는 복잡한 상황을 떠올리며 열 장을 선택하세요.',
   'saju-custom': '당신의 사주와 오행을 생각하며 다섯 장의 카드를 선택하세요.',
   'yes-no': '마음속 질문을 떠올리며 직관적으로 한 장의 카드를 선택하세요.',
-  'problem-solution': '현재 직면한 문제를 떠올리며 두 장의 카드를 선택하세요.'
+  'problem-solution': '현재 직면한 문제를 떠올리며 두 장의 카드를 선택하세요.',
+  'compatibility': '두 사람의 에너지와 인연을 떠올리며 네 장의 카드를 차례로 선택하세요.'
 };
 
 // 조언 카드 안내 메시지
@@ -82,6 +84,12 @@ const POSITION_GUIDANCE: Record<SpreadType, string[]> = {
   'problem-solution': [
     '🔍 문제의 원인 - 현재 어려움의 근본 원인을 떠올리며 카드를 선택하세요',
     '💡 해결책 - 이 상황을 해결할 방법을 구하며 카드를 선택하세요'
+  ],
+  'compatibility': [
+    '🌟 나의 기운 - 지금 이 관계에서 내가 가진 에너지와 마음을 느끼며 카드를 선택하세요',
+    '💫 상대방의 기운 - 상대방이 이 관계에서 가진 에너지와 마음을 떠올리며 카드를 선택하세요',
+    '💑 두 사람의 관계 - 우리 사이에 흐르는 에너지와 연결을 느끼며 카드를 선택하세요',
+    '🔮 앞으로의 흐름 - 이 관계가 나아갈 방향과 미래를 상상하며 카드를 선택하세요'
   ]
 };
 
@@ -133,6 +141,12 @@ const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
   'problem-solution': [
     { x: -100, y: 0 },   // 문제의 원인
     { x: 100, y: 0 }     // 해결책
+  ],
+  'compatibility': [
+    { x: -150, y: -60 }, // 나의 기운 (왼쪽 위)
+    { x: 150, y: -60 },  // 상대방의 기운 (오른쪽 위)
+    { x: 0, y: 60 },     // 두 사람의 관계 (중앙 아래)
+    { x: 0, y: -120 }    // 앞으로의 흐름 (중앙 위)
   ]
 };
 
