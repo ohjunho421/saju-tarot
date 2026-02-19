@@ -551,24 +551,26 @@ ${drawnCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(
 
 [현재 시기] ${dateContext.month}월, ${dateContext.season}, ${dateContext.jieqi}, 계절 기운: ${seasonalElement}
 
-다음 JSON 형식으로만 응답하세요:
+다음 JSON 형식으로만 응답하세요. 모든 문자열 값에 큰따옴표나 특수문자를 사용하지 마세요:
 {
   "keySals": [
-    {"name": "이 질문과 가장 관련 깊은 신살 이름", "reason": "왜 이 신살이 이 질문에 중요한지", "isPositive": true}
+    {"name": "신살이름", "reason": "이 질문에 중요한 이유 한 문장", "isPositive": true}
   ],
-  "elementInterplay": "사용자의 오행과 카드들의 오행이 어떤 상생/상극 관계를 만드는지 핵심 분석",
-  "readingTone": "이 리딩의 전체 톤 (예: 긍정적이나 주의 필요, 경고성, 희망적 등) 과 그 이유",
+  "elementInterplay": "오행 상생상극 관계 분석 한두 문장",
+  "readingTone": "리딩 전체 톤과 이유 한 문장",
   "cardConnections": [
-    {"card": "카드이름", "symbolism": "이 카드의 그림에 그려진 핵심 상징과 그 의미 (예: 달빛, 탑, 천사, 물 등)", "sajuLink": "이 카드가 사주의 어떤 요소와 자연스럽게 연결되는지 (억지 연결 금지, 없으면 빈 문자열)", "salLink": "이 카드가 어떤 신살과 연결되는지 (없으면 빈 문자열)"}
+    {"card": "카드이름", "symbolism": "카드 그림의 핵심 상징 묘사", "sajuLink": "사주와의 연결점 또는 빈 문자열", "salLink": "연결되는 신살 또는 빈 문자열"}
   ],
-  "overallDirection": "이 리딩이 전달해야 할 핵심 메시지 방향 (한 문장)",
-  "mbtiInsight": "${userMbti ? `${userMbti} 성격이 이 상황에서 어떤 함정에 빠질 수 있고 어떤 강점을 활용할 수 있는지` : '해당없음'}"${partnerSajuAnalysis ? `,
-  "compatibilityInsight": "두 사람의 오행/일주/신살을 종합한 궁합의 핵심 방향 (한 문장): 어떤 점이 잘 맞고 어떤 점이 충돌하는지"` : ''}
+  "overallDirection": "핵심 메시지 방향 한 문장",
+  "mbtiInsight": "${userMbti ? `${userMbti} 성격의 함정과 강점` : '해당없음'}"${partnerSajuAnalysis ? `,
+  "compatibilityInsight": "두 사람 궁합의 핵심 방향 한 문장"` : ''}
 }
 
-중요: keySals는 질문과 관련 깊은 것만 2~4개 선정하세요. 신살이 없으면 빈 배열로 두세요.
-cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림 상징을 반드시 포함하세요.
-반드시 위의 JSON 형식으로만 응답하세요. 다른 텍스트를 포함하지 마세요.`;
+규칙:
+- keySals: 질문과 관련 깊은 것만 2~4개. 신살 없으면 빈 배열
+- cardConnections: 주요 카드 2~3장만
+- 모든 문자열 값 안에 큰따옴표 사용 금지
+- JSON 외 다른 텍스트 출력 금지`;
 
     try {
       let response = '';
@@ -583,16 +585,21 @@ cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림
         response = message.content[0].type === 'text' ? message.content[0].text : '';
       }
 
-      // JSON 모드를 사용하므로 직접 파싱 시도, 실패 시 regex fallback
+      // JSON 파싱 (다단계 fallback)
       let parsed: any;
       try {
         parsed = JSON.parse(response);
       } catch {
+        // JSON 블록 추출 후 재시도
         const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsed = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('Step 1 JSON 파싱 실패');
+        if (!jsonMatch) throw new Error('Step 1 JSON 블록 없음');
+        let jsonStr = jsonMatch[0];
+        try {
+          parsed = JSON.parse(jsonStr);
+        } catch {
+          // 줄바꿈 제거 후 재시도 (멀티라인 문자열이 JSON을 깨는 경우)
+          const cleaned = jsonStr.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ');
+          parsed = JSON.parse(cleaned);
         }
       }
 
