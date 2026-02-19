@@ -59,6 +59,7 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
       case 'three-card': return '쓰리카드';
       case 'celtic-cross': return '켈트 십자';
       case 'saju-custom': return '사주 맞춤';
+      case 'compatibility': return '궁합';
       default: return spreadType;
     }
   };
@@ -199,6 +200,15 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
                           <h4 className="font-semibold text-mystical-gold mb-2">🎴 조언 카드</h4>
                           <p className="text-white/80 whitespace-pre-wrap leading-relaxed">
                             {reading.adviceCardInterpretation}
+                          </p>
+                        </div>
+                      )}
+
+                      {reading.compatibilityReading && (
+                        <div>
+                          <h4 className="font-semibold text-pink-400 mb-2">💑 궁합 분석</h4>
+                          <p className="text-white/80 whitespace-pre-wrap leading-relaxed">
+                            {reading.compatibilityReading}
                           </p>
                         </div>
                       )}

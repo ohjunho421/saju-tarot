@@ -148,6 +148,7 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
         elementalHarmony: aiInterpretation.elementalHarmony,
         personalizedAdvice: aiInterpretation.personalizedAdvice,
         adviceCardInterpretation: aiInterpretation.adviceCardInterpretation,
+        compatibilityReading: aiInterpretation.compatibilityReading || null,
         aiProvider: process.env.GEMINI_API_KEY ? 'gemini' : 'claude'
       }
     });

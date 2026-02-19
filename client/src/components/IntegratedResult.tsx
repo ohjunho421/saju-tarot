@@ -9,7 +9,7 @@ interface IntegratedResultProps {
 }
 
 export default function IntegratedResult({ reading, onReset }: IntegratedResultProps) {
-  const { drawnCards, interpretation, elementalHarmony, personalizedAdvice, adviceCardInterpretation, question, spreadType } = reading;
+  const { drawnCards, interpretation, elementalHarmony, personalizedAdvice, adviceCardInterpretation, compatibilityReading, question, spreadType } = reading;
   
   // 아코디언 상태 관리
   const [expandedSections, setExpandedSections] = useState({
@@ -18,7 +18,8 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
     interpretation: true, // 해석도 기본으로 펼쳐서 보여줌
     harmony: false,
     advice: false,
-    adviceCard: false
+    adviceCard: false,
+    compatibility: true // 궁합 리딩 기본 펼침
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -40,6 +41,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
         elementalHarmony,
         personalizedAdvice,
         adviceCardInterpretation,
+        compatibilityReading,
         createdAt: new Date().toISOString(),
       };
       
@@ -310,6 +312,31 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
             {expandedSections.adviceCard && (
               <div className="text-white/90 leading-loose text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
                 {adviceCardInterpretation}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 궁합 리딩 */}
+        {compatibilityReading && (
+          <div className="card bg-gradient-to-br from-pink-600/20 to-rose-600/20 border-2 border-pink-500/40">
+            <button
+              onClick={() => toggleSection('compatibility')}
+              className="w-full flex items-center justify-between mb-4"
+            >
+              <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <span>💑</span>
+                <span>궁합 분석</span>
+              </h2>
+              {expandedSections.compatibility ? (
+                <ChevronUp className="w-5 h-5 md:w-6 md:h-6 text-pink-400 flex-shrink-0" />
+              ) : (
+                <ChevronDown className="w-5 h-5 md:w-6 md:h-6 text-pink-400 flex-shrink-0" />
+              )}
+            </button>
+            {expandedSections.compatibility && (
+              <div className="text-white/90 leading-loose text-base md:text-lg whitespace-pre-wrap break-keep animate-slideDown" style={{ wordBreak: 'keep-all' }}>
+                {compatibilityReading}
               </div>
             )}
           </div>

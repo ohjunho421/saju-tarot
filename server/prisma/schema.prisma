@@ -55,6 +55,7 @@ model Reading {
   elementalHarmony        String
   personalizedAdvice      String
   adviceCardInterpretation String?
+  compatibilityReading    String?  // 궁합 리딩 결과
   aiProvider              String?  // 'gemini' | 'claude'
   createdAt               DateTime @default(now())
 
