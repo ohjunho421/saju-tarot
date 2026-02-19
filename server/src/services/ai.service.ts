@@ -572,7 +572,8 @@ ${partnerSection}
     try {
       let response = '';
       if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 1024, { jsonMode: true });
+        // jsonMode 비활성화: MIME type 강제 시 오히려 Gemini가 짧거나 빈 응답 반환하는 문제 있음
+        response = await this.tryGeminiWithFallback(prompt, 1024);
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-5-20250929',
@@ -655,6 +656,12 @@ ${partnerSection}
 
   // JSON 파싱 헬퍼 - 여러 방법으로 시도
   private parseStep1Json(response: string): any {
+    if (!response || response.trim() === '') {
+      throw new Error('Step 1 응답이 비어있음');
+    }
+
+    console.log('🔍 parseStep1Json 입력 (첫 300자):', response.substring(0, 300));
+
     // 시도 1: 직접 파싱
     try {
       return JSON.parse(response);
@@ -662,7 +669,10 @@ ${partnerSection}
 
     // 시도 2: JSON 블록 추출 (가장 외곽 {} 블록)
     const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('JSON 블록 없음');
+    if (!jsonMatch) {
+      console.warn('❌ JSON 블록 없음. 전체 응답:', response.substring(0, 500));
+      throw new Error('JSON 블록 없음');
+    }
     const jsonStr = jsonMatch[0];
 
     // 시도 3: 줄바꿈 및 제어문자 정리
