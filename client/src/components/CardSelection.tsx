@@ -411,17 +411,22 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
         )}
         
         {selectedCards.length === 0 ? (
-          <p className="text-lg text-white/80 max-w-2xl mx-auto">
-            {GUIDANCE_MESSAGES[spreadType]}
-          </p>
+          <div>
+            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-3">
+              {GUIDANCE_MESSAGES[spreadType]}
+            </p>
+            <p className="text-lg text-mystical-gold animate-pulse font-semibold">
+              🌟 {POSITION_GUIDANCE[spreadType][0]}
+            </p>
+          </div>
         ) : selectedCards.length < totalCards ? (
           <div className="mt-4">
             <p className="text-base text-white/70 mb-2">
               {selectedCards.length + 1}번째 카드 선택
             </p>
             <p className="text-lg text-mystical-gold animate-pulse font-semibold">
-              🌟 {selectedCards.length >= baseCardCount 
-                ? ADVICE_CARD_GUIDANCE 
+              🌟 {selectedCards.length >= baseCardCount
+                ? ADVICE_CARD_GUIDANCE
                 : POSITION_GUIDANCE[spreadType][selectedCards.length]}
             </p>
           </div>
