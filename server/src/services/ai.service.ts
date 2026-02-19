@@ -305,7 +305,8 @@ JSON 형식으로 답변:
     userName?: string,
     includeAdviceCard: boolean = false,
     userMbti?: string | null,
-    partnerSajuAnalysis?: SajuAnalysis | null
+    partnerSajuAnalysis?: SajuAnalysis | null,
+    partnerMbti?: string
   ): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -331,7 +332,8 @@ JSON 형식으로 답변:
       previousContext,
       dateContext,
       seasonalElement,
-      partnerSajuAnalysis: partnerSajuAnalysis || undefined
+      partnerSajuAnalysis: partnerSajuAnalysis || undefined,
+      partnerMbti
     });
 
     console.log('🚀 에이전틱 파이프라인 - Step 2: 분석 계획 기반 해석 생성');
@@ -351,7 +353,8 @@ JSON 형식으로 답변:
         dateContext,
         seasonalElement,
         includeAdviceCard,
-        partnerSajuAnalysis: partnerSajuAnalysis || undefined
+        partnerSajuAnalysis: partnerSajuAnalysis || undefined,
+        partnerMbti
       });
 
       console.log('✅ 에이전틱 파이프라인 완료');
@@ -497,6 +500,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     dateContext: { month: number; season: string; jieqi: string };
     seasonalElement: string;
     partnerSajuAnalysis?: SajuAnalysis;
+    partnerMbti?: string;
   }): Promise<{
     keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
     elementInterplay: string;
@@ -506,7 +510,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     mbtiInsight: string;
     compatibilityInsight?: string;
   }> {
-    const { sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, partnerSajuAnalysis } = params;
+    const { sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, partnerSajuAnalysis, partnerMbti } = params;
 
     // 궁합 분석 섹션 (상대방 정보가 있을 때)
     const partnerSection = partnerSajuAnalysis ? `
@@ -516,6 +520,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 약한 오행: ${partnerSajuAnalysis.weakElements.join(', ')}
 성격: ${partnerSajuAnalysis.personality}
 신살: ${((partnerSajuAnalysis as any).sal || []).map((s: any) => `${s.name}(${s.isPositive ? '길신' : '흉살'})`).join(', ') || '없음'}
+${partnerMbti ? `MBTI: ${partnerMbti}` : ''}
 
 [사전 궁합 분석]
 오행 관계: 나(${sajuAnalysis.dayMasterElement}) vs 상대(${partnerSajuAnalysis.dayMasterElement}) - ${this.analyzeElementRelation(sajuAnalysis.dayMasterElement, partnerSajuAnalysis.dayMasterElement)}
@@ -651,6 +656,7 @@ cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림
     seasonalElement: string;
     includeAdviceCard: boolean;
     partnerSajuAnalysis?: SajuAnalysis;
+    partnerMbti?: string;
   }): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -658,7 +664,7 @@ cardConnections는 주요 카드 2~3장만 분석하세요. 각 카드의 그림
     adviceCardInterpretation?: string;
     compatibilityReading?: string;
   }> {
-    const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard, partnerSajuAnalysis } = params;
+    const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard, partnerSajuAnalysis, partnerMbti } = params;
 
     const userElement = sajuAnalysis.dayMasterElement;
     const elementDescriptions: Record<string, string> = {
@@ -737,7 +743,7 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
   "practiceAdvice": "카드별 구체적 실천 방법을 각각 줄바꿈으로 구분하여 작성 + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (350자)"${includeAdviceCard && adviceCard ? `,
   "adviceCardReading": "조언 카드 ${adviceCard.card.nameKo}의 그림/상징을 먼저 설명하고, 그 메시지가 현재 상황에서 어떤 실천 조언이 되는지 서술 (250자)"` : ''}${userMbti ? `,
   "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법 (200자)"` : ''}${partnerSajuAnalysis ? `,
-  "compatibilityReading": "두 사람의 궁합 심층 분석 (400~500자):\\n\\n오행 관계: 나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 상생/상극 관계와 그 의미\\n\\n신살 교차: 두 사람의 신살이 관계에 미치는 영향 (분석 계획의 compatibilityInsight 반영)\\n\\n타로 카드 연결: 뽑힌 카드들이 두 사람의 관계에서 어떤 메시지를 전하는지\\n\\n총평: 이 관계의 강점과 주의점, 앞으로를 위한 조언. 각 항목 사이에 줄바꿈(\\\\n\\\\n)으로 구분"` : ''}
+  "compatibilityReading": "두 사람의 궁합 심층 분석 (400~500자):\\n\\n오행 관계: 나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 상생/상극 관계와 그 의미\\n\\n신살 교차: 두 사람의 신살이 관계에 미치는 영향 (분석 계획의 compatibilityInsight 반영)${partnerMbti ? `\\n\\nMBTI 궁합: ${userMbti ? `${userMbti}(나)` : ''}${userMbti && partnerMbti ? ' vs ' : ''}${partnerMbti}(상대) 두 유형의 소통 방식과 관계 역학` : ''}\\n\\n타로 카드 연결: 뽑힌 카드들이 두 사람의 관계에서 어떤 메시지를 전하는지\\n\\n총평: 이 관계의 강점과 주의점, 앞으로를 위한 조언. 각 항목 사이에 줄바꿈(\\\\n\\\\n)으로 구분"` : ''}
 }`;
 
     try {
@@ -760,6 +766,7 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
       if (includeAdviceCard) maxTokens += 1000;
       if (userMbti) maxTokens += 800;
       if (partnerSajuAnalysis) maxTokens += 1500;
+      if (partnerMbti) maxTokens += 500;
       if (analysisContext.keySals.length > 0) maxTokens += Math.min(analysisContext.keySals.length * 300, 1500);
 
       if (this.gemini) {

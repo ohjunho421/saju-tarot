@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import type { SpreadType, BirthInfo } from '../types';
+import type { SpreadType, BirthInfo, MBTIType } from '../types';
+import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import { Sparkles, Wand2, Loader2, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { aiApi } from '../services/api';
 
 interface TarotReadingProps {
-  onComplete: (spreadType: SpreadType, question?: string, includeAdviceCard?: boolean, partnerBirthInfo?: BirthInfo) => void;
+  onComplete: (spreadType: SpreadType, question?: string, includeAdviceCard?: boolean, partnerBirthInfo?: BirthInfo, partnerMbti?: MBTIType) => void;
 }
 
 export default function TarotReading({ onComplete }: TarotReadingProps) {
@@ -20,6 +21,7 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
 
   // 상대방 정보 입력 상태
   const [showPartnerInfo, setShowPartnerInfo] = useState(false);
+  const [partnerMbti, setPartnerMbti] = useState<MBTIType | ''>('');
   const [partnerBirthInfo, setPartnerBirthInfo] = useState<{
     year: string;
     month: string;
@@ -122,7 +124,7 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const partnerInfo = buildPartnerBirthInfo();
-    onComplete(selectedSpread, question || undefined, includeAdviceCard, partnerInfo);
+    onComplete(selectedSpread, question || undefined, includeAdviceCard, partnerInfo, partnerMbti || undefined);
   };
 
   return (
@@ -312,6 +314,33 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
                       여성
                     </button>
                   </div>
+                </div>
+
+                {/* MBTI 선택 */}
+                <div>
+                  <label className="block text-xs text-white/60 mb-2">MBTI <span className="text-white/40">(선택사항)</span></label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {MBTI_TYPES.map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setPartnerMbti(p => p === type ? '' : type)}
+                        className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          partnerMbti === type
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-white/10 text-white/60 hover:bg-white/15'
+                        }`}
+                        title={MBTI_DESCRIPTIONS[type].name}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                  {partnerMbti && (
+                    <p className="text-xs text-primary-400 mt-1.5">
+                      선택됨: {partnerMbti} ({MBTI_DESCRIPTIONS[partnerMbti].name} {MBTI_DESCRIPTIONS[partnerMbti].emoji})
+                    </p>
+                  )}
                 </div>
 
                 {isPartnerInfoValid() && (

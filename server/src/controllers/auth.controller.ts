@@ -10,12 +10,20 @@ const sajuService = new SajuService();
 // 회원가입
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, name, birthInfo }: {
+    const { email, password, name, birthInfo, mbti }: {
       email: string;
       password: string;
       name: string;
       birthInfo: BirthInfo;
+      mbti?: string;
     } = req.body;
+
+    const validMbtis = [
+      'INTJ', 'INTP', 'ENTJ', 'ENTP',
+      'INFJ', 'INFP', 'ENFJ', 'ENFP',
+      'ISTJ', 'ISFJ', 'ESTJ', 'ESFJ',
+      'ISTP', 'ISFP', 'ESTP', 'ESFP'
+    ];
 
     // 유효성 검사
     if (!email || !password || !name || !birthInfo) {
@@ -46,7 +54,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         password: hashedPassword,
         name,
         birthInfo: birthInfo as any,
-        sajuAnalysis: sajuAnalysis as any
+        sajuAnalysis: sajuAnalysis as any,
+        ...(mbti && validMbtis.includes(mbti.toUpperCase()) ? { mbti: mbti.toUpperCase() } : {})
       }
     });
 

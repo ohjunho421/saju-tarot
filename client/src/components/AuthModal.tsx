@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { authApi } from '../services/api';
 import { X, Mail, Lock, User, Calendar } from 'lucide-react';
+import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
+import type { MBTIType } from '../types';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -35,6 +37,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       gender: 'male' as 'male' | 'female'
     }
   });
+  const [registerMbti, setRegisterMbti] = useState<MBTIType | ''>('');
 
   if (!isOpen) return null;
 
@@ -70,7 +73,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
         email: registerData.email,
         password: registerData.password,
         name: registerData.name,
-        birthInfo: registerData.birthInfo
+        birthInfo: registerData.birthInfo,
+        mbti: registerMbti || undefined
       });
       onSuccess();
       onClose();
@@ -367,6 +371,34 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                   여성
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="block mb-2 text-sm">
+                MBTI <span className="text-white/50">(선택사항)</span>
+              </label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {MBTI_TYPES.map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setRegisterMbti(p => p === type ? '' : type)}
+                    className={`py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      registerMbti === type
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white/10 text-white/60 hover:bg-white/15'
+                    }`}
+                    title={MBTI_DESCRIPTIONS[type].name}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+              {registerMbti && (
+                <p className="text-xs text-primary-400 mt-1.5">
+                  선택됨: {registerMbti} ({MBTI_DESCRIPTIONS[registerMbti].name} {MBTI_DESCRIPTIONS[registerMbti].emoji})
+                </p>
+              )}
             </div>
 
             <button

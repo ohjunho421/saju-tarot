@@ -42,7 +42,7 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    const { question, spreadType, includeAdviceCard, cardPositions, selectedCards, sajuAnalysis: clientSajuAnalysis, partnerBirthInfo }: {
+    const { question, spreadType, includeAdviceCard, cardPositions, selectedCards, sajuAnalysis: clientSajuAnalysis, partnerBirthInfo, partnerMbti }: {
       question: string;
       spreadType: SpreadType;
       includeAdviceCard?: boolean;
@@ -50,6 +50,7 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       selectedCards?: { cardIndex: number; isReversed: boolean }[]; // 새로운 형식
       sajuAnalysis?: any;
       partnerBirthInfo?: any; // 상대방 생년월일 (궁합용)
+      partnerMbti?: string;   // 상대방 MBTI (선택)
     } = req.body;
 
     if (!spreadType) {
@@ -130,9 +131,10 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       question,
       previousContext,
       user.name || undefined,
-      includeAdviceCard || false,  // 조언 카드 포함 여부
-      user.mbti || undefined,  // MBTI 성격 유형
-      partnerSajuData  // 상대방 사주 (없으면 null)
+      includeAdviceCard || false,
+      user.mbti || undefined,
+      partnerSajuData,
+      partnerMbti || undefined
     );
 
     // 리딩 결과 저장

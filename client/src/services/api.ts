@@ -58,6 +58,7 @@ export const authApi = {
     password: string;
     name: string;
     birthInfo: BirthInfo;
+    mbti?: string;
   }) => {
     const response = await api.post('/auth/register', data);
     if (response.data.success && response.data.data.token) {
@@ -102,7 +103,8 @@ export const aiApi = {
     sajuAnalysis?: SajuAnalysis,
     selectedCards?: { cardIndex: number; isReversed: boolean }[],
     includeAdviceCard?: boolean,
-    partnerBirthInfo?: BirthInfo
+    partnerBirthInfo?: BirthInfo,
+    partnerMbti?: string
   ): Promise<IntegratedReading> => {
     const response = await api.post<ApiResponse<IntegratedReading>>('/ai/ai-reading', {
       question,
@@ -110,7 +112,8 @@ export const aiApi = {
       sajuAnalysis,
       selectedCards,
       includeAdviceCard,
-      partnerBirthInfo,  // 상대방 생년월일 (없으면 전송 안 됨)
+      partnerBirthInfo,
+      partnerMbti,
     });
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || 'AI 해석에 실패했습니다.');

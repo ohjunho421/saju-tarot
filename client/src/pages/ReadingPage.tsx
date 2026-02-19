@@ -19,6 +19,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [question, setQuestion] = useState<string>('');
   const [includeAdviceCard, setIncludeAdviceCard] = useState<boolean>(false);
   const [partnerBirthInfo, setPartnerBirthInfo] = useState<BirthInfo | undefined>(undefined);
+  const [partnerMbti, setPartnerMbti] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,14 +70,15 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     setStep('tarot');
   };
 
-  const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean, partnerInfo?: BirthInfo) => {
-    console.log('🎴 handleTarotComplete 호출:', { spreadType, userQuestion, includeAdvice, hasPartner: !!partnerInfo });
+  const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean, partnerInfo?: BirthInfo, mbti?: string) => {
+    console.log('🎴 handleTarotComplete 호출:', { spreadType, userQuestion, includeAdvice, hasPartner: !!partnerInfo, partnerMbti: mbti });
 
     // State를 먼저 모두 설정한 후 다음 렌더링에서 step 변경
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
     setIncludeAdviceCard(includeAdvice || false);
     setPartnerBirthInfo(partnerInfo);
+    setPartnerMbti(mbti);
 
     // setTimeout을 사용하여 state 업데이트 후 step 전환 보장
     setTimeout(() => {
@@ -100,10 +102,11 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       const reading = await aiApi.getAIReading(
         question,
         selectedSpread,
-        sajuAnalysis,  // 사주 분석 정보 전달
-        selectedCards, // { cardIndex, isReversed }[] 형태로 전달
-        includeAdviceCard,  // 조언 카드 포함 여부
-        partnerBirthInfo   // 상대방 생년월일 (없으면 undefined)
+        sajuAnalysis,
+        selectedCards,
+        includeAdviceCard,
+        partnerBirthInfo,
+        partnerMbti
       );
       
       // 결과 표시
