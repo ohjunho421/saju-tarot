@@ -388,6 +388,7 @@ JSON 형식으로 답변:
     salList?: Array<{ name: string; description: string; effect: string; isPositive: boolean }>;
     dateContext: { month: number; season: string; jieqi: string };
     seasonalElement: string;
+    partnerSajuAnalysis?: SajuAnalysis;
   }): Promise<{
     interpretation: string;
     elementalHarmony: string;
