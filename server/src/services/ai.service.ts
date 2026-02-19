@@ -7,7 +7,7 @@ import { DateHelper } from '../utils/date-helper';
 export class AIService {
   private gemini: GoogleGenerativeAI | null = null;
   private claude: Anthropic | null = null;
-  private geminiModels = ['gemini-3-pro-preview', 'gemini-2.5-pro', 'gemini-2.5-flash'];
+  private geminiModels = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
 
   constructor() {
     console.log('🔍 AI 서비스 초기화 중...');
@@ -572,7 +572,7 @@ ${partnerSection}
     try {
       let response = '';
       if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 1024, { jsonMode: true, minLength: 100 });
+        response = await this.tryGeminiWithFallback(prompt, 1024, { jsonMode: true });
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-5-20250929',
@@ -581,6 +581,8 @@ ${partnerSection}
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
       }
+
+      console.log('📋 Step 1 원본 응답 (첫 200자):', response.substring(0, 200));
 
       // JSON 파싱 (강화된 다단계 fallback)
       const parsed = this.parseStep1Json(response);
@@ -931,6 +933,17 @@ ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"�
 
         // 최소 길이 검증 (JSON 모드에서 너무 짧은 응답은 불완전)
         if (options?.minLength && responseText.length < options.minLength) {
+          // JSON 모드일 때는 짧아도 유효한 JSON인지 먼저 확인
+          if (options?.jsonMode) {
+            try {
+              const testParsed = JSON.parse(responseText);
+              // 유효한 JSON이고 최소 하나의 필드가 있으면 사용
+              if (testParsed && typeof testParsed === 'object' && Object.keys(testParsed).length > 0) {
+                console.log(`✅ ${modelName} 성공 (짧지만 유효한 JSON: ${responseText.length}자)`);
+                return responseText;
+              }
+            } catch {}
+          }
           console.warn(`⚠️ ${modelName}: 응답이 너무 짧음 (${responseText.length}자 < ${options.minLength}자), 다음 모델 시도...`);
           continue;
         }
