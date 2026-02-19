@@ -23,6 +23,18 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // AI 해석 중 화면 잠금 방지 (Wake Lock API)
+  useEffect(() => {
+    if (!loading || !('wakeLock' in navigator)) return;
+    let wakeLock: WakeLockSentinel | null = null;
+    navigator.wakeLock.request('screen').then((lock) => {
+      wakeLock = lock;
+    }).catch(() => {});
+    return () => {
+      wakeLock?.release();
+    };
+  }, [loading]);
+
   // 로그인한 사용자 정보 자동 로드
   useEffect(() => {
     const loadUserInfo = async () => {

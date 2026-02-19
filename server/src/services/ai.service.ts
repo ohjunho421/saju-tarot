@@ -518,7 +518,6 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 일간: ${partnerSajuAnalysis.dayMaster}(${partnerSajuAnalysis.dayMasterElement})
 강한 오행: ${partnerSajuAnalysis.strongElements.join(', ')}
 약한 오행: ${partnerSajuAnalysis.weakElements.join(', ')}
-성격: ${partnerSajuAnalysis.personality}
 신살: ${((partnerSajuAnalysis as any).sal || []).map((s: any) => `${s.name}(${s.isPositive ? '길신' : '흉살'})`).join(', ') || '없음'}
 ${partnerMbti ? `MBTI: ${partnerMbti}` : ''}
 
@@ -528,95 +527,109 @@ ${partnerMbti ? `MBTI: ${partnerMbti}` : ''}
 일지 충: ${this.analyzeBranchConflict(sajuAnalysis.chart.day.earthlyBranch, partnerSajuAnalysis.chart.day.earthlyBranch)}
 공통 신살: ${this.analyzeSharedSals((sajuAnalysis as any).sal || [], (partnerSajuAnalysis as any).sal || [])}` : '';
 
-    const prompt = `당신은 사주명리학과 타로를 융합하는 전문 분석가입니다.
-아래 데이터를 분석하여, 이 사용자에게 가장 적합한 해석 전략을 수립하세요.
-직접 해석하지 말고, "어떻게 해석할 것인가"에 대한 분석 계획만 세우세요.
+    // 신살 텍스트를 단순 문자열로 (배열 JSON 파싱 오류 방지)
+    const salText = salList && salList.length > 0
+      ? salList.map(s => `${s.name}(${s.isPositive ? '길신' : '흉살'}):${s.effect}`).join(' | ')
+      : '없음';
 
-[사용자 사주]
-일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
-강한 오행: ${sajuAnalysis.strongElements.join(', ')}
-약한 오행: ${sajuAnalysis.weakElements.join(', ')}
-성격: ${sajuAnalysis.personality}
+    // 카드 텍스트를 단순 문자열로 (배열 JSON 파싱 오류 방지)
+    const cardText = drawnCards
+      .map((dc, i) => `${i + 1}.${dc.positionMeaning}:${dc.card.nameKo}(${dc.isReversed ? '역' : '정'})`)
+      .join(' | ');
+
+    const prompt = `당신은 사주명리학과 타로를 융합하는 분석가입니다.
+아래 정보를 바탕으로 해석 전략을 JSON으로 응답하세요.
+
+사용자 일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
+강한오행: ${sajuAnalysis.strongElements.join('+')} / 약한오행: ${sajuAnalysis.weakElements.join('+')}
 ${userMbti ? `MBTI: ${userMbti}` : ''}
-
-${salList && salList.length > 0 ? `[발견된 신살 ${salList.length}개]
-${salList.map(s => `- ${s.name}(${s.isPositive ? '길신' : '흉살'}): ${s.effect}`).join('\n')}` : '[신살 없음]'}
+신살: ${salText}
 ${partnerSection}
+질문: ${question}
+카드: ${cardText}
+시기: ${dateContext.month}월 ${dateContext.season}
 
-[질문] "${question}"
-${previousContext && previousContext.length > 0 ? `\n[이전 질문 이력]\n${previousContext.map(c => `- ${c.date}: "${c.question}"`).join('\n')}` : ''}
-
-[뽑힌 카드 - ${spreadType}]
-${drawnCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(${dc.isReversed ? '역방향' : '정방향'}) - ${dc.isReversed ? dc.card.reversedMeaning : dc.card.uprightMeaning}${dc.card.element ? ` [${dc.card.element}]` : ''}`).join('\n')}
-
-[현재 시기] ${dateContext.month}월, ${dateContext.season}, ${dateContext.jieqi}, 계절 기운: ${seasonalElement}
-
-다음 JSON 형식으로만 응답하세요. 모든 문자열 값에 큰따옴표나 특수문자를 사용하지 마세요:
+아래 JSON 형식으로만 답하세요. 문자열 안에 쌍따옴표(") 절대 금지:
 {
-  "keySals": [
-    {"name": "신살이름", "reason": "이 질문에 중요한 이유 한 문장", "isPositive": true}
-  ],
-  "elementInterplay": "오행 상생상극 관계 분석 한두 문장",
-  "readingTone": "리딩 전체 톤과 이유 한 문장",
-  "cardConnections": [
-    {"card": "카드이름", "symbolism": "카드 그림의 핵심 상징 묘사", "sajuLink": "사주와의 연결점 또는 빈 문자열", "salLink": "연결되는 신살 또는 빈 문자열"}
-  ],
+  "keySalNames": "신살명1,신살명2",
+  "keySalReasons": "이유1||이유2",
+  "keySalPositive": "true,false",
+  "elementInterplay": "오행 상생상극 관계 분석 한 문장",
+  "readingTone": "리딩 전체 톤 한 문장",
+  "cardSummary": "카드명@@핵심상징@@사주연결##카드명@@핵심상징@@사주연결",
   "overallDirection": "핵심 메시지 방향 한 문장",
-  "mbtiInsight": "${userMbti ? `${userMbti} 성격의 함정과 강점` : '해당없음'}"${partnerSajuAnalysis ? `,
-  "compatibilityInsight": "두 사람 궁합의 핵심 방향 한 문장"` : ''}
+  "mbtiInsight": "${userMbti ? `${userMbti} 성격 특성 한 문장` : '해당없음'}"${partnerSajuAnalysis ? `,
+  "compatibilityInsight": "두 사람 오행 관계와 궁합 핵심 한 문장"` : ''}
 }
 
-규칙:
-- keySals: 질문과 관련 깊은 것만 2~4개. 신살 없으면 빈 배열
-- cardConnections: 주요 카드 2~3장만
-- 모든 문자열 값 안에 큰따옴표 사용 금지
-- JSON 외 다른 텍스트 출력 금지`;
+주의사항:
+- JSON만 출력, 배열 [] 사용 절대 금지
+- 모든 값은 단순 문자열
+- cardSummary 구분자: 카드 내부는 @@, 카드 간 구분은 ##
+- keySalReasons 구분자: ||
+- 신살 없으면 keySalNames/keySalReasons/keySalPositive 모두 빈 문자열`;
 
     try {
       let response = '';
       if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 2048, { jsonMode: true, minLength: 300 });
+        response = await this.tryGeminiWithFallback(prompt, 1024, { jsonMode: true, minLength: 100 });
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 2048,
+          max_tokens: 1024,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
       }
 
-      // JSON 파싱 (다단계 fallback)
-      let parsed: any;
-      try {
-        parsed = JSON.parse(response);
-      } catch {
-        // JSON 블록 추출 후 재시도
-        const jsonMatch = response.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error('Step 1 JSON 블록 없음');
-        let jsonStr = jsonMatch[0];
-        try {
-          parsed = JSON.parse(jsonStr);
-        } catch {
-          // 줄바꿈 제거 후 재시도 (멀티라인 문자열이 JSON을 깨는 경우)
-          const cleaned = jsonStr.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ');
-          parsed = JSON.parse(cleaned);
-        }
-      }
+      // JSON 파싱 (강화된 다단계 fallback)
+      const parsed = this.parseStep1Json(response);
 
-      // 필수 필드 검증
-      if (!parsed.readingTone || !parsed.overallDirection) {
-        throw new Error('Step 1 응답에 필수 필드 누락');
-      }
+      // 평탄화된 응답을 원래 구조로 변환
+      const keySalNames = (parsed.keySalNames || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+      const keySalReasons = (parsed.keySalReasons || '').split('||').map((s: string) => s.trim());
+      const keySalPositive = (parsed.keySalPositive || '').split(',').map((s: string) => s.trim() === 'true');
+
+      const keySals = keySalNames.map((name: string, i: number) => ({
+        name,
+        reason: keySalReasons[i] || '',
+        isPositive: keySalPositive[i] !== undefined ? keySalPositive[i] : true
+      }));
+
+      const cardConnections = (parsed.cardSummary || '').split('##')
+        .map((part: string) => {
+          const segments = part.split('@@');
+          return {
+            card: segments[0]?.trim() || '',
+            symbolism: segments[1]?.trim() || '',
+            sajuLink: segments[2]?.trim() || '',
+            salLink: ''
+          };
+        })
+        .filter((c: any) => c.card);
 
       console.log('✅ Step 1 컨텍스트 분석 완료:', {
-        keySals: parsed.keySals?.length || 0,
+        keySals: keySals.length,
         tone: parsed.readingTone?.substring(0, 50),
         direction: parsed.overallDirection?.substring(0, 50)
       });
-      return parsed;
+
+      return {
+        keySals,
+        elementInterplay: parsed.elementInterplay || '',
+        readingTone: parsed.readingTone || '균형 잡힌 해석',
+        cardConnections,
+        overallDirection: parsed.overallDirection || '현재 상황을 직시하고 균형을 찾으세요',
+        mbtiInsight: parsed.mbtiInsight || '해당없음',
+        compatibilityInsight: parsed.compatibilityInsight
+      };
     } catch (error) {
       console.warn('⚠️ Step 1 분석 실패, 기본 분석 계획 사용:', error);
       // Fallback: 규칙 기반 기본 분석 계획
+      const fallbackCompatibility = partnerSajuAnalysis
+        ? `나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 오행 관계: ${this.analyzeElementRelation(sajuAnalysis.dayMasterElement, partnerSajuAnalysis.dayMasterElement)}`
+        : undefined;
+
       return {
         keySals: (salList || []).slice(0, 3).map(s => ({
           name: s.name,
@@ -632,9 +645,59 @@ ${drawnCards.map((dc, i) => `${i + 1}. ${dc.positionMeaning}: ${dc.card.nameKo}(
           salLink: ''
         })),
         overallDirection: '현재 상황을 직시하고 균형 잡힌 방향을 찾으세요',
-        mbtiInsight: userMbti ? `${userMbti} 성격 특성을 고려한 조언` : '해당없음'
+        mbtiInsight: userMbti ? `${userMbti} 성격 특성을 고려한 조언` : '해당없음',
+        compatibilityInsight: fallbackCompatibility
       };
     }
+  }
+
+  // JSON 파싱 헬퍼 - 여러 방법으로 시도
+  private parseStep1Json(response: string): any {
+    // 시도 1: 직접 파싱
+    try {
+      return JSON.parse(response);
+    } catch {}
+
+    // 시도 2: JSON 블록 추출 (가장 외곽 {} 블록)
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('JSON 블록 없음');
+    const jsonStr = jsonMatch[0];
+
+    // 시도 3: 줄바꿈 및 제어문자 정리
+    try {
+      const cleaned = jsonStr
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/\s{2,}/g, ' ');
+      return JSON.parse(cleaned);
+    } catch {}
+
+    // 시도 4: 각 문자열 값 내부에서 이스케이프 안 된 쌍따옴표를 단따옴표로 교체
+    try {
+      // "key": "value" 형태에서 value 내부의 " 를 ' 로 변환
+      const fixed = jsonStr.replace(/:\s*"((?:[^"\\]|\\.)*)"/g, (_: string, inner: string) => {
+        return `: "${inner.replace(/(?<!\\)"/g, '\'')}"`;
+      });
+      return JSON.parse(fixed.replace(/[\r\n\t]+/g, ' '));
+    } catch {}
+
+    // 시도 5: 각 필드를 정규식으로 개별 추출 (최후 수단)
+    const result: any = {};
+    // 문자열 필드: "key": "..." - 값은 이스케이프된 따옴표 포함 가능
+    const fieldPattern = /"(\w+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
+    let m;
+    while ((m = fieldPattern.exec(jsonStr)) !== null) {
+      result[m[1]] = m[2].replace(/[\r\n]/g, ' ').trim();
+    }
+    // boolean 필드 처리
+    const boolPattern = /"(\w+)"\s*:\s*(true|false)/g;
+    while ((m = boolPattern.exec(jsonStr)) !== null) {
+      result[m[1]] = m[2] === 'true';
+    }
+
+    if (Object.keys(result).length === 0) {
+      throw new Error('JSON 필드 추출 실패');
+    }
+    return result;
   }
 
   // ============================================================

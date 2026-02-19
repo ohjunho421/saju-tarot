@@ -7,7 +7,9 @@
       "Bash(npx tsc:*)",
       "Bash(npx vite build:*)",
       "Bash(./node_modules/.bin/tsc:*)",
-      "Bash(node_modules/.bin/tsc:*)"
+      "Bash(node_modules/.bin/tsc:*)",
+      "Skill(plan)",
+      "Skill(plan:*)"
     ]
   }
 }
