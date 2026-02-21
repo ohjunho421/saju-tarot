@@ -4,25 +4,31 @@
 
 @layer base {
   body {
-    @apply bg-gradient-to-br from-mystical-dark via-purple-900 to-mystical-dark;
-    @apply text-white min-h-screen;
+    @apply bg-mystical-dark text-white min-h-screen antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 80% 80%, rgba(212, 175, 55, 0.04) 0%, transparent 60%);
+  }
+
+  ::selection {
+    @apply bg-primary-600/40 text-white;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl;
+    @apply bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-primary-400 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-primary-600/25;
   }
-  
+
   .btn-secondary {
-    @apply bg-mystical-gold hover:bg-mystical-bronze text-mystical-dark font-semibold py-3 px-6 rounded-lg transition-all duration-300;
+    @apply bg-mystical-gold/90 hover:bg-mystical-gold text-mystical-dark font-semibold py-3 px-6 rounded-xl transition-all duration-300;
   }
-  
+
   .card {
-    @apply bg-white/10 backdrop-blur-lg rounded-xl p-6 shadow-2xl border border-white/20;
+    @apply bg-white/[0.05] backdrop-blur-sm rounded-2xl p-6 border border-white/[0.08] shadow-xl;
   }
-  
+
   .input-field {
-    @apply w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-white placeholder-white/50;
+    @apply w-full px-4 py-3 bg-white/[0.06] border border-white/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 text-white placeholder-white/30 transition-all duration-200;
   }
 }

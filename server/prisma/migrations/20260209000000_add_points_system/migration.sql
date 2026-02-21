@@ -1,6 +1,9 @@
 -- AlterTable: User에 포인트 컬럼 추가
 ALTER TABLE "User" ADD COLUMN "points" INTEGER NOT NULL DEFAULT 0;
 
+-- AlterTable: Reading에 궁합 리딩 컬럼 추가
+ALTER TABLE "Reading" ADD COLUMN "compatibilityReading" TEXT;
+
 -- CreateTable: 포인트 거래 내역
 CREATE TABLE "PointTransaction" (
     "id" TEXT NOT NULL,

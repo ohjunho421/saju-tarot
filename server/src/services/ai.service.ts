@@ -572,18 +572,17 @@ ${partnerSection}
     try {
       let response = '';
       if (this.gemini) {
-        // jsonMode 비활성화: MIME type 강제 시 오히려 Gemini가 짧거나 빈 응답 반환하는 문제 있음
-        response = await this.tryGeminiWithFallback(prompt, 1024);
+        response = await this.tryGeminiWithFallback(prompt, 2048, { minLength: 150 });
       } else if (this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 1024,
+          max_tokens: 2048,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
       }
 
-      console.log('📋 Step 1 원본 응답 (첫 200자):', response.substring(0, 200));
+      console.log('📋 Step 1 원본 응답 (첫 500자):', response.substring(0, 500));
 
       // JSON 파싱 (강화된 다단계 fallback)
       const parsed = this.parseStep1Json(response);
@@ -660,7 +659,7 @@ ${partnerSection}
       throw new Error('Step 1 응답이 비어있음');
     }
 
-    console.log('🔍 parseStep1Json 입력 (첫 300자):', response.substring(0, 300));
+    console.log('🔍 parseStep1Json 입력 (첫 500자):', response.substring(0, 500));
 
     // 시도 1: 직접 파싱
     try {
@@ -668,12 +667,21 @@ ${partnerSection}
     } catch {}
 
     // 시도 2: JSON 블록 추출 (가장 외곽 {} 블록)
+    let jsonStr = '';
     const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.warn('❌ JSON 블록 없음. 전체 응답:', response.substring(0, 500));
-      throw new Error('JSON 블록 없음');
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    } else {
+      // 시도 2-1: 불완전 JSON 복구 (열린 { 는 있지만 닫는 } 가 없는 경우)
+      const openBraceIdx = response.indexOf('{');
+      if (openBraceIdx !== -1) {
+        jsonStr = this.repairIncompleteJson(response.substring(openBraceIdx));
+        console.log('🔧 불완전 JSON 복구 시도:', jsonStr.substring(0, 300));
+      } else {
+        console.warn('❌ JSON 블록 없음. 전체 응답:', response.substring(0, 500));
+        throw new Error('JSON 블록 없음');
+      }
     }
-    const jsonStr = jsonMatch[0];
 
     // 시도 3: 줄바꿈 및 제어문자 정리
     try {
@@ -685,7 +693,6 @@ ${partnerSection}
 
     // 시도 4: 각 문자열 값 내부에서 이스케이프 안 된 쌍따옴표를 단따옴표로 교체
     try {
-      // "key": "value" 형태에서 value 내부의 " 를 ' 로 변환
       const fixed = jsonStr.replace(/:\s*"((?:[^"\\]|\\.)*)"/g, (_: string, inner: string) => {
         return `: "${inner.replace(/(?<!\\)"/g, '\'')}"`;
       });
@@ -694,13 +701,11 @@ ${partnerSection}
 
     // 시도 5: 각 필드를 정규식으로 개별 추출 (최후 수단)
     const result: any = {};
-    // 문자열 필드: "key": "..." - 값은 이스케이프된 따옴표 포함 가능
     const fieldPattern = /"(\w+)"\s*:\s*"((?:[^"\\]|\\.)*)"/g;
     let m;
     while ((m = fieldPattern.exec(jsonStr)) !== null) {
       result[m[1]] = m[2].replace(/[\r\n]/g, ' ').trim();
     }
-    // boolean 필드 처리
     const boolPattern = /"(\w+)"\s*:\s*(true|false)/g;
     while ((m = boolPattern.exec(jsonStr)) !== null) {
       result[m[1]] = m[2] === 'true';
@@ -709,7 +714,47 @@ ${partnerSection}
     if (Object.keys(result).length === 0) {
       throw new Error('JSON 필드 추출 실패');
     }
+    console.log('🔧 regex 추출 결과:', Object.keys(result));
     return result;
+  }
+
+  // 불완전 JSON 복구: 잘린 응답에서 닫히지 않은 문자열과 중괄호를 닫아줌
+  private repairIncompleteJson(truncated: string): string {
+    let str = truncated.trimEnd();
+
+    // 마지막 불완전 key-value 제거: 마지막 완전한 값 뒤의 쓰레기 제거
+    // 마지막으로 값이 완전히 끝난 지점(", 또는 "} 등) 찾기
+    const lastCompleteValue = str.lastIndexOf('"');
+    if (lastCompleteValue > 0) {
+      // 그 뒤에 , 또는 공백만 있어야 함
+      const afterQuote = str.substring(lastCompleteValue + 1).trim();
+      if (afterQuote === '' || afterQuote === ',') {
+        // 따옴표가 값의 끝인지 키의 시작인지 판단
+        // 뒤에서 두 번째 따옴표까지의 패턴을 확인
+        str = str.substring(0, lastCompleteValue + 1);
+      } else if (!afterQuote.startsWith('}') && !afterQuote.startsWith(',')) {
+        // 값이 잘린 경우: 마지막 완전한 필드까지만 보존
+        const lastComma = str.lastIndexOf('",');
+        if (lastComma > 0) {
+          str = str.substring(0, lastComma + 1); // ","까지 포함
+        }
+      }
+    }
+
+    // 끝에 불필요한 , 제거
+    str = str.replace(/,\s*$/, '');
+
+    // 닫는 } 추가
+    if (!str.endsWith('}')) {
+      // 열려있는 따옴표가 있으면 닫기
+      const quoteCount = (str.match(/(?<!\\)"/g) || []).length;
+      if (quoteCount % 2 !== 0) {
+        str += '"';
+      }
+      str += '}';
+    }
+
+    return str;
   }
 
   // ============================================================

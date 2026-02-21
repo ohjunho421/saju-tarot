@@ -9,7 +9,8 @@
       "Bash(./node_modules/.bin/tsc:*)",
       "Bash(node_modules/.bin/tsc:*)",
       "Skill(plan)",
-      "Skill(plan:*)"
+      "Skill(plan:*)",
+      "Bash(npx prisma generate:*)"
     ]
   }
 }
