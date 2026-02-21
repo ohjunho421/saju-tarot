@@ -1,0 +1,17 @@
+
+> client@0.0.0 build
+> tsc -b && vite build
+
+[36mrolldown-vite v7.1.14 [32mbuilding for production...[36m[39m
+[2Ktransforming...[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[32m✓[39m 2118 modules transformed.
+rendering chunks...
+[33m[plugin builtin:reporter] 
+(!) D:/saju-tarot-service/client/src/services/api.ts is dynamically imported by D:/saju-tarot-service/client/src/pages/ReadingPage.tsx but also statically imported by D:/saju-tarot-service/client/src/App.tsx, D:/saju-tarot-service/client/src/components/AuthModal.tsx, D:/saju-tarot-service/client/src/components/CardSelection.tsx, D:/saju-tarot-service/client/src/components/TarotReading.tsx, D:/saju-tarot-service/client/src/pages/MyPage.tsx, D:/saju-tarot-service/client/src/pages/ReadingPage.tsx, dynamic import will not move module into another chunk.
+[39m
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.45 kB[22m[22m[2m │ gzip:   0.29 kB[22m
+[2mdist/[22m[2massets/[22m[35mindex-DdeejbID.css  [39m[1m[2m 39.26 kB[22m[22m[2m │ gzip:   7.16 kB[22m
+[2mdist/[22m[2massets/[22m[36mapi-BsFqpsdl.js     [39m[1m[2m  0.13 kB[22m[22m[2m │ gzip:   0.12 kB[22m
+[2mdist/[22m[2massets/[22m[36mindex-BGKr9fWl.js   [39m[1m[2m464.02 kB[22m[22m[2m │ gzip: 146.31 kB[22m
+[32m✓ built in 8.52s[39m
