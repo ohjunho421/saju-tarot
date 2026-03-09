@@ -33,7 +33,7 @@ export interface DrawnCard {
   positionMeaning: string;
 }
 
-export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility';
+export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility' | 'daily-fortune';
 
 export interface TarotReading {
   id: string;
@@ -66,7 +66,8 @@ export const SPREAD_POSITIONS: Record<SpreadType, string[]> = {
   'six-months': ['이번 달', '다음 달', '2개월 후', '3개월 후', '4개월 후', '5개월 후'],
   'yes-no': ['답변'],  // 간단한 예/아니오 질문용
   'problem-solution': ['문제의 원인', '해결책'],  // 문제-해결 구조
-  'compatibility': ['나의 기운', '상대방의 기운', '두 사람의 관계', '앞으로의 흐름']  // 궁합 전용
+  'compatibility': ['나의 기운', '상대방의 기운', '두 사람의 관계', '앞으로의 흐름'],  // 궁합 전용
+  'daily-fortune': ['총운', '금전운', '연애운']  // 오늘의 운세
 };
 
 // 스프레드 설명 (AI 추천 시 사용)
@@ -115,5 +116,10 @@ export const SPREAD_DESCRIPTIONS: Record<SpreadType, { name: string; description
     name: '궁합 리딩',
     description: '네 장으로 두 사람의 에너지와 관계 흐름 분석',
     bestFor: '연인/배우자 궁합, 이성 관계 탐색, 두 사람의 미래'
+  },
+  'daily-fortune': {
+    name: '오늘의 운세',
+    description: '세 장으로 오늘 하루의 총운, 금전운, 연애운을 확인',
+    bestFor: '오늘의 전체 운세, 일일 금전/연애 흐름, 하루의 방향'
   }
 };

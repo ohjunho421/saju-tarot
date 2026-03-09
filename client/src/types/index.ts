@@ -64,7 +64,7 @@ export interface SajuAnalysis {
 
 // 타로 관련 타입
 export type TarotSuit = 'major' | 'wands' | 'cups' | 'swords' | 'pentacles';
-export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility';
+export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility' | 'daily-fortune';
 
 export interface TarotCard {
   id: string;

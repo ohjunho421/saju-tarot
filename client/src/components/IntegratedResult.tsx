@@ -85,8 +85,14 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
     <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 px-4">
       {/* 헤더 */}
       <div className="text-center">
-        <h1 className="text-2xl md:text-3xl font-bold mb-2">통합 해석 결과</h1>
-        <p className="text-sm md:text-base text-white/70">사주 만세력과 타로의 조화</p>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">
+          {spreadType === 'daily-fortune' ? '☀️ 오늘의 운세' : '통합 해석 결과'}
+        </h1>
+        <p className="text-sm md:text-base text-white/70">
+          {spreadType === 'daily-fortune' 
+            ? `${new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })} · 사주 맞춤 운세`
+            : '사주 만세력과 타로의 조화'}
+        </p>
       </div>
 
       {/* 요약 섹션 */}

@@ -19,7 +19,8 @@ const SPREAD_CARD_COUNTS: Record<SpreadType, number> = {
   'saju-custom': 5,
   'yes-no': 1,
   'problem-solution': 2,
-  'compatibility': 4
+  'compatibility': 4,
+  'daily-fortune': 3
 };
 
 const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
@@ -31,8 +32,65 @@ const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
   'saju-custom': '당신의 사주와 오행을 생각하며 다섯 장의 카드를 선택하세요.',
   'yes-no': '마음속 질문을 떠올리며 직관적으로 한 장의 카드를 선택하세요.',
   'problem-solution': '현재 직면한 문제를 떠올리며 두 장의 카드를 선택하세요.',
-  'compatibility': '두 사람의 에너지와 인연을 떠올리며 네 장의 카드를 차례로 선택하세요.'
+  'compatibility': '두 사람의 에너지와 인연을 떠올리며 네 장의 카드를 차례로 선택하세요.',
+  'daily-fortune': '오늘 하루의 운세를 살펴봅니다. 총운, 금전운, 연애운 카드를 차례로 선택하세요.'
 };
+
+// 사용자 질문에서 선택지(A/B/C 등)를 파싱하는 함수
+function parseChoicesFromQuestion(question?: string): string[] {
+  if (!question) return [];
+  
+  // 패턴 1: "A가 좋을까 B가 좋을까 C가 좋을까" / "A가 나을까 B가 나을까"
+  const choicePattern1 = /([^,?\s가이을를][^,?가이을를]{0,20})(?:가|이|을|를)\s*(?:좋을까|나을까|맞을까|괜찮을까|좋은|나은|맞는|좋겠|나을|할까)/g;
+  const matches1: string[] = [];
+  let m;
+  while ((m = choicePattern1.exec(question)) !== null) {
+    matches1.push(m[1].trim());
+  }
+  if (matches1.length >= 2) return matches1;
+
+  // 패턴 2: "A vs B" / "A 아니면 B"
+  const vsMatch = question.match(/(.+?)\s*(?:vs|VS|아니면|또는|혹은)\s*(.+?)(?:\s*(?:vs|VS|아니면|또는|혹은)\s*(.+?))?(?:\?|$)/i);
+  if (vsMatch) {
+    const choices = [vsMatch[1].trim(), vsMatch[2].trim()];
+    if (vsMatch[3]) choices.push(vsMatch[3].trim());
+    return choices.filter(c => c.length > 0 && c.length <= 30);
+  }
+
+  // 패턴 3: "A, B, C 중에" / "A B C 중에서"
+  const listMatch = question.match(/(.+?)\s*중에?서?/i);
+  if (listMatch) {
+    const items = listMatch[1].split(/[,，]|\s+(?:그리고|와|과|하고)\s+/).map(s => s.trim()).filter(s => s.length > 0 && s.length <= 30);
+    if (items.length >= 2) return items;
+  }
+
+  return [];
+};
+
+// 질문 기반 동적 가이던스 메시지 생성
+function getQuestionAwareGuidance(spreadType: SpreadType, question?: string, cardIndex?: number): string | null {
+  const choices = parseChoicesFromQuestion(question);
+  if (choices.length < 2) return null;
+  
+  // two-card: 각 선택지에 대한 카드
+  if (spreadType === 'two-card' && cardIndex !== undefined && cardIndex < choices.length) {
+    return `⬅️ "${choices[cardIndex]}" - 이 선택지의 에너지를 느끼며 카드를 뽑아주세요`;
+  }
+  
+  // three-card: 선택지가 3개면 각각, 2개면 A/B/결과
+  if (spreadType === 'three-card' && cardIndex !== undefined) {
+    if (choices.length >= 3 && cardIndex < 3) {
+      return `🔮 "${choices[cardIndex]}" - 이 선택지의 에너지를 느끼며 카드를 뽑아주세요`;
+    }
+    if (choices.length === 2) {
+      if (cardIndex === 0) return `⬅️ "${choices[0]}" - 이 선택의 결과를 떠올리며 카드를 뽑아주세요`;
+      if (cardIndex === 1) return `➡️ "${choices[1]}" - 이 선택의 결과를 떠올리며 카드를 뽑아주세요`;
+      if (cardIndex === 2) return `🔮 최종 조언 - 어떤 선택이 더 나은지 카드에게 물으며 뽑아주세요`;
+    }
+  }
+  
+  return null;
+}
 
 // 조언 카드 안내 메시지
 const ADVICE_CARD_GUIDANCE = '✨ 조언 카드 - 앞으로 나아갈 방향과 실천할 수 있는 지혜를 구하며 마지막 카드를 선택하세요';
@@ -90,6 +148,11 @@ const POSITION_GUIDANCE: Record<SpreadType, string[]> = {
     '💫 상대방의 기운 - 상대방이 이 관계에서 가진 에너지와 마음을 떠올리며 카드를 선택하세요',
     '💑 두 사람의 관계 - 우리 사이에 흐르는 에너지와 연결을 느끼며 카드를 선택하세요',
     '🔮 앞으로의 흐름 - 이 관계가 나아갈 방향과 미래를 상상하며 카드를 선택하세요'
+  ],
+  'daily-fortune': [
+    '☀️ 총운 카드 - 오늘 하루의 전체적인 기운과 흐름을 느끼며 카드를 뽑아주세요',
+    '💰 금전운 카드 - 오늘의 재물과 금전 흐름을 떠올리며 카드를 뽑아주세요',
+    '💕 연애운 카드 - 오늘의 사랑과 인연의 기운을 느끼며 카드를 뽑아주세요'
   ]
 };
 
@@ -147,6 +210,11 @@ const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
     { x: 150, y: -60 },  // 상대방의 기운 (오른쪽 위)
     { x: 0, y: 60 },     // 두 사람의 관계 (중앙 아래)
     { x: 0, y: -120 }    // 앞으로의 흐름 (중앙 위)
+  ],
+  'daily-fortune': [
+    { x: -150, y: 0 },   // 총운
+    { x: 0, y: 0 },      // 금전운
+    { x: 150, y: 0 }     // 연애운
   ]
 };
 
@@ -430,7 +498,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
               {GUIDANCE_MESSAGES[spreadType]}
             </p>
             <p className="text-lg text-mystical-gold animate-pulse font-semibold">
-              🌟 {POSITION_GUIDANCE[spreadType][0]}
+              🌟 {getQuestionAwareGuidance(spreadType, question, 0) || POSITION_GUIDANCE[spreadType][0]}
             </p>
           </div>
         ) : selectedCards.length < totalCards ? (
@@ -441,7 +509,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
             <p className="text-lg text-mystical-gold animate-pulse font-semibold">
               🌟 {selectedCards.length >= baseCardCount
                 ? ADVICE_CARD_GUIDANCE
-                : POSITION_GUIDANCE[spreadType][selectedCards.length]}
+                : (getQuestionAwareGuidance(spreadType, question, selectedCards.length) || POSITION_GUIDANCE[spreadType][selectedCards.length])}
             </p>
           </div>
         ) : null}

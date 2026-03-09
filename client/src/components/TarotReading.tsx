@@ -76,6 +76,12 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
       name: '궁합 리딩',
       description: '두 사람의 에너지와 관계 흐름',
       cards: 4
+    },
+    {
+      type: 'daily-fortune' as SpreadType,
+      name: '오늘의 운세',
+      description: '총운 · 금전운 · 연애운',
+      cards: 3
     }
   ];
 
@@ -124,7 +130,10 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const partnerInfo = buildPartnerBirthInfo();
-    onComplete(selectedSpread, question || undefined, includeAdviceCard, partnerInfo, partnerMbti || undefined);
+    // 질문 없이 카드를 뽑으면 자동으로 '오늘의 운세' 스프레드로 전환
+    const finalSpread = (!question.trim() && selectedSpread !== 'daily-fortune') ? 'daily-fortune' as SpreadType : selectedSpread;
+    const finalQuestion = !question.trim() ? '오늘의 운세를 봐주세요' : question;
+    onComplete(finalSpread, finalQuestion, includeAdviceCard, partnerInfo, partnerMbti || undefined);
   };
 
   return (
@@ -134,6 +143,7 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
           <Sparkles className="w-12 h-12 text-mystical-gold mx-auto mb-4" />
           <h2 className="text-3xl font-bold mb-2">타로 리딩</h2>
           <p className="text-white/70">스프레드를 선택하고 질문을 입력해주세요</p>
+          <p className="text-sm text-mystical-gold/80 mt-2">💫 질문 없이 카드를 뽑으면 오늘의 운세(총운/금전운/연애운)를 봐드려요!</p>
           <div className="mt-4 text-sm text-mystical-gold">
             📅 {new Date().toLocaleDateString('ko-KR', { 
               year: 'numeric', 
@@ -471,11 +481,37 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
           </div>
 
           {/* 제출 버튼 */}
+          {/* 추천 질문 */}
+          <div className="bg-white/5 border border-white/20 rounded-xl p-4">
+            <p className="text-sm text-white/60 mb-3">💡 이런 질문을 해보세요:</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                '오늘의 운세를 봐주세요',
+                '이직을 할까 말까?',
+                'A회사 vs B회사 어디가 좋을까?',
+                '올해 재물운은 어떨까요?',
+                '연애는 언제쯤 시작될까?',
+              ].map((suggestion, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setQuestion(suggestion);
+                    setAiRecommendation(null);
+                  }}
+                  className="text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/20 rounded-full text-white/70 hover:text-white transition-colors"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             type="submit"
             className="w-full btn-primary text-lg py-4"
           >
-            카드 뽑기 {includeAdviceCard && '+ 조언 카드'}
+            {!question.trim() ? '✨ 오늘의 운세 보기' : `카드 뽑기 ${includeAdviceCard ? '+ 조언 카드' : ''}`}
           </button>
         </form>
       </div>
@@ -501,6 +537,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
           )}
           {selectedSpread === 'compatibility' && (
             <p>두 사람의 에너지와 관계를 네 장의 카드로 분석합니다. 나의 기운, 상대방의 기운, 두 사람의 관계, 앞으로의 흐름을 살펴봅니다. 상대방 정보를 입력하면 사주 궁합도 함께 분석됩니다.</p>
+          )}
+          {selectedSpread === 'daily-fortune' && (
+            <p>오늘 하루의 전체 운세(총운), 금전운, 연애운을 세 장의 카드로 살펴봅니다. 당신의 사주 만세력, 12신살, MBTI를 반영하여 오늘 날짜의 절기와 연관 지어 해석해 드립니다.</p>
           )}
         </div>
       </div>
