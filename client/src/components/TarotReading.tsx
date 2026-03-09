@@ -130,8 +130,10 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const partnerInfo = buildPartnerBirthInfo();
-    // 질문 없이 카드를 뽑으면 자동으로 '오늘의 운세' 스프레드로 전환
-    const finalSpread = (!question.trim() && selectedSpread !== 'daily-fortune') ? 'daily-fortune' as SpreadType : selectedSpread;
+    // 질문 없이 카드를 뽑거나 운세 관련 질문이면 자동으로 '오늘의 운세' 스프레드로 전환
+    const fortuneKeywords = ['운세', '오늘의 운', '총운', '금전운', '연애운', '일일운', '오늘 운'];
+    const isFortuneQuestion = fortuneKeywords.some(kw => question.trim().includes(kw));
+    const finalSpread = (!question.trim() || isFortuneQuestion) && selectedSpread !== 'daily-fortune' ? 'daily-fortune' as SpreadType : selectedSpread;
     const finalQuestion = !question.trim() ? '오늘의 운세를 봐주세요' : question;
     onComplete(finalSpread, finalQuestion, includeAdviceCard, partnerInfo, partnerMbti || undefined);
   };
@@ -498,6 +500,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
                   onClick={() => {
                     setQuestion(suggestion);
                     setAiRecommendation(null);
+                    if (suggestion === '오늘의 운세를 봐주세요') {
+                      setSelectedSpread('daily-fortune');
+                    }
                   }}
                   className="text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/20 rounded-full text-white/70 hover:text-white transition-colors"
                 >
