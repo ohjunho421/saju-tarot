@@ -47,6 +47,26 @@ export interface SalInfo {
   location: string;
 }
 
+// 별자리 관련 타입
+export type ZodiacSign =
+  | '양자리' | '황소자리' | '쌍둥이자리' | '게자리'
+  | '사자자리' | '처녀자리' | '천칭자리' | '전갈자리'
+  | '사수자리' | '염소자리' | '물병자리' | '물고기자리';
+
+export interface ZodiacInfo {
+  sign: ZodiacSign;
+  signEnglish: string;
+  symbol: string;
+  element: string;
+  quality: string;
+  rulingPlanet: string;
+  dateRange: string;
+  personality: string;
+  strengths: string[];
+  weaknesses: string[];
+  compatibility: ZodiacSign[];
+}
+
 export interface SajuAnalysis {
   birthInfo: BirthInfo;
   chart: SajuChart;
@@ -60,6 +80,7 @@ export interface SajuAnalysis {
   weaknesses: string[];
   recommendations: string[];
   sal?: SalInfo[];
+  zodiac?: ZodiacInfo;
 }
 
 // 타로 관련 타입
