@@ -11,6 +11,7 @@ import {
   HEAVENLY_STEMS,
   EARTHLY_BRANCHES
 } from '../models/saju.model';
+import { ZodiacService } from './zodiac.service';
 
 export class SajuService {
   // 간지를 한글로 변환하는 헬퍼 함수
@@ -774,6 +775,9 @@ export class SajuService {
     // 살(煞) 분석
     const sal = this.analyzeSal(chart);
 
+    // 별자리 분석
+    const zodiac = ZodiacService.getZodiacFromBirthInfo(birthInfo);
+
     return {
       birthInfo,
       chart,
@@ -783,7 +787,8 @@ export class SajuService {
       strongElements,
       weakElements,
       ...personalityAnalysis,
-      sal
+      sal,
+      zodiac
     };
   }
 }

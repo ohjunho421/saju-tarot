@@ -1,5 +1,5 @@
 import type { SajuAnalysis } from '../types';
-import { TrendingUp, TrendingDown, Shield } from 'lucide-react';
+import { TrendingUp, TrendingDown, Shield, Star } from 'lucide-react';
 import ElementGuide from './ElementGuide';
 
 interface SajuResultProps {
@@ -154,6 +154,79 @@ export default function SajuResult({ analysis }: SajuResultProps) {
           )}
         </div>
       </div>
+
+      {/* 별자리 분석 */}
+      {analysis.zodiac && (
+        <div className="card">
+          <h3 className="text-lg md:text-xl font-bold mb-3 md:mb-4 flex items-center gap-2">
+            <Star className="w-5 h-5 text-indigo-400" />
+            별자리 분석 (지미두수)
+          </h3>
+          <div className="bg-indigo-500/10 rounded-xl p-4 md:p-6 border border-indigo-500/20">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-4xl">{analysis.zodiac.symbol}</span>
+              <div>
+                <h4 className="text-xl font-bold text-indigo-300">
+                  {analysis.zodiac.sign}
+                  <span className="text-sm text-white/50 ml-2 font-normal">
+                    {analysis.zodiac.signEnglish}
+                  </span>
+                </h4>
+                <p className="text-sm text-white/60">
+                  {analysis.zodiac.dateRange} | {analysis.zodiac.element} 원소 | {analysis.zodiac.quality} | 수호성: {analysis.zodiac.rulingPlanet}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-base leading-relaxed mb-4 text-white/80">
+              {analysis.zodiac.personality}
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <h5 className="font-semibold mb-2 text-indigo-300 text-sm">별자리 강점</h5>
+                <div className="flex flex-wrap gap-1.5">
+                  {analysis.zodiac.strengths.map((s, i) => (
+                    <span key={i} className="text-xs px-2 py-1 rounded-full bg-indigo-500/15 text-indigo-300">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h5 className="font-semibold mb-2 text-amber-300 text-sm">주의할 성향</h5>
+                <div className="flex flex-wrap gap-1.5">
+                  {analysis.zodiac.weaknesses.map((w, i) => (
+                    <span key={i} className="text-xs px-2 py-1 rounded-full bg-amber-500/15 text-amber-300">
+                      {w}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {analysis.zodiac.compatibility && analysis.zodiac.compatibility.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <h5 className="font-semibold mb-2 text-pink-300 text-sm">궁합 좋은 별자리</h5>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.zodiac.compatibility.map((c, i) => (
+                    <span key={i} className="text-xs px-3 py-1 rounded-full bg-pink-500/15 text-pink-300">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <p className="text-xs text-white/40">
+                동양의 오행({dayMasterElement})과 서양의 4원소({analysis.zodiac.element})가 만나 독특한 에너지 조합을 이룹니다.
+                이 분석은 타로 리딩 시 사주 분석과 함께 자동으로 반영됩니다.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 살(煞) 분석 */}
       {analysis.sal && analysis.sal.length > 0 && (

@@ -119,10 +119,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       data: { lastLoginAt: new Date() }
     });
 
-    // 기존 사용자의 sajuAnalysis에 sal 필드가 없으면 재계산 후 DB 업데이트
+    // 기존 사용자의 sajuAnalysis에 sal/zodiac 필드가 없으면 재계산 후 DB 업데이트
     let sajuAnalysis = user.sajuAnalysis;
     const existingSaju = sajuAnalysis as any;
-    if (user.birthInfo && existingSaju && !existingSaju.sal) {
+    if (user.birthInfo && existingSaju && (!existingSaju.sal || !existingSaju.zodiac)) {
       try {
         const freshAnalysis = sajuService.analyzeSaju(user.birthInfo as any);
         await prisma.user.update({
@@ -188,10 +188,10 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // 기존 사용자의 sajuAnalysis에 sal 필드가 없으면 재계산 후 DB 업데이트
+    // 기존 사용자의 sajuAnalysis에 sal/zodiac 필드가 없으면 재계산 후 DB 업데이트
     let userData = user;
     const existingSaju = user.sajuAnalysis as any;
-    if (user.birthInfo && existingSaju && !existingSaju.sal) {
+    if (user.birthInfo && existingSaju && (!existingSaju.sal || !existingSaju.zodiac)) {
       try {
         const freshAnalysis = sajuService.analyzeSaju(user.birthInfo as any);
         await prisma.user.update({
