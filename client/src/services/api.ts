@@ -140,9 +140,26 @@ export const aiApi = {
     return response.data.data;
   },
 
-  getReadingById: async (id: string) => {
-    const response = await api.get(`/ai/readings/${id}`);
-    return response.data.data;
+  getReadingById: async (id: string): Promise<IntegratedReading> => {
+    const response = await api.get<ApiResponse<IntegratedReading>>(`/ai/readings/${id}`);
+    if (!response.data.success || !response.data.data) {
+      throw new Error('리딩 조회에 실패했습니다.');
+    }
+
+    // 이미지 URL에 서버 baseURL 추가
+    const serverBaseUrl = API_BASE_URL.replace('/api', '');
+    const reading = response.data.data;
+    reading.drawnCards = reading.drawnCards.map(dc => ({
+      ...dc,
+      card: {
+        ...dc.card,
+        imageUrl: dc.card.imageUrl && dc.card.imageUrl.startsWith('/')
+          ? `${serverBaseUrl}${dc.card.imageUrl}`
+          : dc.card.imageUrl
+      }
+    }));
+
+    return reading;
   },
 };
 

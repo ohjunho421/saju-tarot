@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { BirthInfo, SajuAnalysis, SpreadType, IntegratedReading } from '../types';
 import BirthInfoForm from '../components/BirthInfoForm';
 import SajuResult from '../components/SajuResult';
 import TarotReading from '../components/TarotReading';
 import CardSelection from '../components/CardSelection';
-import { sajuApi, authApi } from '../services/api';
+import { sajuApi, authApi, aiApi } from '../services/api';
 import { Loader2 } from 'lucide-react';
 
 interface ReadingPageProps {
@@ -22,6 +22,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [partnerMbti, setPartnerMbti] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pendingReadingRef = useRef(false);
 
   // AI 해석 중 화면 잠금 방지 (Wake Lock API)
   useEffect(() => {
@@ -34,6 +35,74 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       wakeLock?.release();
     };
   }, [loading]);
+
+  // 화면 복귀 시 진행 중이던 리딩 결과 복구
+  const recoverPendingReading = useCallback(async () => {
+    const pending = localStorage.getItem('pendingReading');
+    if (!pending) return;
+
+    try {
+      const { timestamp, question: pendingQ, spreadType: pendingST } = JSON.parse(pending);
+      // 5분 이내 요청만 복구 시도
+      if (Date.now() - timestamp > 5 * 60 * 1000) {
+        localStorage.removeItem('pendingReading');
+        return;
+      }
+
+      // 서버에서 최신 리딩 조회
+      const result = await aiApi.getMyReadings(1, 1);
+      if (result?.readings?.length > 0) {
+        const latest = result.readings[0];
+        const readingTime = new Date(latest.createdAt).getTime();
+        // 요청 시점 이후에 생성된 리딩이며 질문/스프레드가 일치하면 복구
+        if (
+          readingTime >= timestamp - 5000 &&
+          latest.spreadType === pendingST &&
+          (latest.question === pendingQ || (!latest.question && !pendingQ))
+        ) {
+          localStorage.removeItem('pendingReading');
+          // 전체 리딩 상세 조회
+          const fullReading = await aiApi.getReadingById(latest.id);
+          if (fullReading) {
+            setLoading(false);
+            pendingReadingRef.current = false;
+            onComplete(fullReading);
+            return;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('리딩 복구 실패:', err);
+    }
+  }, [onComplete]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && pendingReadingRef.current) {
+        // 화면 복귀 후 잠시 대기 (서버가 처리 완료할 시간)
+        setTimeout(() => recoverPendingReading(), 2000);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [recoverPendingReading]);
+
+  // 앱 로드 시 이전에 완료되지 못한 리딩 복구 시도
+  useEffect(() => {
+    const pending = localStorage.getItem('pendingReading');
+    if (pending) {
+      setLoading(true);
+      pendingReadingRef.current = true;
+      recoverPendingReading().then(() => {
+        if (pendingReadingRef.current) {
+          // 복구 실패 - pending 정리하고 정상 플로우로
+          localStorage.removeItem('pendingReading');
+          pendingReadingRef.current = false;
+          setLoading(false);
+        }
+      });
+    }
+  }, [recoverPendingReading]);
 
   // 로그인한 사용자 정보 자동 로드
   useEffect(() => {
@@ -105,11 +174,16 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     // 사용자가 카드를 모두 선택 완료 - 이제 AI 해석 시작
     setLoading(true);
     setError(null);
+    pendingReadingRef.current = true;
+
+    // 화면 꺼짐 대비: 진행 중인 리딩 정보를 localStorage에 저장
+    localStorage.setItem('pendingReading', JSON.stringify({
+      timestamp: Date.now(),
+      question,
+      spreadType: selectedSpread,
+    }));
 
     try {
-      // 로그인한 사용자만 접근 가능하므로 AI API 사용
-      const { aiApi } = await import('../services/api');
-      
       // 사주 분석과 조언 카드 포함 여부를 함께 전달 (역방향 정보 포함)
       const reading = await aiApi.getAIReading(
         question,
@@ -120,12 +194,30 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
         partnerBirthInfo,
         partnerMbti
       );
-      
-      // 결과 표시
+
+      // 정상 완료 - pending 정리
+      localStorage.removeItem('pendingReading');
+      pendingReadingRef.current = false;
       onComplete(reading);
     } catch (err) {
+      // 네트워크 에러(화면 꺼짐으로 인한)인 경우 복구 시도
+      if (pendingReadingRef.current) {
+        // 3초 후 서버에서 결과 복구 시도
+        setTimeout(async () => {
+          try {
+            await recoverPendingReading();
+          } catch {
+            // 복구 실패 시 에러 표시
+          }
+          if (pendingReadingRef.current) {
+            pendingReadingRef.current = false;
+            setError('타로 리딩 중 연결이 끊어졌습니다. 다시 시도해주세요.');
+            setLoading(false);
+          }
+        }, 3000);
+        return;
+      }
       setError(err instanceof Error ? err.message : '타로 리딩 중 오류가 발생했습니다.');
-    } finally {
       setLoading(false);
     }
   };
@@ -144,6 +236,9 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
         <Loader2 className="w-16 h-16 text-primary-400 animate-spin mb-4" />
         <p className="text-xl text-white/80">{loadingMessage}</p>
         <p className="text-white/60 mt-2">{subMessage}</p>
+        {step !== 'birth' && (
+          <p className="text-white/40 text-sm mt-4">화면이 꺼져도 결과는 자동으로 복구됩니다</p>
+        )}
       </div>
     );
   }

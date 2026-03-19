@@ -11,7 +11,10 @@
       "Skill(plan)",
       "Skill(plan:*)",
       "Bash(npx prisma generate:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(find /d/saju-tarot-service/server/src -type f \\\\\\(-name *.ts \\\\\\))",
+      "Bash(find /d/saju-tarot-service/client/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(grep -rn \"stream\\\\|fetch.*stream\\\\|ReadableStream\\\\|streaming\" /d/saju-tarot-service/server/src --include=*.ts)"
     ]
   }
 }

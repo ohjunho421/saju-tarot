@@ -235,9 +235,26 @@ export const getReadingById = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    // IntegratedReading 형식으로 반환 (화면 복귀 복구용)
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { sajuAnalysis: true }
+    });
+
     res.json({
       success: true,
-      data: reading
+      data: {
+        readingId: reading.id,
+        sajuAnalysis: user?.sajuAnalysis || null,
+        drawnCards: reading.drawnCards,
+        spreadType: reading.spreadType,
+        question: reading.question,
+        interpretation: reading.interpretation,
+        elementalHarmony: reading.elementalHarmony,
+        personalizedAdvice: reading.personalizedAdvice,
+        adviceCardInterpretation: reading.adviceCardInterpretation,
+        compatibilityReading: reading.compatibilityReading,
+      }
     });
   } catch (error) {
     console.error('리딩 조회 오류:', error);
