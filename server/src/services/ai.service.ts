@@ -976,6 +976,12 @@ ${dailyFortuneInstruction}
 ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"당신"이라고 호칭하세요.'}
 역방향 카드는 반드시 역방향 의미로만 해석하세요.
 좋은 점만 말하지 말고 주의점과 어려움도 솔직하게 전달하세요.
+${previousContext && previousContext.length > 0 ? `
+⚠️ 이전 상담 연결 (매우 중요!):
+- 이 사용자는 최근에 아래와 같은 상담을 받았습니다. 이전 흐름을 자연스럽게 연결하세요.
+${previousContext.map((ctx, i) => `  ${i + 1}. "${ctx.question}" (${ctx.date})`).join('\n')}
+- 이전 상담의 주제와 오늘 질문이 연결된다면, "지난번 ~에 대해 상담하셨는데, 그 흐름을 이어서 보면..." 처럼 자연스럽게 언급하세요.
+- 이전 상담과 관련 없는 새 질문이라면 억지로 연결하지 마세요.` : ''}
 
 ⚠️ 가독성 규칙 (매우 중요!):
 - 모든 필드에서 문단 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.
@@ -992,7 +998,7 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
 {
   "summary": "${isDailyFortune
     ? `${userName ? userName + '님' : ''}에게 전하는 오늘(${dateContext.solarDate} ${dateContext.weekday})의 인사 + 오늘의 절기(${dateContext.jieqi})와 사주의 관계를 간단히 언급 + 오늘의 전체적인 운세 핵심 한 줄 요약 (300자).${previousContext && previousContext.length > 0 ? ` 최근 상담에서 '${previousContext[0].question}'을 물어본 적이 있으니, 그 흐름과 연결하여 오늘의 운세를 자연스럽게 이어가세요.` : ''} 예: "안녕하세요! 오늘은 절기상 ${dateContext.jieqi} 시기로, ${seasonalElement}. ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 [상생/상극] 관계를 이루어..." 인사와 결론 사이에 줄바꿈을 넣으세요.`
-    : `${userName ? userName + '님' : ''}에게 전하는 인사 + 핵심 결론 한 문장 + 간단한 이유 (250~300자). ${previousContext && previousContext.length > 0 ? `이전 질문 '${previousContext[0].question}'과의 연결도 언급.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게! 인사와 결론 사이에 줄바꿈을 넣으세요.`}",
+    : `${userName ? userName + '님' : ''}에게 전하는 인사 + 핵심 결론 한 문장 + 간단한 이유 (250~300자). ${previousContext && previousContext.length > 0 ? `최근 '${previousContext[0].question}'(${previousContext[0].date}) 상담과 오늘 질문이 연결된다면 흐름을 자연스럽게 이어가세요. 연결이 없다면 무시.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게! 인사와 결론 사이에 줄바꿈을 넣으세요.`}",
   "cardReadings": "${isDailyFortune
     ? `오늘의 운세를 총운/금전운/연애운 순서로 해석합니다. 각 운에 대해: (1) 카드 그림/상징 묘사 2~3문장 (2) 이 카드가 오늘의 해당 운세에서 의미하는 바 (3) 사주의 ${userElement} 기운과 오늘 절기(${dateContext.jieqi})의 영향을 연결 (4) 신살 중 관련 있는 것 언급 ${userMbti ? `(5) ${userMbti} 성향에 맞는 구체적 조언` : ''}. 각 운세별 400~500자. 각 운세 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.`
     : `${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})${isChoiceQuestion && i < parsedChoices.length ? ` → "${parsedChoices[i]}"` : ''}`).join(', ')} 각 카드를 해석하되, 반드시 이 순서를 따르세요: (1) 카드 그림/상징 묘사 2~3문장 (2) 이 상징이 질문에 어떤 의미인지 해석 ${isChoiceQuestion ? '(해당 선택지와 연결하여 장단점 분석)' : ''} (3) 사주/신살과 자연스러운 연결이 있으면 덧붙이기. 카드당 300~400자. 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.${isChoiceQuestion ? ' 마지막에 선택지 간 비교 총평을 추가하세요.' : ''}`}",
