@@ -8,7 +8,7 @@ import { ZodiacService } from './zodiac.service';
 export class AIService {
   private gemini: GoogleGenerativeAI | null = null;
   private claude: Anthropic | null = null;
-  private geminiModels = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  private geminiModels = ['gemini-2.5-flash', 'gemini-2.5-pro'];
 
   constructor() {
     console.log('🔍 AI 서비스 초기화 중...');
@@ -92,6 +92,10 @@ export class AIService {
 | "연애가 언제 시작될까?" | **시기**를 알고 싶음 | **six-months** |
 | "이 프로젝트 성공할까?" | 결과 예측 | three-card |
 | "결혼은 언제쯤?" | **시기**를 알고 싶음 | **six-months** |
+| "이번달 연애운은?" | 이번 달 특정 운세 | **three-card** |
+| "이번달 금전운 봐줘" | 이번 달 특정 운세 | **three-card** |
+| "올해 연애운은?" | 올해 장기 흐름 | **six-months** |
+| "오늘의 운세" | 오늘 하루 전체 운세 | **daily-fortune** |
 
 ## 스프레드 설명
 
@@ -101,9 +105,16 @@ export class AIService {
 - **problem-solution**: 문제의 원인 + 해결책
 - **three-card**: 과거-현재-미래 흐름
 - **saju-custom**: 오행 에너지 분석
-- **six-months**: 향후 6개월 월별 흐름 (**시기 질문에 필수**)
+- **six-months**: 향후 6개월 월별 흐름 (**시기 질문에 필수**, "올해 연애운" 등 연간 운세에도 사용)
 - **celtic-cross**: 복잡한 상황 종합 분석
 - **compatibility**: 두 사람의 궁합 분석 (**궁합, 잘 맞는지, 우리 사이, 상대방과 등 관계 질문에 필수**)
+- **daily-fortune**: 오늘 하루의 총운/금전운/연애운 (**"오늘의 운세"처럼 오늘 하루만 볼 때만 사용**)
+
+⚠️ 기간별 운세 구분 (매우 중요):
+- "오늘 운세/연애운" → **daily-fortune** (오늘 하루만)
+- "이번달 연애운/금전운" → **three-card** (이번 달의 흐름)
+- "이번주 운세" → **three-card** (이번 주의 흐름)
+- "올해 연애운/금전운" → **six-months** (올해 장기 흐름)
 
 JSON 형식으로 답변:
 {
@@ -240,10 +251,44 @@ JSON 형식으로 답변:
       };
     }
 
-    // 5-1. 오늘의 운세 질문
-    const fortuneKeywords = ['운세', '오늘의 운', '총운', '금전운', '연애운', '일일운', '오늘 운'];
-    const isFortuneQuestion = fortuneKeywords.some(keyword => lowerQ.includes(keyword));
+    // 5-1. 운세 질문 (기간별 분기)
+    const fortuneTopics = ['운세', '총운', '금전운', '연애운', '건강운', '직장운', '학업운', '사업운'];
+    const isFortuneQuestion = fortuneTopics.some(keyword => lowerQ.includes(keyword));
+
     if (isFortuneQuestion) {
+      // 기간 키워드에 따라 적절한 스프레드 선택
+      const monthlyKeywords = ['이번 달', '이번달', '이달', '금월', '월간'];
+      const yearlyKeywords = ['올해', '금년', '이번 해', '연간', '내년'];
+      const weeklyKeywords = ['이번 주', '이번주', '금주', '주간'];
+      const dailyKeywords = ['오늘', '오늘의', '일일', '하루'];
+
+      const isMonthly = monthlyKeywords.some(k => lowerQ.includes(k));
+      const isYearly = yearlyKeywords.some(k => lowerQ.includes(k));
+      const isWeekly = weeklyKeywords.some(k => lowerQ.includes(k));
+      const isDaily = dailyKeywords.some(k => lowerQ.includes(k));
+
+      if (isYearly) {
+        return {
+          analysis: '올해의 운세 흐름을 묻는 질문입니다.',
+          recommendedSpread: 'six-months',
+          reason: '향후 6개월간 월별 흐름을 통해 올해의 운세를 종합적으로 파악할 수 있습니다.'
+        };
+      }
+      if (isMonthly) {
+        return {
+          analysis: '이번 달의 운세를 묻는 질문입니다.',
+          recommendedSpread: 'three-card',
+          reason: '이번 달의 흐름을 과거-현재-미래로 나눠 구체적으로 살펴봅니다.'
+        };
+      }
+      if (isWeekly) {
+        return {
+          analysis: '이번 주의 운세를 묻는 질문입니다.',
+          recommendedSpread: 'three-card',
+          reason: '이번 주의 흐름을 과거-현재-미래로 나눠 살펴봅니다.'
+        };
+      }
+      // 기간 미지정 또는 오늘 → daily-fortune
       return {
         analysis: '오늘의 운세를 묻는 질문입니다.',
         recommendedSpread: 'daily-fortune',
