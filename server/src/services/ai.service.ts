@@ -523,8 +523,9 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 
     console.log(`📊 [Legacy] 카드 ${cardCount}장, 응답 길이: ${response.length}자`);
 
-    // JSON 파싱 시도
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    // JSON 파싱 시도 (제어문자 정리 후)
+    const sanitizedLegacy = this.sanitizeJsonResponse(response);
+    const jsonMatch = sanitizedLegacy.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0]);
@@ -1063,8 +1064,9 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
 
       console.log(`📊 Step 2 해석 생성 완료 - 카드 ${cardCount}장, max_tokens: ${maxTokens}, 응답 길이: ${response.length}자`);
 
-      // JSON 파싱
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      // JSON 파싱 (제어문자 정리 후)
+      const sanitized = this.sanitizeJsonResponse(response);
+      const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
       if (!jsonMatch) throw new Error('Step 2 JSON 파싱 실패');
 
       const parsed = JSON.parse(jsonMatch[0]);
@@ -1111,6 +1113,22 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
     }
   }
 
+  // JSON 문자열 내 제어문자 정리 (Gemini가 문자열 값 안에 raw 줄바꿈/탭을 넣는 문제 해결)
+  private sanitizeJsonResponse(text: string): string {
+    // JSON 문자열 값 내부의 이스케이프되지 않은 제어문자를 공백으로 치환
+    // 문자열 밖의 공백/줄바꿈은 JSON.parse가 자체 처리하므로 건드리지 않음
+    return text.replace(/"((?:[^"\\]|\\.)*)"/g, (match, inner) => {
+      const cleaned = inner
+        .replace(/[\x00-\x1F\x7F]/g, (ch: string) => {
+          if (ch === '\n') return '\\n';
+          if (ch === '\r') return '\\r';
+          if (ch === '\t') return '\\t';
+          return ' ';
+        });
+      return `"${cleaned}"`;
+    });
+  }
+
   // Gemini 모델 fallback 로직
   private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024, options?: { jsonMode?: boolean; minLength?: number }): Promise<string> {
     if (!this.gemini) {
@@ -1132,11 +1150,14 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
         const result = await model.generateContent(prompt);
 
         // 응답 검증
-        const responseText = result.response.text();
+        let responseText = result.response.text();
         if (!responseText || responseText.trim() === '') {
           console.warn(`⚠️ ${modelName}: 빈 응답 반환됨, 다음 모델 시도...`);
           continue;
         }
+
+        // 제어문자 정리 (Gemini가 JSON 문자열 안에 raw 줄바꿈/탭을 넣는 문제)
+        responseText = this.sanitizeJsonResponse(responseText);
 
         // jsonMode일 때: 유효한 JSON이고 필드가 2개 이상인지 검증
         if (options?.jsonMode) {
