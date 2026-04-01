@@ -118,8 +118,8 @@
   "hotPaths": [
     {
       "path": "server\\src\\services\\ai.service.ts",
-      "accessCount": 31,
-      "lastAccessed": 1775024748601,
+      "accessCount": 38,
+      "lastAccessed": 1775025305700,
       "type": "file"
     },
     {

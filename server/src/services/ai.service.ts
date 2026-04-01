@@ -509,15 +509,21 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     if (includeAdviceCard) maxTokens += 1000;
 
     if (this.gemini) {
-      response = await this.tryGeminiWithFallback(prompt, maxTokens);
-    } else if (this.claude) {
+      try {
+        response = await this.tryGeminiWithFallback(prompt, maxTokens);
+      } catch (geminiError) {
+        console.warn('⚠️ [Legacy] Gemini 실패, Claude fallback:', (geminiError as Error).message);
+      }
+    }
+    if (!response && this.claude) {
       const message = await this.claude.messages.create({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }]
       });
       response = message.content[0].type === 'text' ? message.content[0].text : '';
-    } else {
+    }
+    if (!response) {
       throw new Error('AI 서비스를 사용할 수 없습니다.');
     }
 
@@ -644,58 +650,35 @@ ${partnerSection}
       let response = '';
       let parsed: any = null;
 
-      // 1차 시도
-      try {
-        if (this.gemini) {
+      // Gemini 시도
+      if (this.gemini) {
+        try {
           response = await this.tryGeminiWithFallback(prompt, 2048, { jsonMode: true });
-        } else if (this.claude) {
+          console.log('📋 Step 1 Gemini 응답 (첫 500자):', response.substring(0, 500));
+          parsed = this.parseStep1Json(response);
+        } catch (geminiError) {
+          console.warn('⚠️ Step 1 Gemini 실패:', (geminiError as Error).message);
+        }
+      }
+
+      // Gemini 실패 or 미설정 → Claude fallback
+      if (!parsed && this.claude) {
+        try {
+          console.log('🔄 Step 1 Claude fallback 시도...');
           const message = await this.claude.messages.create({
             model: 'claude-sonnet-4-5-20250929',
             max_tokens: 2048,
             messages: [{ role: 'user', content: prompt }]
           });
           response = message.content[0].type === 'text' ? message.content[0].text : '';
-        }
-        console.log('📋 Step 1 원본 응답 (첫 500자):', response.substring(0, 500));
-        parsed = this.parseStep1Json(response);
-      } catch (firstError) {
-        console.warn('⚠️ Step 1 첫 번째 시도 실패, 간소화 프롬프트로 재시도...', (firstError as Error).message);
-
-        // 2차 시도: 간소화 프롬프트
-        const retryPrompt = `한국어로 JSON만 응답하세요.
-사주 일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement}), 질문: ${question}, 카드: ${cardText}
-{
-  "keySalNames": "${salList && salList.length > 0 ? salList.slice(0, 3).map(s => s.name).join(',') : ''}",
-  "keySalReasons": "${salList && salList.length > 0 ? salList.slice(0, 3).map(s => s.effect).join('||') : ''}",
-  "keySalPositive": "${salList && salList.length > 0 ? salList.slice(0, 3).map(s => String(s.isPositive)).join(',') : ''}",
-  "elementInterplay": "오행 분석 한 문장",
-  "readingTone": "리딩 톤 한 문장",
-  "cardSummary": "카드별 핵심 해석",
-  "overallDirection": "핵심 메시지 한 문장",
-  "mbtiInsight": "${userMbti || '해당없음'}"
-}
-위 구조를 채워서 JSON만 반환하세요.`;
-
-        try {
-          if (this.gemini) {
-            response = await this.tryGeminiWithFallback(retryPrompt, 1024, { jsonMode: true });
-          } else if (this.claude) {
-            const message = await this.claude.messages.create({
-              model: 'claude-sonnet-4-5-20250929',
-              max_tokens: 1024,
-              messages: [{ role: 'user', content: retryPrompt }]
-            });
-            response = message.content[0].type === 'text' ? message.content[0].text : '';
-          }
-          console.log('📋 Step 1 재시도 응답 (첫 500자):', response.substring(0, 500));
+          console.log('📋 Step 1 Claude 응답 (첫 500자):', response.substring(0, 500));
           parsed = this.parseStep1Json(response);
-        } catch (retryError) {
-          console.warn('⚠️ Step 1 재시도도 실패:', (retryError as Error).message);
-          throw retryError;
+        } catch (claudeError) {
+          console.warn('⚠️ Step 1 Claude도 실패:', (claudeError as Error).message);
         }
       }
 
-      if (!parsed) throw new Error('Step 1 파싱 결과 없음');
+      if (!parsed) throw new Error('Step 1: Gemini와 Claude 모두 실패');
 
       // 평탄화된 응답을 원래 구조로 변환
       const keySalNames = (parsed.keySalNames || '').split(',').map((s: string) => s.trim()).filter(Boolean);
@@ -1050,15 +1033,21 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
       if (zodiacInfo) maxTokens += 600;
 
       if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, maxTokens);
-      } else if (this.claude) {
+        try {
+          response = await this.tryGeminiWithFallback(prompt, maxTokens);
+        } catch (geminiError) {
+          console.warn('⚠️ Step 2 Gemini 실패, Claude fallback:', (geminiError as Error).message);
+        }
+      }
+      if (!response && this.claude) {
         const message = await this.claude.messages.create({
           model: 'claude-sonnet-4-5-20250929',
           max_tokens: maxTokens,
           messages: [{ role: 'user', content: prompt }]
         });
         response = message.content[0].type === 'text' ? message.content[0].text : '';
-      } else {
+      }
+      if (!response) {
         throw new Error('AI 서비스를 사용할 수 없습니다.');
       }
 
