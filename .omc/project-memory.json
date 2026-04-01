@@ -123,15 +123,33 @@
       "type": "file"
     },
     {
-      "path": "server\\src",
-      "accessCount": 1,
-      "lastAccessed": 1775008465337,
-      "type": "directory"
+      "path": "client\\src\\pages\\HomePage.tsx",
+      "accessCount": 5,
+      "lastAccessed": 1775009569331,
+      "type": "file"
     },
     {
       "path": "",
+      "accessCount": 4,
+      "lastAccessed": 1775009460915,
+      "type": "directory"
+    },
+    {
+      "path": "client\\src\\App.tsx",
+      "accessCount": 3,
+      "lastAccessed": 1775009506315,
+      "type": "file"
+    },
+    {
+      "path": "client\\index.html",
+      "accessCount": 2,
+      "lastAccessed": 1775009510634,
+      "type": "file"
+    },
+    {
+      "path": "server\\src",
       "accessCount": 1,
-      "lastAccessed": 1775008472451,
+      "lastAccessed": 1775008465337,
       "type": "directory"
     },
     {
@@ -151,6 +169,12 @@
       "accessCount": 1,
       "lastAccessed": 1775008492876,
       "type": "file"
+    },
+    {
+      "path": "client",
+      "accessCount": 1,
+      "lastAccessed": 1775009467325,
+      "type": "directory"
     }
   ],
   "userDirectives": []

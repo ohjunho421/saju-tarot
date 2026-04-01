@@ -88,7 +88,7 @@ function App() {
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-mystical-gold to-primary-400 bg-clip-text text-transparent whitespace-nowrap">
-                사주타로
+                별사탕
               </h1>
             </button>
 
@@ -167,7 +167,7 @@ function App() {
       </main>
 
       <footer className="py-8 text-center text-white/30 text-xs border-t border-white/[0.06] mt-16">
-        <p>&copy; 2025 사주타로 &middot; 엔터테인먼트 목적으로 제공됩니다</p>
+        <p>&copy; 2025 별사탕 &middot; 엔터테인먼트 목적으로 제공됩니다</p>
       </footer>
 
       {/* 로그인/회원가입 모달 */}
