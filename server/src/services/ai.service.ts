@@ -606,10 +606,11 @@ ${partnerMbti ? `MBTI: ${partnerMbti}` : ''}
       ? `별자리: ${zodiacInfo.symbol}${zodiacInfo.sign}(${zodiacInfo.element}원소, ${zodiacInfo.quality}) - ${zodiacInfo.strengths.slice(0, 3).join(',')} / 약점: ${zodiacInfo.weaknesses.slice(0, 2).join(',')}`
       : '';
 
-    const prompt = `당신은 사주명리학, 서양 별자리, 타로를 융합하는 분석가입니다.
-아래 정보를 바탕으로 해석 전략을 JSON으로 응답하세요.
+    const prompt = `당신은 사주명리학, 서양 별자리, 타로를 융합하는 한국어 분석가입니다.
+반드시 한국어로 답변하세요. 영어 사용 금지.
 
-사용자 일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
+[입력 정보]
+일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
 강한오행: ${sajuAnalysis.strongElements.join('+')} / 약한오행: ${sajuAnalysis.weakElements.join('+')}
 ${userMbti ? `MBTI: ${userMbti}` : ''}
 ${zodiacText}
@@ -619,7 +620,7 @@ ${partnerSection}
 카드: ${cardText}
 시기: ${dateContext.month}월 ${dateContext.season}
 
-아래 JSON 형식으로만 답하세요. 문자열 안에 쌍따옴표(") 절대 금지:
+[응답 형식] 아래 JSON 구조를 정확히 따르세요:
 {
   "keySalNames": "신살명1,신살명2",
   "keySalReasons": "이유1||이유2",
@@ -632,30 +633,68 @@ ${partnerSection}
   "compatibilityInsight": "두 사람 오행 관계와 궁합 핵심 한 문장"` : ''}
 }
 
-주의사항:
-- JSON만 출력, 배열 [] 사용 절대 금지
-- 모든 값은 단순 문자열
-- cardSummary 구분자: 카드 내부는 @@, 카드 간 구분은 ##
-- keySalReasons 구분자: ||
-- 신살 없으면 keySalNames/keySalReasons/keySalPositive 모두 빈 문자열`;
+규칙:
+- 배열 [] 사용 금지, 모든 값은 문자열
+- cardSummary: 카드 내부 @@, 카드 간 ##
+- keySalReasons: 이유 간 ||
+- 신살 없으면 빈 문자열`;
 
     try {
       let response = '';
-      if (this.gemini) {
-        response = await this.tryGeminiWithFallback(prompt, 2048, { minLength: 150 });
-      } else if (this.claude) {
-        const message = await this.claude.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 2048,
-          messages: [{ role: 'user', content: prompt }]
-        });
-        response = message.content[0].type === 'text' ? message.content[0].text : '';
+      let parsed: any = null;
+
+      // 1차 시도
+      try {
+        if (this.gemini) {
+          response = await this.tryGeminiWithFallback(prompt, 2048, { jsonMode: true });
+        } else if (this.claude) {
+          const message = await this.claude.messages.create({
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 2048,
+            messages: [{ role: 'user', content: prompt }]
+          });
+          response = message.content[0].type === 'text' ? message.content[0].text : '';
+        }
+        console.log('📋 Step 1 원본 응답 (첫 500자):', response.substring(0, 500));
+        parsed = this.parseStep1Json(response);
+      } catch (firstError) {
+        console.warn('⚠️ Step 1 첫 번째 시도 실패, 간소화 프롬프트로 재시도...', (firstError as Error).message);
+
+        // 2차 시도: 간소화 프롬프트
+        const retryPrompt = `한국어로 JSON만 응답하세요.
+사주 일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement}), 질문: ${question}, 카드: ${cardText}
+{
+  "keySalNames": "${salList && salList.length > 0 ? salList.slice(0, 3).map(s => s.name).join(',') : ''}",
+  "keySalReasons": "${salList && salList.length > 0 ? salList.slice(0, 3).map(s => s.effect).join('||') : ''}",
+  "keySalPositive": "${salList && salList.length > 0 ? salList.slice(0, 3).map(s => String(s.isPositive)).join(',') : ''}",
+  "elementInterplay": "오행 분석 한 문장",
+  "readingTone": "리딩 톤 한 문장",
+  "cardSummary": "카드별 핵심 해석",
+  "overallDirection": "핵심 메시지 한 문장",
+  "mbtiInsight": "${userMbti || '해당없음'}"
+}
+위 구조를 채워서 JSON만 반환하세요.`;
+
+        try {
+          if (this.gemini) {
+            response = await this.tryGeminiWithFallback(retryPrompt, 1024, { jsonMode: true });
+          } else if (this.claude) {
+            const message = await this.claude.messages.create({
+              model: 'claude-sonnet-4-5-20250929',
+              max_tokens: 1024,
+              messages: [{ role: 'user', content: retryPrompt }]
+            });
+            response = message.content[0].type === 'text' ? message.content[0].text : '';
+          }
+          console.log('📋 Step 1 재시도 응답 (첫 500자):', response.substring(0, 500));
+          parsed = this.parseStep1Json(response);
+        } catch (retryError) {
+          console.warn('⚠️ Step 1 재시도도 실패:', (retryError as Error).message);
+          throw retryError;
+        }
       }
 
-      console.log('📋 Step 1 원본 응답 (첫 500자):', response.substring(0, 500));
-
-      // JSON 파싱 (강화된 다단계 fallback)
-      const parsed = this.parseStep1Json(response);
+      if (!parsed) throw new Error('Step 1 파싱 결과 없음');
 
       // 평탄화된 응답을 원래 구조로 변환
       const keySalNames = (parsed.keySalNames || '').split(',').map((s: string) => s.trim()).filter(Boolean);
@@ -1099,19 +1138,24 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
           continue;
         }
 
-        // 최소 길이 검증 (JSON 모드에서 너무 짧은 응답은 불완전)
-        if (options?.minLength && responseText.length < options.minLength) {
-          // JSON 모드일 때는 짧아도 유효한 JSON인지 먼저 확인
-          if (options?.jsonMode) {
-            try {
-              const testParsed = JSON.parse(responseText);
-              // 유효한 JSON이고 최소 하나의 필드가 있으면 사용
-              if (testParsed && typeof testParsed === 'object' && Object.keys(testParsed).length > 0) {
-                console.log(`✅ ${modelName} 성공 (짧지만 유효한 JSON: ${responseText.length}자)`);
-                return responseText;
-              }
-            } catch {}
+        // jsonMode일 때: 유효한 JSON이고 필드가 2개 이상인지 검증
+        if (options?.jsonMode) {
+          try {
+            const testParsed = JSON.parse(responseText);
+            if (!testParsed || typeof testParsed !== 'object' || Object.keys(testParsed).length < 2) {
+              console.warn(`⚠️ ${modelName}: JSON 필드 부족 (${Object.keys(testParsed || {}).length}개), 다음 모델 시도...`);
+              continue;
+            }
+            console.log(`✅ ${modelName} 성공 (유효 JSON, ${Object.keys(testParsed).length}필드, ${responseText.length}자)`);
+            return responseText;
+          } catch {
+            console.warn(`⚠️ ${modelName}: jsonMode인데 JSON 파싱 실패, 다음 모델 시도...`);
+            continue;
           }
+        }
+
+        // 비-jsonMode: 최소 길이 검증
+        if (options?.minLength && responseText.length < options.minLength) {
           console.warn(`⚠️ ${modelName}: 응답이 너무 짧음 (${responseText.length}자 < ${options.minLength}자), 다음 모델 시도...`);
           continue;
         }
