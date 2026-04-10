@@ -108,9 +108,21 @@
   },
   "hotPaths": [
     {
+      "path": "client\\src\\components\\CardSelection.tsx",
+      "accessCount": 13,
+      "lastAccessed": 1775843006238,
+      "type": "file"
+    },
+    {
       "path": "server\\src\\services\\ai.service.ts",
       "accessCount": 5,
       "lastAccessed": 1775841878792,
+      "type": "file"
+    },
+    {
+      "path": "client\\src\\pages\\ReadingPage.tsx",
+      "accessCount": 4,
+      "lastAccessed": 1775843045238,
       "type": "file"
     },
     {
@@ -126,9 +138,27 @@
       "type": "directory"
     },
     {
+      "path": "client\\src\\components\\ChatBot.tsx",
+      "accessCount": 2,
+      "lastAccessed": 1775843062372,
+      "type": "file"
+    },
+    {
       "path": "",
       "accessCount": 1,
       "lastAccessed": 1775841593774,
+      "type": "directory"
+    },
+    {
+      "path": "C:\\Users\\dhwns\\.claude",
+      "accessCount": 1,
+      "lastAccessed": 1775842502449,
+      "type": "directory"
+    },
+    {
+      "path": "client\\src",
+      "accessCount": 1,
+      "lastAccessed": 1775843014855,
       "type": "directory"
     }
   ],

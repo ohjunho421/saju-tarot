@@ -14,7 +14,12 @@
       "Bash(npm run build:*)",
       "Bash(find /d/saju-tarot-service/server/src -type f \\\\\\(-name *.ts \\\\\\))",
       "Bash(find /d/saju-tarot-service/client/src -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
-      "Bash(grep -rn \"stream\\\\|fetch.*stream\\\\|ReadableStream\\\\|streaming\" /d/saju-tarot-service/server/src --include=*.ts)"
+      "Bash(grep -rn \"stream\\\\|fetch.*stream\\\\|ReadableStream\\\\|streaming\" /d/saju-tarot-service/server/src --include=*.ts)",
+      "Read(//c/Users/dhwns/.claude/plugins/cache/ui-ux-pro-max-skill/ui-ux-pro-max/2.0.1/.claude/skills/ui-ux-pro-max/**)",
+      "Bash(python scripts/search.py \"tarot card selection interactive mystical\" --domain ux -n 15)",
+      "Bash(python scripts/search.py \"card selection interactive touch animation\" --domain ux -n 15)",
+      "Bash(python scripts/search.py \"mobile touch accessibility loading feedback\" --domain ux -n 15)",
+      "Bash(python scripts/search.py \"mystical dark spiritual gold purple\" --domain style -n 10)"
     ]
   }
 }

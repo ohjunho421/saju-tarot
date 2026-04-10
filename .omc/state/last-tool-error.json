@@ -1,7 +1,7 @@
 {
-  "tool_name": "Read",
-  "tool_input_preview": "{\"file_path\":\"D:/saju-tarot-service/server/src/services/ai.service.ts\"}",
-  "error": "File content (27277 tokens) exceeds maximum allowed tokens (10000). Use offset and limit parameters to read specific portions of the file, or search for specific content instead of reading the whole file.",
-  "timestamp": "2026-04-01T01:54:42.081Z",
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd \\\"C:\\\\Users\\\\dhwns\\\\.claude\\\\plugins\\\\cache\\\\ui-ux-pro-max-skill\\\\ui-ux-pro-max\\\\2.0.1\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\" && python scripts/search.py \\\"tarot card selection interactive m...",
+  "error": "Exit code 2\nC:\\Python313\\python.exe: can't open file 'C:\\\\Users\\\\dhwns\\\\.claude\\\\plugins\\\\cache\\\\ui-ux-pro-max-skill\\\\ui-ux-pro-max\\\\2.0.1\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py': [Errno 2] No such file or directory",
+  "timestamp": "2026-04-10T17:34:52.095Z",
   "retry_count": 1
 }

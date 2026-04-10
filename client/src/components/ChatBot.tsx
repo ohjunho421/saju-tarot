@@ -65,8 +65,7 @@ export default function ChatBot({ reading }: ChatBotProps) {
       if (!response.ok) throw new Error('답변을 받을 수 없습니다');
 
       const data = await response.json();
-      console.log('Chat API 응답:', data);
-      
+
       const answerText = data?.data?.answer || data?.answer || '';
       
       if (!answerText) {

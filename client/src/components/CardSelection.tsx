@@ -247,6 +247,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
   const [selectedCards, setSelectedCards] = useState<{ deckPosition: number; isReversed: boolean }[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
   const [revealedCards, setRevealedCards] = useState<Set<number>>(new Set());
+  const [allRevealed, setAllRevealed] = useState(false); // 모든 카드 공개 완료 여부
   const [fanRotation, setFanRotation] = useState(0);
   const fanContainerRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -279,7 +280,6 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setDeckCards(shuffled);
-    console.log('🔀 Deck shuffled (' + totalDeckSize + ' cards)');
   }, [spreadType, question, allTarotCards]); // spreadType, question, allTarotCards가 변경될 때마다 섞음
 
   // 타로 카드 데이터 로드
@@ -317,8 +317,11 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
         const newSelected = [...selectedCards, { deckPosition: index, isReversed }];
         setSelectedCards(newSelected);
         setPreviewCard(null);
-        
-        console.log(`🎴 카드 선택: 덱 위치 ${index}, 역방향: ${isReversed}`);
+
+        // 햅틱 피드백 (모바일)
+        if (navigator.vibrate) {
+          navigator.vibrate(15);
+        }
         
         // 모든 카드 선택 완료
         if (newSelected.length === totalCards) {
@@ -341,17 +344,11 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
       setTimeout(() => {
         setRevealedCards(prev => new Set([...prev, card.deckPosition]));
         
-        // 마지막 카드 뒤집기 완료 후
+        // 마지막 카드 뒤집기 완료 후 - 사용자가 결과 확인 버튼을 누를 수 있도록
         if (i === cards.length - 1) {
           setTimeout(() => {
-            // 선택한 위치의 실제 카드 번호와 역방향 정보를 서버에 전송
-            const cardsToSend = cards.map(c => ({
-              cardIndex: deckCards[c.deckPosition],
-              isReversed: c.isReversed
-            }));
-            console.log('📤 서버로 전송:', cardsToSend);
-            onComplete(cardsToSend);
-          }, 8000); // 8초 대기 - 사용자가 카드를 충분히 볼 수 있도록
+            setAllRevealed(true);
+          }, 1200); // 마지막 카드 뒤집기 애니메이션 완료 후 버튼 표시
         }
       }, i * 800); // 카드당 800ms 간격으로 천천히 뒤집기
     });
@@ -497,8 +494,8 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
             <p className="text-lg text-white/80 max-w-2xl mx-auto mb-3">
               {GUIDANCE_MESSAGES[spreadType]}
             </p>
-            <p className="text-lg text-mystical-gold animate-pulse font-semibold">
-              🌟 {getQuestionAwareGuidance(spreadType, question, 0) || POSITION_GUIDANCE[spreadType][0]}
+            <p className="text-lg text-mystical-gold font-semibold motion-safe:animate-pulse">
+              {getQuestionAwareGuidance(spreadType, question, 0) || POSITION_GUIDANCE[spreadType][0]}
             </p>
           </div>
         ) : selectedCards.length < totalCards ? (
@@ -506,18 +503,40 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
             <p className="text-base text-white/70 mb-2">
               {selectedCards.length + 1}번째 카드 선택
             </p>
-            <p className="text-lg text-mystical-gold animate-pulse font-semibold">
-              🌟 {selectedCards.length >= baseCardCount
+            <p className="text-lg text-mystical-gold font-semibold motion-safe:animate-pulse">
+              {selectedCards.length >= baseCardCount
                 ? ADVICE_CARD_GUIDANCE
                 : (getQuestionAwareGuidance(spreadType, question, selectedCards.length) || POSITION_GUIDANCE[spreadType][selectedCards.length])}
             </p>
           </div>
         ) : null}
         
-        {isRevealing && (
-          <p className="text-sm text-mystical-gold mt-4 animate-pulse">
-            ✨ 카드를 공개하고 있습니다...
-          </p>
+        {isRevealing && !allRevealed && (
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-mystical-gold rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-mystical-gold rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-mystical-gold rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <span className="text-sm text-mystical-gold ml-2">
+              카드를 공개하고 있습니다 ({revealedCards.size}/{totalCards})
+            </span>
+          </div>
+        )}
+        {allRevealed && (
+          <div className="mt-6">
+            <button
+              onClick={() => {
+                const cardsToSend = selectedCards.map(c => ({
+                  cardIndex: deckCards[c.deckPosition],
+                  isReversed: c.isReversed
+                }));
+                onComplete(cardsToSend);
+              }}
+              className="btn-primary text-lg px-10 py-4 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all"
+            >
+              <Sparkles className="w-5 h-5 inline-block mr-2" />
+              카드 해석 보기
+            </button>
+          </div>
         )}
       </div>
 

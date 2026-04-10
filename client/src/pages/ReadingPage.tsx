@@ -152,8 +152,6 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   };
 
   const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean, partnerInfo?: BirthInfo, mbti?: string) => {
-    console.log('🎴 handleTarotComplete 호출:', { spreadType, userQuestion, includeAdvice, hasPartner: !!partnerInfo, partnerMbti: mbti });
-
     // State를 먼저 모두 설정한 후 다음 렌더링에서 step 변경
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
@@ -163,7 +161,6 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
 
     // setTimeout을 사용하여 state 업데이트 후 step 전환 보장
     setTimeout(() => {
-      console.log('📍 cardSelection 단계로 전환');
       setStep('cardSelection');
     }, 0);
   };
@@ -326,12 +323,6 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       )}
 
       {step === 'cardSelection' && (() => {
-        console.log('🔍 cardSelection 렌더링 조건:', { 
-          step, 
-          selectedSpread, 
-          shouldRender: !!selectedSpread 
-        });
-        
         if (!selectedSpread) {
           return (
             <div className="text-center text-white">
