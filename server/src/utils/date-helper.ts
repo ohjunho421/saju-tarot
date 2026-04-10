@@ -13,10 +13,18 @@ export interface DateContext {
 }
 
 export class DateHelper {
-  // 현재 날짜 컨텍스트 생성
-  static getCurrentDateContext(): DateContext {
+  // 한국 시간(KST) 기준 현재 날짜 반환
+  private static getKSTDate(): Date {
     const now = new Date();
-    const solar = Solar.fromDate(now);
+    const kstOffset = 9 * 60; // UTC+9
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    return new Date(utc + kstOffset * 60000);
+  }
+
+  // 현재 날짜 컨텍스트 생성 (한국 시간 기준)
+  static getCurrentDateContext(): DateContext {
+    const now = this.getKSTDate();
+    const solar = Solar.fromYmd(now.getFullYear(), now.getMonth() + 1, now.getDate());
     const lunar = solar.getLunar();
 
     // lunar 객체가 제대로 생성되었는지 확인

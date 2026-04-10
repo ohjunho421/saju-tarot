@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1775008417239,
+  "lastScanned": 1775841547927,
   "projectRoot": "D:\\saju-tarot-service",
   "techStack": {
     "languages": [],
@@ -36,7 +36,7 @@
       "path": "client",
       "purpose": null,
       "fileCount": 19,
-      "lastAccessed": 1775008416776,
+      "lastAccessed": 1775841547508,
       "keyFiles": [
         "build_output.txt",
         "build_output2.txt",
@@ -49,7 +49,7 @@
       "path": "server",
       "purpose": null,
       "fileCount": 12,
-      "lastAccessed": 1775008416790,
+      "lastAccessed": 1775841547510,
       "keyFiles": [
         "package-lock.json",
         "package.json",
@@ -62,21 +62,21 @@
       "path": "shared",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1775008416794,
+      "lastAccessed": 1775841547516,
       "keyFiles": []
     },
     "타로카드": {
       "path": "타로카드",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1775008416806,
+      "lastAccessed": 1775841547521,
       "keyFiles": []
     },
     "client\\dist": {
       "path": "client\\dist",
       "purpose": "Distribution/build output",
       "fileCount": 2,
-      "lastAccessed": 1775008416824,
+      "lastAccessed": 1775841547534,
       "keyFiles": [
         "index.html",
         "vite.svg"
@@ -86,7 +86,7 @@
       "path": "server\\dist",
       "purpose": "Distribution/build output",
       "fileCount": 1,
-      "lastAccessed": 1775008416874,
+      "lastAccessed": 1775841547550,
       "keyFiles": [
         "index.js"
       ]
@@ -95,85 +95,40 @@
       "path": "server\\node_modules",
       "purpose": "Dependencies",
       "fileCount": 1,
-      "lastAccessed": 1775008416938,
+      "lastAccessed": 1775841547568,
       "keyFiles": []
     },
     "server\\public": {
       "path": "server\\public",
       "purpose": "Public files",
       "fileCount": 0,
-      "lastAccessed": 1775008416977,
+      "lastAccessed": 1775841547569,
       "keyFiles": []
-    },
-    "server\\src": {
-      "path": "server\\src",
-      "purpose": "Source code",
-      "fileCount": 1,
-      "lastAccessed": 1775008416986,
-      "keyFiles": [
-        "index.ts"
-      ]
     }
   },
   "hotPaths": [
     {
       "path": "server\\src\\services\\ai.service.ts",
-      "accessCount": 46,
-      "lastAccessed": 1775026068734,
-      "type": "file"
-    },
-    {
-      "path": "client\\src\\pages\\HomePage.tsx",
       "accessCount": 5,
-      "lastAccessed": 1775009569331,
+      "lastAccessed": 1775841878792,
       "type": "file"
     },
     {
-      "path": "",
-      "accessCount": 4,
-      "lastAccessed": 1775009460915,
-      "type": "directory"
-    },
-    {
-      "path": "client\\src\\App.tsx",
+      "path": "server\\src\\utils\\date-helper.ts",
       "accessCount": 3,
-      "lastAccessed": 1775009506315,
-      "type": "file"
-    },
-    {
-      "path": "client\\index.html",
-      "accessCount": 2,
-      "lastAccessed": 1775009510634,
+      "lastAccessed": 1775841618095,
       "type": "file"
     },
     {
       "path": "server\\src",
-      "accessCount": 1,
-      "lastAccessed": 1775008465337,
+      "accessCount": 2,
+      "lastAccessed": 1775841594838,
       "type": "directory"
     },
     {
-      "path": "server\\src\\services\\tarot.service.ts",
+      "path": "",
       "accessCount": 1,
-      "lastAccessed": 1775008483232,
-      "type": "file"
-    },
-    {
-      "path": "server\\src\\controllers\\ai-interpretation.controller.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775008483359,
-      "type": "file"
-    },
-    {
-      "path": "server\\src\\models\\tarot.model.ts",
-      "accessCount": 1,
-      "lastAccessed": 1775008492876,
-      "type": "file"
-    },
-    {
-      "path": "client",
-      "accessCount": 1,
-      "lastAccessed": 1775009467325,
+      "lastAccessed": 1775841593774,
       "type": "directory"
     }
   ],

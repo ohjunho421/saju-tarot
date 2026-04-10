@@ -95,6 +95,8 @@ export class AIService {
 | "이번달 연애운은?" | 이번 달 특정 운세 | **three-card** |
 | "이번달 금전운 봐줘" | 이번 달 특정 운세 | **three-card** |
 | "올해 연애운은?" | 올해 장기 흐름 | **six-months** |
+| "연애운" | 특정 운세 집중 리딩 | **three-card** |
+| "금전운 봐줘" | 특정 운세 집중 리딩 | **three-card** |
 | "오늘의 운세" | 오늘 하루 전체 운세 | **daily-fortune** |
 
 ## 스프레드 설명
@@ -110,8 +112,10 @@ export class AIService {
 - **compatibility**: 두 사람의 궁합 분석 (**궁합, 잘 맞는지, 우리 사이, 상대방과 등 관계 질문에 필수**)
 - **daily-fortune**: 오늘 하루의 총운/금전운/연애운 (**"오늘의 운세"처럼 오늘 하루만 볼 때만 사용**)
 
-⚠️ 기간별 운세 구분 (매우 중요):
-- "오늘 운세/연애운" → **daily-fortune** (오늘 하루만)
+⚠️ 기간별/토픽별 운세 구분 (매우 중요):
+- "연애운" / "금전운" → **three-card** (특정 운세 집중 리딩, 과거-현재-미래)
+- "오늘 운세" / "오늘의 운세" → **daily-fortune** (오늘 하루 총운/금전운/연애운 전체)
+- "오늘 연애운" → **daily-fortune** (오늘 하루만)
 - "이번달 연애운/금전운" → **three-card** (이번 달의 흐름)
 - "이번주 운세" → **three-card** (이번 주의 흐름)
 - "올해 연애운/금전운" → **six-months** (올해 장기 흐름)
@@ -252,8 +256,12 @@ JSON 형식으로 답변:
     }
 
     // 5-1. 운세 질문 (기간별 분기)
-    const fortuneTopics = ['운세', '총운', '금전운', '연애운', '건강운', '직장운', '학업운', '사업운'];
-    const isFortuneQuestion = fortuneTopics.some(keyword => lowerQ.includes(keyword));
+    const generalFortuneTopics = ['운세', '총운'];
+    const specificFortuneTopics = ['금전운', '연애운', '건강운', '직장운', '학업운', '사업운'];
+    const allFortuneTopics = [...generalFortuneTopics, ...specificFortuneTopics];
+    const isFortuneQuestion = allFortuneTopics.some(keyword => lowerQ.includes(keyword));
+    const isSpecificFortune = specificFortuneTopics.some(keyword => lowerQ.includes(keyword));
+    const matchedTopic = specificFortuneTopics.find(keyword => lowerQ.includes(keyword));
 
     if (isFortuneQuestion) {
       // 기간 키워드에 따라 적절한 스프레드 선택
@@ -276,19 +284,27 @@ JSON 형식으로 답변:
       }
       if (isMonthly) {
         return {
-          analysis: '이번 달의 운세를 묻는 질문입니다.',
+          analysis: `이번 달의 ${matchedTopic || '운세'}를 묻는 질문입니다.`,
           recommendedSpread: 'three-card',
-          reason: '이번 달의 흐름을 과거-현재-미래로 나눠 구체적으로 살펴봅니다.'
+          reason: `이번 달의 ${matchedTopic || '운세'} 흐름을 과거-현재-미래로 나눠 구체적으로 살펴봅니다.`
         };
       }
       if (isWeekly) {
         return {
-          analysis: '이번 주의 운세를 묻는 질문입니다.',
+          analysis: `이번 주의 ${matchedTopic || '운세'}를 묻는 질문입니다.`,
           recommendedSpread: 'three-card',
-          reason: '이번 주의 흐름을 과거-현재-미래로 나눠 살펴봅니다.'
+          reason: `이번 주의 ${matchedTopic || '운세'} 흐름을 과거-현재-미래로 나눠 살펴봅니다.`
         };
       }
-      // 기간 미지정 또는 오늘 → daily-fortune
+      // 특정 운세(연애운, 금전운 등)를 기간 없이 물으면 → three-card로 집중 리딩
+      if (isSpecificFortune && !isDaily) {
+        return {
+          analysis: `${matchedTopic}에 대해 집중적으로 묻는 질문입니다.`,
+          recommendedSpread: 'three-card',
+          reason: `${matchedTopic}의 과거 흐름, 현재 상태, 미래 방향을 깊이 있게 살펴봅니다.`
+        };
+      }
+      // "오늘의 운세", "운세" 등 전체 운세 → daily-fortune
       return {
         analysis: '오늘의 운세를 묻는 질문입니다.',
         recommendedSpread: 'daily-fortune',
