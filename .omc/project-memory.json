@@ -126,6 +126,12 @@
       "type": "file"
     },
     {
+      "path": "server\\src\\services\\tarot.service.ts",
+      "accessCount": 4,
+      "lastAccessed": 1775844483274,
+      "type": "directory"
+    },
+    {
       "path": "server\\src\\utils\\date-helper.ts",
       "accessCount": 3,
       "lastAccessed": 1775841618095,
@@ -133,8 +139,8 @@
     },
     {
       "path": "server\\src",
-      "accessCount": 2,
-      "lastAccessed": 1775841594838,
+      "accessCount": 3,
+      "lastAccessed": 1775844428407,
       "type": "directory"
     },
     {
@@ -160,6 +166,12 @@
       "accessCount": 1,
       "lastAccessed": 1775843014855,
       "type": "directory"
+    },
+    {
+      "path": "C:\\Users\\dhwns\\.claude\\projects\\D--saju-tarot-service\\5ae3690f-2edc-4a6a-8016-4e7dadf9c36f\\tool-results\\toolu_01Q35ueB6aHFGR5tjbo2NeTS.txt",
+      "accessCount": 1,
+      "lastAccessed": 1775844435586,
+      "type": "file"
     }
   ],
   "userDirectives": []

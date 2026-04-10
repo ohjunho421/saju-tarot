@@ -94,10 +94,50 @@ export class TarotService {
           positionMeaning: positions[i]
         });
       }
-      
+
+      // 조언 카드 추가 (사용자 선택 카드에서도)
+      if (includeAdviceCard) {
+        const adviceIndex = positions.length; // 조언 카드는 메인 카드 다음 위치
+        if (isNewFormat && (cardData as { cardIndex: number; isReversed: boolean }[])[adviceIndex]) {
+          const adviceData = (cardData as { cardIndex: number; isReversed: boolean }[])[adviceIndex];
+          const card = this.allCards[adviceData.cardIndex];
+          if (card) {
+            drawnCards.push({
+              card,
+              position: adviceIndex,
+              isReversed: adviceData.isReversed,
+              positionMeaning: '조언 카드'
+            });
+          }
+        } else if (!isNewFormat && (cardData as number[])[adviceIndex] !== undefined) {
+          const card = this.allCards[(cardData as number[])[adviceIndex]];
+          if (card) {
+            drawnCards.push({
+              card,
+              position: adviceIndex,
+              isReversed: Math.random() < 0.3,
+              positionMeaning: '조언 카드'
+            });
+          }
+        } else {
+          // cardData에 조언 카드가 없으면 랜덤으로 추가
+          const shuffled = this.shuffleDeck();
+          const usedIndices = new Set(drawnCards.map(dc => this.allCards.indexOf(dc.card)));
+          const adviceCard = shuffled.find((_, idx) => !usedIndices.has(idx));
+          if (adviceCard) {
+            drawnCards.push({
+              card: adviceCard,
+              position: adviceIndex,
+              isReversed: Math.random() < 0.3,
+              positionMeaning: '조언 카드'
+            });
+          }
+        }
+      }
+
       return drawnCards;
     }
-    
+
     // 기존 랜덤 로직
     const shuffledDeck = this.shuffleDeck();
     const drawnCards: DrawnCard[] = [];
