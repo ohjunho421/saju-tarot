@@ -172,6 +172,12 @@
       "accessCount": 1,
       "lastAccessed": 1775844435586,
       "type": "file"
+    },
+    {
+      "path": "client\\src\\components\\TarotReading.tsx",
+      "accessCount": 1,
+      "lastAccessed": 1775844673901,
+      "type": "file"
     }
   ],
   "userDirectives": []

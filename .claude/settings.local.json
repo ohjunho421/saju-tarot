@@ -19,7 +19,8 @@
       "Bash(python scripts/search.py \"tarot card selection interactive mystical\" --domain ux -n 15)",
       "Bash(python scripts/search.py \"card selection interactive touch animation\" --domain ux -n 15)",
       "Bash(python scripts/search.py \"mobile touch accessibility loading feedback\" --domain ux -n 15)",
-      "Bash(python scripts/search.py \"mystical dark spiritual gold purple\" --domain style -n 10)"
+      "Bash(python scripts/search.py \"mystical dark spiritual gold purple\" --domain style -n 10)",
+      "Bash(python scripts/search.py \"form input card selection spread dark mystical\" --domain ux -n 15)"
     ]
   }
 }
