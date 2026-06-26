@@ -599,7 +599,8 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     const { sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, partnerSajuAnalysis, partnerMbti } = params;
 
     // 궁합 분석 섹션 (상대방 정보가 있을 때)
-    const partnerSection = partnerSajuAnalysis ? `
+    const partnerSection = partnerSajuAnalysis
+      ? `
 [상대방 사주]
 일간: ${partnerSajuAnalysis.dayMaster}(${partnerSajuAnalysis.dayMasterElement})
 강한 오행: ${partnerSajuAnalysis.strongElements.join(', ')}
@@ -608,10 +609,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 ${partnerMbti ? `MBTI: ${partnerMbti}` : ''}
 
 [사전 궁합 분석]
-오행 관계: 나(${sajuAnalysis.dayMasterElement}) vs 상대(${partnerSajuAnalysis.dayMasterElement}) - ${this.analyzeElementRelation(sajuAnalysis.dayMasterElement, partnerSajuAnalysis.dayMasterElement)}
-일간 합: ${this.analyzeStemRelation(sajuAnalysis.chart.day.heavenlyStem, partnerSajuAnalysis.chart.day.heavenlyStem)}
-일지 충: ${this.analyzeBranchConflict(sajuAnalysis.chart.day.earthlyBranch, partnerSajuAnalysis.chart.day.earthlyBranch)}
-공통 신살: ${this.analyzeSharedSals((sajuAnalysis as any).sal || [], (partnerSajuAnalysis as any).sal || [])}` : '';
+${this.buildCompatibilityFacts(sajuAnalysis, partnerSajuAnalysis)}` : '';
 
     // 신살 텍스트를 단순 문자열로 (배열 JSON 파싱 오류 방지)
     const salText = salList && salList.length > 0
@@ -738,7 +736,7 @@ ${partnerSection}
       console.warn('⚠️ Step 1 분석 실패, 기본 분석 계획 사용:', error);
       // Fallback: 규칙 기반 기본 분석 계획
       const fallbackCompatibility = partnerSajuAnalysis
-        ? `나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 오행 관계: ${this.analyzeElementRelation(sajuAnalysis.dayMasterElement, partnerSajuAnalysis.dayMasterElement)}`
+        ? this.buildCompatibilityFacts(sajuAnalysis, partnerSajuAnalysis).replace(/\n/g, ' / ')
         : undefined;
 
       return {
@@ -952,6 +950,11 @@ ${partnerSection}
       ? `\n[별자리 - 지미두수 연계]\n${zodiacInfo.symbol} ${zodiacInfo.sign}(${zodiacInfo.signEnglish}) - ${zodiacInfo.element} 원소, ${zodiacInfo.quality}\n성격: ${zodiacInfo.personality}\n강점: ${zodiacInfo.strengths.join(', ')} / 약점: ${zodiacInfo.weaknesses.join(', ')}\n동서양 원소 연결: ${ZodiacService.getElementBridge(zodiacInfo.element, userElement)}`
       : '';
 
+    // 궁합 사전 분석 팩트 (일간 오행/일간합/일지 배우자궁/띠 궁합/공통신살)
+    const compatibilityFacts = partnerSajuAnalysis
+      ? this.buildCompatibilityFacts(sajuAnalysis, partnerSajuAnalysis)
+      : '';
+
     const prompt = `당신은 동양 사주명리학, 서양 별자리(지미두수), 타로를 융합한 전문 상담사입니다.
 아래의 "분석 계획"에 따라 해석을 생성하세요. 분석 계획은 사전에 수립된 것이므로 이를 충실히 따르세요.
 별자리 정보가 있다면, 사주 분석과 자연스럽게 융합하여 리딩에 반영하세요. 동양의 오행과 서양의 4원소가 어떻게 조화를 이루는지 설명해주세요.
@@ -1026,7 +1029,7 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
     : `카드별 구체적 실천 방법을 각각 줄바꿈으로 구분하여 작성 + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (350자)`}"${includeAdviceCard && adviceCard ? `,
   "adviceCardReading": "조언 카드 ${adviceCard.card.nameKo}의 그림/상징을 먼저 설명하고, 그 메시지가 현재 상황에서 어떤 실천 조언이 되는지 서술 (250자)"` : ''}${userMbti ? `,
   "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법 (200자)"` : ''}${partnerSajuAnalysis ? `,
-  "compatibilityReading": "두 사람의 궁합 심층 분석 (400~500자):\\n\\n오행 관계: 나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 상생/상극 관계와 그 의미\\n\\n신살 교차: 두 사람의 신살이 관계에 미치는 영향 (분석 계획의 compatibilityInsight 반영)${partnerMbti ? `\\n\\nMBTI 궁합: ${userMbti ? `${userMbti}(나)` : ''}${userMbti && partnerMbti ? ' vs ' : ''}${partnerMbti}(상대) 두 유형의 소통 방식과 관계 역학` : ''}\\n\\n타로 카드 연결: 뽑힌 카드들이 두 사람의 관계에서 어떤 메시지를 전하는지\\n\\n총평: 이 관계의 강점과 주의점, 앞으로를 위한 조언. 각 항목 사이에 줄바꿈(\\\\n\\\\n)으로 구분"` : ''}
+  "compatibilityReading": "아래 [궁합 사전 분석] 사실을 근거로 두 사람의 궁합을 심층 분석하세요 (450~550자). 추측하지 말고 주어진 합/충/관계 사실을 정확히 반영하세요.\\n\\n[궁합 사전 분석]\\n${compatibilityFacts.replace(/\n/g, '\\\\n')}\\n\\n위 사실을 바탕으로 다음 순서로 작성:\\n\\n오행 궁합: 나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 상생/상극/비화가 관계에서 어떤 의미인지\\n\\n일지 배우자궁: 두 사람의 일지 관계(합이면 끌림·안정, 충/원진/해면 갈등 양상)를 구체적으로\\n\\n띠 궁합: 두 사람 띠(년지)의 관계가 첫인상·기본 케미에 주는 영향\\n\\n신살 교차: 공통/교차 신살이 관계에 미치는 영향${partnerMbti ? `\\n\\nMBTI 궁합: ${userMbti ? `${userMbti}(나)` : ''}${userMbti && partnerMbti ? ' vs ' : ''}${partnerMbti}(상대) 두 유형의 소통 방식` : ''}\\n\\n타로 카드 연결: 뽑힌 카드가 두 사람 관계에 전하는 메시지\\n\\n총평: 강점·주의점·앞으로의 조언. 각 항목 사이 줄바꿈(\\\\n\\\\n) 구분"` : ''}
 }`;
 
     try {
@@ -1289,20 +1292,6 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
     return '합 없음';
   }
 
-  // 지지충 분석
-  private analyzeBranchConflict(myBranch: string, partnerBranch: string): string {
-    const conflictPairs: [string, string][] = [
-      ['자', '오'], ['축', '미'], ['인', '신'],
-      ['묘', '유'], ['진', '술'], ['사', '해']
-    ];
-    for (const [a, b] of conflictPairs) {
-      if ((myBranch === a && partnerBranch === b) || (myBranch === b && partnerBranch === a)) {
-        return `${a}${b}충 - 갈등과 긴장이 있지만 강한 에너지 교환`;
-      }
-    }
-    return '충 없음';
-  }
-
   // 공통 신살 분석
   private analyzeSharedSals(mySals: any[], partnerSals: any[]): string {
     const myNames = new Set(mySals.map((s: any) => s.name));
@@ -1319,6 +1308,107 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
 
     if (shared.length === 0) return '공통 신살 없음';
     return shared.map(name => `${name}(${relationSals[name] || '공통 에너지'})`).join(', ');
+  }
+
+  // 궁합 핵심 팩트를 한 번에 구성 (일간/일지/띠/신살 종합)
+  // chart 구조가 누락된 구버전 데이터도 안전하게 처리
+  private buildCompatibilityFacts(mySaju: SajuAnalysis, partnerSaju: SajuAnalysis): string {
+    const lines: string[] = [];
+
+    // 1) 일간 오행 상생/상극
+    lines.push(`오행 관계: 나(${mySaju.dayMasterElement}) vs 상대(${partnerSaju.dayMasterElement}) - ${this.analyzeElementRelation(mySaju.dayMasterElement, partnerSaju.dayMasterElement)}`);
+
+    const myDayStem = mySaju.chart?.day?.heavenlyStem;
+    const prDayStem = partnerSaju.chart?.day?.heavenlyStem;
+    const myDayBranch = mySaju.chart?.day?.earthlyBranch;
+    const prDayBranch = partnerSaju.chart?.day?.earthlyBranch;
+    const myYearBranch = mySaju.chart?.year?.earthlyBranch;
+    const prYearBranch = partnerSaju.chart?.year?.earthlyBranch;
+
+    // 2) 일간 천간합 (배우자 인연의 핵심)
+    if (myDayStem && prDayStem) {
+      lines.push(`일간 합: ${this.analyzeStemRelation(myDayStem, prDayStem)}`);
+    }
+
+    // 3) 일지 관계 (부부/연인 궁합의 핵심 - 합/충/형/파/해/원진 종합)
+    if (myDayBranch && prDayBranch) {
+      lines.push(`일지 관계(배우자궁): ${this.analyzeBranchRelation(myDayBranch, prDayBranch)}`);
+    }
+
+    // 4) 띠(년지) 궁합 - 한국인이 가장 익숙한 궁합 기준
+    if (myYearBranch && prYearBranch) {
+      lines.push(`띠 궁합(년지): ${this.analyzeBranchRelation(myYearBranch, prYearBranch)}`);
+    }
+
+    // 5) 공통 신살
+    lines.push(`공통 신살: ${this.analyzeSharedSals((mySaju as any).sal || [], (partnerSaju as any).sal || [])}`);
+
+    return lines.join('\n');
+  }
+
+  // 두 지지(地支) 간 관계 종합 분석: 육합/삼합/충/형/파/해/원진
+  // 일지(배우자궁)와 년지(띠) 궁합에 공통으로 사용
+  private analyzeBranchRelation(a: string, b: string): string {
+    const match = (pairs: [string, string][]) =>
+      pairs.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+
+    if (a === b) {
+      // 같은 지지: 자형(子卯, 진오유해 등)이 아니면 동질감
+      const selfPunish = ['진', '오', '유', '해'];
+      if (selfPunish.includes(a)) {
+        return `${a}${b} 자형(自刑) - 비슷해서 통하지만 같은 약점으로 부딪히기 쉬움`;
+      }
+      return `같은 지지(${a}) - 가치관과 기질이 비슷해 편안하지만 자극은 적음`;
+    }
+
+    // 육합(六合): 가장 좋은 궁합, 끌어당기고 안정
+    const yukHap: [string, string][] = [
+      ['자', '축'], ['인', '해'], ['묘', '술'], ['진', '유'], ['사', '신'], ['오', '미']
+    ];
+    if (match(yukHap)) return `${a}${b} 육합(六合) - 자연스럽게 끌리고 서로를 보완하는 최고의 궁합`;
+
+    // 삼합(三合): 같은 목표를 향해 협력
+    const samHap: [string, string, string][] = [
+      ['신', '자', '진'], ['인', '오', '술'], ['사', '유', '축'], ['해', '묘', '미']
+    ];
+    for (const [x, y, z] of samHap) {
+      const group = [x, y, z];
+      if (group.includes(a) && group.includes(b)) {
+        return `${a}${b} 삼합(三合) - 공통의 목표와 가치를 향해 협력하는 좋은 궁합`;
+      }
+    }
+
+    // 충(沖): 강한 끌림과 갈등 공존
+    const chung: [string, string][] = [
+      ['자', '오'], ['축', '미'], ['인', '신'], ['묘', '유'], ['진', '술'], ['사', '해']
+    ];
+    if (match(chung)) return `${a}${b} 충(沖) - 강하게 끌리지만 갈등·변동이 잦음. 부딪힘 속 성장 가능`;
+
+    // 원진(怨嗔): 미워하면서도 못 떠나는 애증
+    const wonJin: [string, string][] = [
+      ['자', '미'], ['축', '오'], ['인', '유'], ['묘', '신'], ['진', '해'], ['사', '술']
+    ];
+    if (match(wonJin)) return `${a}${b} 원진(怨嗔) - 끌리면서도 사소한 일로 미워지는 애증 관계, 인내 필요`;
+
+    // 해(害): 가까운 사이의 손상·서운함
+    const hae: [string, string][] = [
+      ['자', '미'], ['축', '오'], ['인', '사'], ['묘', '진'], ['신', '해'], ['유', '술']
+    ];
+    if (match(hae)) return `${a}${b} 해(害) - 가까울수록 서운함·오해가 생기기 쉬움, 배려 필요`;
+
+    // 형(刑): 마찰과 시비
+    const hyung: [string, string][] = [
+      ['인', '사'], ['사', '신'], ['인', '신'], ['축', '술'], ['술', '미'], ['축', '미'], ['자', '묘']
+    ];
+    if (match(hyung)) return `${a}${b} 형(刑) - 마찰과 신경전이 있으나 적당한 긴장이 자극이 되기도 함`;
+
+    // 파(破): 약한 손상
+    const pa: [string, string][] = [
+      ['자', '유'], ['오', '묘'], ['신', '사'], ['인', '해'], ['진', '축'], ['술', '미']
+    ];
+    if (match(pa)) return `${a}${b} 파(破) - 작은 어긋남이 반복될 수 있으나 영향은 크지 않음`;
+
+    return `${a}-${b} 특별한 합·충 없음 - 무난하고 담백한 관계`;
   }
 
   // AI 응답 파싱
