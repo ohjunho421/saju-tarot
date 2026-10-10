@@ -1,9 +1,28 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Anthropic from '@anthropic-ai/sdk';
 import type { SajuAnalysis } from '../models/saju.model';
-import type { DrawnCard, SpreadType } from '../models/tarot.model';
+import type { DrawnCard, SpreadType, EasyReading, EasyTone, EasySignal } from '../models/tarot.model';
 import { DateHelper } from '../utils/date-helper';
 import { ZodiacService } from './zodiac.service';
+
+// 리딩·챗봇 공통 문체 규칙 (타로 초보자 눈높이 + AI 말투 제거)
+const PLAIN_LANGUAGE_RULES = `⚠️ 쉬운 말 규칙 (가장 중요! 타로를 처음 보는 사람도 한 번에 이해해야 합니다):
+- 말투는 친근한 "~해요"체로 통일하세요. "~습니다"체와 섞지 마세요.
+- 결론부터 말하세요. 문단의 첫 문장에 핵심을 두고 설명은 그 뒤에 붙이세요.
+- 한 문장에는 한 가지 이야기만 담고, 문장은 짧게 쓰세요.
+- 전문용어(일간, 오행, 상생, 상극, 신살, 절기, 정방향/역방향 등)는 꼭 필요할 때만 쓰고, 쓰면 바로 괄호로 쉽게 풀어주세요. 예: "일간(태어난 날의 기운으로, 나 자신을 뜻해요)"
+- 카드의 뜻은 일상 비유로 설명하세요. 예: "신호등의 노란불처럼, 속도를 줄이라는 신호예요." 단 "마치 ~와 같아요"를 매 문단 반복하지 마세요.
+- "에너지가 흐르고 있어요", "여정", "중요한 전환점", "우주가", "깊은 울림" 같은 붕 뜬 상투어는 쓰지 마세요.
+- 과장, 이모지, 대시(—, –) 기호, 겹친 얼버무림("~일 수도 있을 것 같아요"), "좋은 일만 가득할 거예요" 같은 뻔한 긍정 마무리는 금지입니다.
+- "마음을 열어보세요" 같은 막연한 조언 대신 "이번 주 안에 먼저 연락을 한 번 해보세요"처럼 바로 할 수 있는 행동으로 말하세요.`;
+
+// Gemini 2.5 thinking 예산 (pro는 0으로 끌 수 없어 최소 128). 짧은 분석·추천·챗봇 기본값
+const GEMINI_DEFAULT_THINKING_BUDGET = 1024;
+// 긴 본 해석용. 기존 동적 thinking 실측치(약 2,700토큰)보다 여유 있게
+const GEMINI_LONG_READING_THINKING_BUDGET = 4096;
+
+const EASY_TONES: EasyTone[] = ['good', 'neutral', 'caution'];
+const EASY_SIGNALS: EasySignal[] = ['go', 'wait', 'caution'];
 
 export class AIService {
   private gemini: GoogleGenerativeAI | null = null;
@@ -133,16 +152,21 @@ JSON 형식으로 답변:
 
       // Claude 먼저 사용 (더 안정적인 JSON 응답)
       if (this.claude) {
-        console.log('🤖 Claude로 스프레드 추천...');
-        const message = await this.claude.messages.create({
-          // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
-          model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 1024,
-          messages: [{ role: 'user', content: prompt }]
-        });
-        response = message.content[0].type === 'text' ? message.content[0].text : '';
-      } else if (this.gemini) {
-        // Claude 없으면 Gemini 사용
+        try {
+          console.log('🤖 Claude로 스프레드 추천...');
+          const message = await this.claude.messages.create({
+            // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: prompt }]
+          });
+          response = message.content[0].type === 'text' ? message.content[0].text : '';
+        } catch (claudeError) {
+          console.warn('⚠️ 스프레드 추천 Claude 실패, Gemini로 전환:', (claudeError as Error).message);
+        }
+      }
+      // Claude가 없거나 실패하면 Gemini 사용
+      if (!response && this.gemini) {
         response = await this.tryGeminiWithFallback(prompt, 1024);
       }
 
@@ -386,6 +410,7 @@ JSON 형식으로 답변:
     personalizedAdvice: string;
     adviceCardInterpretation?: string;
     compatibilityReading?: string;
+    easyReading?: EasyReading;
   }> {
     const dateContext = DateHelper.getCurrentDateContext();
     const seasonalElement = DateHelper.getSeasonalElement(dateContext.season);
@@ -526,7 +551,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 
     if (this.gemini) {
       try {
-        response = await this.tryGeminiWithFallback(prompt, maxTokens);
+        response = await this.tryGeminiWithFallback(prompt, maxTokens, { thinkingBudget: GEMINI_LONG_READING_THINKING_BUDGET });
       } catch (geminiError) {
         console.warn('⚠️ [Legacy] Gemini 실패, Claude fallback:', (geminiError as Error).message);
       }
@@ -547,10 +572,10 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 
     // JSON 파싱 시도 (제어문자 정리 후)
     const sanitizedLegacy = this.sanitizeJsonResponse(response);
-    const jsonMatch = sanitizedLegacy.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
+    const legacyJson = this.extractFirstJsonObject(sanitizedLegacy);
+    if (legacyJson) {
       try {
-        const parsed = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(legacyJson);
         const interpretation = parsed.summary && parsed.cardReadings
           ? `${parsed.summary}\n\n===CARD_DETAILS===\n\n${parsed.cardReadings}`
           : parsed.summary || parsed.cardReadings || response.substring(0, 500);
@@ -897,6 +922,7 @@ ${partnerSection}
     personalizedAdvice: string;
     adviceCardInterpretation?: string;
     compatibilityReading?: string;
+    easyReading?: EasyReading;
   }> {
     const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard, partnerSajuAnalysis, partnerMbti } = params;
 
@@ -955,6 +981,11 @@ ${partnerSection}
       ? this.buildCompatibilityFacts(sajuAnalysis, partnerSajuAnalysis)
       : '';
 
+    // 초보자용 "쉽게 보기" 카드 템플릿 (drawnCards 순서 = 메인 카드 → 조언 카드)
+    const easyCardTemplate = drawnCards.map(dc =>
+      `    {"position": "${dc.positionMeaning}", "cardName": "${dc.card.nameKo}", "oneLine": "이 카드가 지금 말하는 것 한 문장 (30자 안팎)", "forMe": "질문에 비추어 나는 이걸 어떻게 받아들이면 되는지 한두 문장 (70자 안팎)", "action": "오늘 바로 해볼 수 있는 행동 하나 (30자 안팎)", "tone": "good | neutral | caution 중 하나"}`
+    ).join(',\n');
+
     const prompt = `당신은 동양 사주명리학, 서양 별자리(지미두수), 타로를 융합한 전문 상담사입니다.
 아래의 "분석 계획"에 따라 해석을 생성하세요. 분석 계획은 사전에 수립된 것이므로 이를 충실히 따르세요.
 별자리 정보가 있다면, 사주 분석과 자연스럽게 융합하여 리딩에 반영하세요. 동양의 오행과 서양의 4원소가 어떻게 조화를 이루는지 설명해주세요.
@@ -1002,6 +1033,8 @@ ${previousContext.map((ctx, i) => `  ${i + 1}. "${ctx.question}" (${ctx.date})`)
 - 이전 상담의 주제와 오늘 질문이 연결된다면, "지난번 ~에 대해 상담하셨는데, 그 흐름을 이어서 보면..." 처럼 자연스럽게 언급하세요.
 - 이전 상담과 관련 없는 새 질문이라면 억지로 연결하지 마세요.` : ''}
 
+${PLAIN_LANGUAGE_RULES}
+
 ⚠️ 가독성 규칙 (매우 중요!):
 - 모든 필드에서 문단 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.
 - 한 문단은 2~3문장을 넘기지 마세요. 긴 덩어리 텍스트는 금지!
@@ -1009,18 +1042,24 @@ ${previousContext.map((ctx, i) => `  ${i + 1}. "${ctx.question}" (${ctx.date})`)
 - practiceAdvice에서도 각 항목 사이에 줄바꿈(\\n\\n)을 넣으세요.
 
 ⚠️ 카드 해석 방식 (매우 중요!):
-- 각 카드를 해석할 때, 먼저 카드의 그림과 상징을 묘사하세요. 예: "이 카드에는 달빛 아래 두 개의 탑 사이로 길이 나 있고, 개와 늑대가 달을 향해 울부짖는 모습이 그려져 있어요. 이 그림은 불확실성과 내면의 불안을 상징해요."
-- 그 다음에 카드의 상징이 질문과 어떻게 연결되는지 설명하세요.
-- 사주/신살/별자리 연결은 그 뒤에 자연스럽게 덧붙이세요. 모든 카드를 억지로 사주에 연결하지 마세요. 자연스러운 연결이 있을 때만 언급하세요.
+- 각 카드는 이 순서로 해석하세요: (1) 이 카드가 지금 말하는 것을 한 문장으로 먼저 (2) 카드 그림을 1~2문장으로 짧게 묘사. 예: "달빛 아래 두 탑 사이로 길이 나 있고, 개와 늑대가 달을 보고 울고 있어요." (3) 그 뜻이 질문에 어떤 의미인지 일상 비유와 함께 설명 (4) 사주/신살/별자리와 자연스럽게 이어질 때만 쉬운 말로 한두 문장 덧붙이기.
+- 모든 카드를 억지로 사주에 연결하지 마세요. 자연스러운 연결이 있을 때만 언급하세요.
 - 별자리 정보가 있다면, 카드 해석 중 별자리 특성과 자연스럽게 연결되는 부분이 있을 때 언급하세요. (예: "사자자리의 리더십 기질이 이 카드의 메시지와 맞닿아 있어요")
 ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 어떤 선택지를 대표하는지 명확히 밝히세요.\n- 각 선택지의 장단점을 카드를 통해 구체적으로 설명하세요.\n- 마지막에 "종합적으로 어떤 선택이 더 유리한지" 명확한 조언을 제시하세요.\n` : ''}
 {
   "summary": "${isDailyFortune
     ? `${userName ? userName + '님' : ''}에게 전하는 오늘(${dateContext.solarDate} ${dateContext.weekday})의 인사 + 오늘의 절기(${dateContext.jieqi})와 사주의 관계를 간단히 언급 + 오늘의 전체적인 운세 핵심 한 줄 요약 (300자).${previousContext && previousContext.length > 0 ? ` 최근 상담에서 '${previousContext[0].question}'을 물어본 적이 있으니, 그 흐름과 연결하여 오늘의 운세를 자연스럽게 이어가세요.` : ''} 예: "안녕하세요! 오늘은 절기상 ${dateContext.jieqi} 시기로, ${seasonalElement}. ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 [상생/상극] 관계를 이루어..." 인사와 결론 사이에 줄바꿈을 넣으세요.`
     : `${userName ? userName + '님' : ''}에게 전하는 인사 + 핵심 결론 한 문장 + 간단한 이유 (250~300자). ${previousContext && previousContext.length > 0 ? `최근 '${previousContext[0].question}'(${previousContext[0].date}) 상담과 오늘 질문이 연결된다면 흐름을 자연스럽게 이어가세요. 연결이 없다면 무시.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게! 인사와 결론 사이에 줄바꿈을 넣으세요.`}",
+  "easyReading": {
+    "headline": "질문에 대한 한 줄 결론. 20자 이내의 쉬운 말 (예: 서두르지 말고 한 달만 지켜보세요)",
+    "signal": "go(진행해도 좋음) | wait(잠시 기다림) | caution(조심) 중 하나를 영어 소문자로",
+    "cards": [
+${easyCardTemplate}
+    ]
+  },
   "cardReadings": "${isDailyFortune
-    ? `오늘의 운세를 총운/금전운/연애운 순서로 해석합니다. 각 운에 대해: (1) 카드 그림/상징 묘사 2~3문장 (2) 이 카드가 오늘의 해당 운세에서 의미하는 바 (3) 사주의 ${userElement} 기운과 오늘 절기(${dateContext.jieqi})의 영향을 연결 (4) 신살 중 관련 있는 것 언급 ${userMbti ? `(5) ${userMbti} 성향에 맞는 구체적 조언` : ''}. 각 운세별 400~500자. 각 운세 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.`
-    : `${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})${isChoiceQuestion && i < parsedChoices.length ? ` → "${parsedChoices[i]}"` : ''}`).join(', ')} 각 카드를 해석하되, 반드시 이 순서를 따르세요: (1) 카드 그림/상징 묘사 2~3문장 (2) 이 상징이 질문에 어떤 의미인지 해석 ${isChoiceQuestion ? '(해당 선택지와 연결하여 장단점 분석)' : ''} (3) 사주/신살과 자연스러운 연결이 있으면 덧붙이기. 카드당 300~400자. 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.${isChoiceQuestion ? ' 마지막에 선택지 간 비교 총평을 추가하세요.' : ''}`}",
+    ? `오늘의 운세를 총운/금전운/연애운 순서로 해석합니다. 각 운에 대해: (0) 이 운세의 결론 한 문장 (1) 카드 그림/상징 묘사 1~2문장 (2) 이 카드가 오늘의 해당 운세에서 의미하는 바를 일상 비유로 (3) 사주의 ${userElement} 기운과 오늘 절기(${dateContext.jieqi})의 영향을 연결 (4) 신살 중 관련 있는 것 언급 ${userMbti ? `(5) ${userMbti} 성향에 맞는 구체적 조언` : ''}. 각 운세별 400~500자. 각 운세 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.`
+    : `${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})${isChoiceQuestion && i < parsedChoices.length ? ` → "${parsedChoices[i]}"` : ''}`).join(', ')} 각 카드를 해석하되, 반드시 이 순서를 따르세요: (1) 이 카드가 지금 말하는 것 한 문장 (2) 카드 그림/상징 묘사 1~2문장 (3) 이 상징이 질문에 어떤 의미인지 일상 비유와 함께 해석 ${isChoiceQuestion ? '(해당 선택지와 연결하여 장단점 분석)' : ''} (4) 사주/신살과 자연스러운 연결이 있으면 쉬운 말로 덧붙이기. 카드당 300~400자. 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.${isChoiceQuestion ? ' 마지막에 선택지 간 비교 총평을 추가하세요.' : ''}`}",
   "elementalHarmony": "${isDailyFortune
     ? `오늘(${dateContext.solarDate})은 절기상 ${dateContext.jieqi} 시기로 ${seasonalElement}. 이 계절 기운이 사용자의 ${userElement} 일간과 어떻게 작용하는지 자연 비유로 설명.${zodiacInfo ? ` 별자리(${zodiacInfo.sign}, ${zodiacInfo.element} 원소)와 사주 오행의 동서양 에너지 조화도 함께 설명.` : ''} 오늘 하루 특히 주의할 오행 에너지와 활용할 에너지를 구체적으로 안내 (300자).`
     : `현재 ${dateContext.season}(${seasonalElement} 기운)과 사용자의 ${userElement} 기운, 카드들의 오행이 어떻게 조화/충돌하는지 자연 비유로 설명.${zodiacInfo ? ` 서양 별자리(${zodiacInfo.sign})의 ${zodiacInfo.element} 원소와 동양 오행(${userElement})의 조화/보완 관계도 언급.` : ''} (300자).`}",
@@ -1056,10 +1095,11 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
       if (partnerMbti) maxTokens += 500;
       if (analysisContext.keySals.length > 0) maxTokens += Math.min(analysisContext.keySals.length * 300, 1500);
       if (zodiacInfo) maxTokens += 600;
+      maxTokens += cardCount * 250; // easyReading 카드별 요약
 
       if (this.gemini) {
         try {
-          response = await this.tryGeminiWithFallback(prompt, maxTokens);
+          response = await this.tryGeminiWithFallback(prompt, maxTokens, { thinkingBudget: GEMINI_LONG_READING_THINKING_BUDGET });
         } catch (geminiError) {
           console.warn('⚠️ Step 2 Gemini 실패, Claude fallback:', (geminiError as Error).message);
         }
@@ -1080,10 +1120,10 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
 
       // JSON 파싱 (제어문자 정리 후)
       const sanitized = this.sanitizeJsonResponse(response);
-      const jsonMatch = sanitized.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('Step 2 JSON 파싱 실패');
+      const jsonText = this.extractFirstJsonObject(sanitized);
+      if (!jsonText) throw new Error('Step 2 JSON 파싱 실패');
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(jsonText);
 
       // 구조화된 JSON → 기존 반환 형식으로 변환
       const interpretation = parsed.summary && parsed.cardReadings
@@ -1099,6 +1139,7 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
         personalizedAdvice: string;
         adviceCardInterpretation?: string;
         compatibilityReading?: string;
+        easyReading?: EasyReading;
       } = {
         interpretation,
         elementalHarmony: parsed.elementalHarmony || '오행의 흐름을 분석하고 있어요.',
@@ -1113,11 +1154,17 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
         result.compatibilityReading = parsed.compatibilityReading;
       }
 
+      const easyReading = this.normalizeEasyReading(parsed.easyReading, drawnCards);
+      if (easyReading) {
+        result.easyReading = easyReading;
+      }
+
       console.log('✅ Step 2 파싱 완료:', {
         interpretationLen: result.interpretation.length,
         harmonyLen: result.elementalHarmony.length,
         adviceLen: result.personalizedAdvice.length,
-        hasAdviceCard: !!result.adviceCardInterpretation
+        hasAdviceCard: !!result.adviceCardInterpretation,
+        hasEasyReading: !!result.easyReading
       });
 
       return result;
@@ -1125,6 +1172,67 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
       console.error('❌ Step 2 해석 생성 실패:', error);
       throw error;
     }
+  }
+
+  // 응답에서 첫 번째로 완결된 JSON 객체만 꺼낸다.
+  // 모델이 JSON 뒤에 설명이나 두 번째 JSON을 덧붙이면 "첫 { ~ 마지막 }" 방식은 파싱이 깨진다
+  private extractFirstJsonObject(text: string): string | null {
+    const start = text.indexOf('{');
+    if (start === -1) return null;
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === '\\') escaped = true;
+        else if (ch === '"') inString = false;
+        continue;
+      }
+      if (ch === '"') inString = true;
+      else if (ch === '{') depth++;
+      else if (ch === '}' && --depth === 0) {
+        if (text.slice(i + 1).trim().replace(/^```/, '').trim()) {
+          console.warn(`⚠️ JSON 뒤에 추가 내용 ${text.length - i - 1}자 무시`);
+        }
+        return text.slice(start, i + 1);
+      }
+    }
+    return null; // 잘린 응답
+  }
+
+  // AI가 준 easyReading을 검증·정리. 자리/카드 이름은 AI 출력 대신 실제 뽑힌 카드 기준으로 고정
+  private normalizeEasyReading(raw: unknown, drawnCards: DrawnCard[]): EasyReading | undefined {
+    if (!raw || typeof raw !== 'object') return undefined;
+    const source = raw as Record<string, unknown>;
+    // 프롬프트의 글자 수 요청은 강제력이 없으므로 저장 전에 상한을 둔다
+    const text = (value: unknown, maxLength = 200): string =>
+      typeof value === 'string' ? value.replace(/\s*[—–]\s*/g, ', ').trim().slice(0, maxLength) : '';
+    const rawCards = Array.isArray(source.cards) ? source.cards : [];
+
+    const cards = drawnCards.map((dc, i) => {
+      const item = (rawCards[i] && typeof rawCards[i] === 'object' ? rawCards[i] : {}) as Record<string, unknown>;
+      const tone = text(item.tone) as EasyTone;
+      return {
+        position: dc.positionMeaning,
+        cardName: dc.card.nameKo,
+        oneLine: text(item.oneLine),
+        forMe: text(item.forMe),
+        action: text(item.action),
+        tone: EASY_TONES.includes(tone) ? tone : (dc.isReversed ? 'caution' : 'neutral') as EasyTone
+      };
+    });
+
+    if (cards.every(c => !c.oneLine && !c.forMe)) return undefined;
+
+    const signal = text(source.signal) as EasySignal;
+    return {
+      headline: text(source.headline, 60),
+      signal: EASY_SIGNALS.includes(signal) ? signal : 'wait',
+      cards
+    };
   }
 
   // JSON 문자열 내 제어문자 정리 (Gemini가 문자열 값 안에 raw 줄바꿈/탭을 넣는 문제 해결)
@@ -1144,16 +1252,23 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
   }
 
   // Gemini 모델 fallback 로직
-  private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024, options?: { jsonMode?: boolean; minLength?: number }): Promise<string> {
+  // maxTokens는 "보이는 답" 분량. Gemini 2.5는 thinking 토큰도 maxOutputTokens에서 먼저 쓰기 때문에
+  // thinking 예산을 명시하고 그만큼 한도에 더한다 (안 그러면 작은 한도 호출은 thinking만 하다 MAX_TOKENS로 잘림)
+  private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024, options?: { jsonMode?: boolean; minLength?: number; thinkingBudget?: number }): Promise<string> {
     if (!this.gemini) {
       throw new Error('Gemini API가 초기화되지 않았습니다.');
     }
 
-    const generationConfig: Record<string, unknown> = { maxOutputTokens: maxTokens };
+    const thinkingBudget = options?.thinkingBudget ?? GEMINI_DEFAULT_THINKING_BUDGET;
+    const generationConfig: Record<string, unknown> = {
+      maxOutputTokens: maxTokens + thinkingBudget,
+      thinkingConfig: { thinkingBudget }
+    };
     if (options?.jsonMode) {
       generationConfig.responseMimeType = 'application/json';
     }
 
+    let lastFailure = '';
     for (const modelName of this.geminiModels) {
       try {
         console.log(`🤖 Gemini 모델 시도: ${modelName}`);
@@ -1163,10 +1278,20 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
         });
         const result = await model.generateContent(prompt);
 
+        const finishReason = result.response.candidates?.[0]?.finishReason;
+        if (finishReason === 'MAX_TOKENS') {
+          // SDK 0.24 타입에는 없지만 API 응답에는 있는 필드
+          const usage = result.response.usageMetadata as { thoughtsTokenCount?: number } | undefined;
+          const thoughts = usage?.thoughtsTokenCount ?? 0;
+          console.warn(`⚠️ ${modelName}: 출력 한도 도달 (thinking ${thoughts}토큰 / 한도 ${generationConfig.maxOutputTokens})`);
+          lastFailure = `${modelName} MAX_TOKENS`;
+        }
+
         // 응답 검증
         let responseText = result.response.text();
         if (!responseText || responseText.trim() === '') {
           console.warn(`⚠️ ${modelName}: 빈 응답 반환됨, 다음 모델 시도...`);
+          lastFailure = lastFailure || `${modelName} 빈 응답`;
           continue;
         }
 
@@ -1185,6 +1310,7 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
             return responseText;
           } catch {
             console.warn(`⚠️ ${modelName}: jsonMode인데 JSON 파싱 실패, 다음 모델 시도...`);
+            lastFailure = lastFailure || `${modelName} JSON 파싱 실패`;
             continue;
           }
         }
@@ -1212,17 +1338,18 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
                             errorMessage.includes('blocked');
         
         console.warn(`⚠️ ${modelName} 실패:`, errorMessage.substring(0, 150));
-        
+
         if (isRetryableError) {
           console.log(`🔄 재시도 가능한 에러, 다음 모델로 전환...`);
+          lastFailure = `${modelName} ${errorMessage.substring(0, 80)}`;
           continue;
         }
         // 재시도 불가능한 에러는 바로 throw
         throw error;
       }
     }
-    
-    throw new Error('모든 Gemini 모델의 할당량이 소진되었습니다. 잠시 후 다시 시도해주세요.');
+
+    throw new Error(`모든 Gemini 모델 실패 (마지막 원인: ${lastFailure || '알 수 없음'})`);
   }
 
   // ============================================================
@@ -1633,23 +1760,30 @@ ${question}
 - 질문이 관련 없으면 부드럽게 리딩과 연결해서 답변하세요
 - 새로운 통찰이나 구체적인 예시를 들어주세요
 - 좋은 점만 말하지 말고, 주의해야 할 점이나 어려움도 솔직하게 전달하세요
-- 현실적이고 균형 잡힌 조언을 제공하세요`;
+- 현실적이고 균형 잡힌 조언을 제공하세요
+
+${PLAIN_LANGUAGE_RULES}`;
 
     try {
       let response: string = '';
 
       // 챗봇은 Claude 먼저 사용 (더 안정적)
       if (this.claude) {
-        console.log('🤖 Claude로 챗봇 응답 생성...');
-        const message = await this.claude.messages.create({
-          // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
-          model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 500,
-          messages: [{ role: 'user', content: prompt }]
-        });
-        response = message.content[0].type === 'text' ? message.content[0].text : '';
-      } else if (this.gemini) {
-        // Claude 없으면 Gemini 사용
+        try {
+          console.log('🤖 Claude로 챗봇 응답 생성...');
+          const message = await this.claude.messages.create({
+            // Claude 4.5 모델 (2025년 최신) - 코딩 우수성, 에이전트 기능, 창의적 콘텐츠 생성에 최적화
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 500,
+            messages: [{ role: 'user', content: prompt }]
+          });
+          response = message.content[0].type === 'text' ? message.content[0].text : '';
+        } catch (claudeError) {
+          console.warn('⚠️ 챗봇 Claude 실패, Gemini로 전환:', (claudeError as Error).message);
+        }
+      }
+      // Claude가 없거나 실패하면 Gemini 사용
+      if (!response && this.gemini) {
         response = await this.tryGeminiWithFallback(prompt, 500);
       }
 

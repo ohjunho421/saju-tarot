@@ -1,0 +1,37 @@
+---
+type: checklist
+last_modified: 2026-10-10
+---
+
+# 코드 리뷰 체크리스트
+
+## 리뷰 시 확인사항
+
+- [ ] 기존 기능이 깨지지 않았는가 (CLAUDE.md "절대 규칙")
+- [ ] 타입 에러 없는가 (`tsc --noEmit`)
+- [ ] 보안 규칙 위반 없는가 (API 키 노출, 권한 체크 누락)
+- [ ] 불필요한 console.log 없는가
+- [ ] 에러 핸들링이 적절한가
+- [ ] Prisma 스키마 변경 시 마이그레이션 생성했는가
+- [ ] AI 서비스 호출 시 fallback 처리가 있는가 (Gemini/Claude)
+- [ ] CORS 설정이 프로덕션/개발 분기되어 있는가
+
+## 과거 피드백 (교훈 누적)
+
+| 날짜 | 이슈 | 원인 | 교훈 |
+|------|------|------|------|
+| 2026-05-21 | 프로젝트 초기 세팅 | - | 하네스 init 완료. 이후 교훈 여기에 누적할 것 |
+| 2026-10-10 | 히스토리에 `===CARD_DETAILS===` 노출 | 서버가 요약/상세를 구분자로 합쳐 저장하는데 HistoryPage만 분리 없이 렌더 | interpretation을 화면에 쓰는 곳은 모두 구분자로 split할 것 |
+| 2026-10-10 | 데스크톱 휠이 한 위치로만 튐 | 휠 리스너 useEffect deps에 덱 크기가 없어 로딩 전(0장) 값으로 계산 | 리스너를 등록하는 effect는 핸들러가 읽는 state를 deps에 넣을 것 |
+| 2026-10-10 | 켈트 십자가 카드 잘림·조언 카드 겹침 | 배치 좌표를 범위 중심 정렬 없이 고정 오프셋으로 그림, 조언 카드 위치 하드코딩 | 배치는 bounds 기준으로 중앙 정렬·스케일하고 추가 카드는 bounds 밖에 둘 것 |
+| 2026-10-10 | 클라이언트 안내 자리와 AI 해석 자리 불일치 | 자리 이름을 서버(SPREAD_POSITIONS)와 클라이언트에 따로 정의 | 자리 이름 변경 시 server tarot.model.ts와 client cardSelectionConfig.ts를 함께 수정 |
+| 2026-10-10 | 로컬 dev에서 카드 이미지 404 | 서버가 `src/public`을 정적 경로로 쓰는데 이미지는 `server/public`에 있음(배포는 dist/public 복사라 정상) | 정적 경로는 dev/prod 양쪽 __dirname 기준을 확인할 것 (미수정, 보고) |
+| 2026-10-10 | 챗봇 컨트롤러가 질문·이름·리딩을 console.log | 디버그 로그 잔존 | 사용자 입력·개인정보 로그 금지 (보안 규칙) |
+| 2026-10-10 | spreadType 화이트리스트를 `["three-card"]` 배열로 통과 (보안 리뷰) | `hasOwnProperty`가 키를 문자열로 변환 | 키 화이트리스트 앞에 `typeof x === 'string'` 확인 |
+| 2026-10-10 | AI 출력 글자 수를 프롬프트로만 요구 (보안 리뷰) | 모델 일탈·프롬프트 인젝션 시 긴 문자열 저장 | AI 출력은 저장 전 서버에서 길이 상한(slice) 적용 |
+| 2026-10-10 | Gemini 1단계 분석이 매번 실패 | 2.5 모델 thinking 토큰이 maxOutputTokens(2048)를 먼저 소진 → finishReason MAX_TOKENS | Gemini 2.5 호출은 thinkingConfig 예산을 명시하고 한도에 더할 것. 실패 시 finishReason을 로그로 확인 |
+| 2026-10-10 | Claude 키 오류 시 챗봇 전면 불가 | if (claude) {...} else if (gemini) 구조라 Claude 실패가 Gemini로 넘어가지 않음 | 프로바이더 fallback은 "없을 때"가 아니라 "실패할 때"도 넘어가게 작성 |
+| 2026-10-10 | Step 2 JSON 파싱 간헐 실패(약 20%) | 응답을 `/\{[\s\S]*\}/` 로 첫 {부터 마지막 }까지 잘라 JSON 뒤에 덧붙은 내용까지 포함 | LLM 응답 JSON은 첫 번째 완결 객체만 추출(extractFirstJsonObject) |
+| 2026-10-10 | 배포 직전 로컬 main이 원격보다 뒤처짐 | 다른 경로(PR)로 머지된 변경을 pull하지 않고 작업 | 배포·커밋 전 git fetch로 원격과 비교 후 병합 |
+
+> 리뷰 시 위 테이블의 패턴이 반복되지 않는지 확인한다.

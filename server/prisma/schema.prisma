@@ -56,6 +56,7 @@ model Reading {
   personalizedAdvice      String
   adviceCardInterpretation String?
   compatibilityReading    String?  // 궁합 리딩 결과
+  easyReading             Json?    // 초보자용 쉽게 보기 (EasyReading)
   aiProvider              String?  // 'gemini' | 'claude'
   createdAt               DateTime @default(now())
 

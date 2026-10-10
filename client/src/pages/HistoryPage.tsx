@@ -1,5 +1,21 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Trash2, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import EasyReadingView from '../components/EasyReadingView';
+
+const CARD_DETAILS_SEPARATOR = '===CARD_DETAILS===';
+
+const SPREAD_LABELS: Record<string, string> = {
+  'one-card': '원카드',
+  'two-card': '투카드',
+  'three-card': '쓰리카드',
+  'celtic-cross': '켈트 십자',
+  'saju-custom': '사주 맞춤',
+  'six-months': '6개월 흐름',
+  'yes-no': '예/아니오',
+  'problem-solution': '문제-해결',
+  'compatibility': '궁합',
+  'daily-fortune': '오늘의 운세',
+};
 
 interface HistoryPageProps {
   onBack: () => void;
@@ -53,16 +69,7 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const getSpreadTypeLabel = (spreadType: string) => {
-    switch (spreadType) {
-      case 'one-card': return '원카드';
-      case 'three-card': return '쓰리카드';
-      case 'celtic-cross': return '켈트 십자';
-      case 'saju-custom': return '사주 맞춤';
-      case 'compatibility': return '궁합';
-      default: return spreadType;
-    }
-  };
+  const getSpreadTypeLabel = (spreadType: string) => SPREAD_LABELS[spreadType] || spreadType;
 
   if (loading) {
     return (
@@ -170,12 +177,36 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
                   {/* 상세 내용 */}
                   {expandedId === reading.id && (
                     <div className="mt-4 pt-4 border-t border-white/10 space-y-4">
-                      <div>
-                        <h4 className="font-semibold text-mystical-gold mb-2">📖 해석</h4>
-                        <p className="text-white/80 whitespace-pre-wrap leading-relaxed">
-                          {reading.interpretation}
-                        </p>
-                      </div>
+                      {(() => {
+                        const [summary, details] = String(reading.interpretation || '').split(CARD_DETAILS_SEPARATOR);
+                        return (
+                          <>
+                            <div>
+                              <h4 className="font-semibold text-mystical-gold mb-2">📖 핵심 요약</h4>
+                              <p className="text-white/80 whitespace-pre-wrap leading-relaxed break-keep">
+                                {summary.trim()}
+                              </p>
+                            </div>
+
+                            {Array.isArray(reading.drawnCards) && reading.drawnCards.length > 0 && (
+                              <EasyReadingView
+                                drawnCards={reading.drawnCards}
+                                easyReading={reading.easyReading}
+                                spreadType={reading.spreadType}
+                              />
+                            )}
+
+                            {details?.trim() && (
+                              <div>
+                                <h4 className="font-semibold text-mystical-gold mb-2">🔮 카드가 말해주는 이야기</h4>
+                                <p className="text-white/80 whitespace-pre-wrap leading-relaxed break-keep">
+                                  {details.trim()}
+                                </p>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
 
                       {reading.elementalHarmony && (
                         <div>

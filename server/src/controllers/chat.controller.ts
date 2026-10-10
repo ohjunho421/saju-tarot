@@ -27,18 +27,13 @@ export const chatWithReading = async (req: Request, res: Response): Promise<void
       select: { name: true }
     });
 
-    console.log('📝 Chat 요청:', { question, userName: user?.name });
-    console.log('📊 Reading 데이터:', JSON.stringify(reading, null, 2).substring(0, 500));
-    
     const aiService = getAIService();
     const answer = await aiService.chatAboutReading(
-      question, 
-      reading, 
+      question,
+      reading,
       chatHistory || [],
       user?.name || undefined
     );
-    
-    console.log('✅ Chat 응답 생성 완료:', answer?.substring(0, 100));
 
     res.json({
       success: true,

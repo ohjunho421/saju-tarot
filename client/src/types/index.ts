@@ -109,6 +109,25 @@ export interface DrawnCard {
   positionMeaning: string;
 }
 
+// 초보자용 "쉽게 보기" 구조화 해석
+export type EasyTone = 'good' | 'neutral' | 'caution';
+export type EasySignal = 'go' | 'wait' | 'caution';
+
+export interface EasyCard {
+  position: string;
+  cardName: string;
+  oneLine: string;
+  forMe: string;
+  action: string;
+  tone: EasyTone;
+}
+
+export interface EasyReading {
+  headline: string;
+  signal: EasySignal;
+  cards: EasyCard[];
+}
+
 // 통합 리딩 타입
 export interface IntegratedReading {
   readingId: string;
@@ -121,6 +140,7 @@ export interface IntegratedReading {
   personalizedAdvice: string;
   adviceCardInterpretation?: string;
   compatibilityReading?: string; // 궁합 분석 결과
+  easyReading?: EasyReading; // 쉽게 보기 (옛 기록에는 없음)
 }
 
 // API 응답 타입

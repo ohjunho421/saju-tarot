@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { IntegratedReading } from '../types';
 import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import ChatBot from './ChatBot';
+import EasyReadingView from './EasyReadingView';
 
 interface IntegratedResultProps {
   reading: IntegratedReading;
@@ -9,13 +10,13 @@ interface IntegratedResultProps {
 }
 
 export default function IntegratedResult({ reading, onReset }: IntegratedResultProps) {
-  const { drawnCards, interpretation, elementalHarmony, personalizedAdvice, adviceCardInterpretation, compatibilityReading, question, spreadType } = reading;
-  
+  const { drawnCards, interpretation, elementalHarmony, personalizedAdvice, adviceCardInterpretation, compatibilityReading, easyReading, question, spreadType } = reading;
+
   // 아코디언 상태 관리
   const [expandedSections, setExpandedSections] = useState({
     summary: true,
     cards: true, // 카드를 기본으로 펼쳐서 보여줌
-    interpretation: true, // 해석도 기본으로 펼쳐서 보여줌
+    interpretation: false, // 긴 상세 해석은 "쉽게 보기" 아래에 접어둠
     harmony: false,
     advice: false,
     adviceCard: false,
@@ -42,6 +43,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
         personalizedAdvice,
         adviceCardInterpretation,
         compatibilityReading,
+        easyReading,
         createdAt: new Date().toISOString(),
       };
       
@@ -117,6 +119,9 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
           </div>
         )}
       </div>
+
+      {/* 쉽게 보기: 결론 신호 + 카드 흐름 도식 + 카드별 3단계 풀이 */}
+      <EasyReadingView drawnCards={drawnCards} easyReading={easyReading} spreadType={spreadType} />
 
       {/* 뽑힌 타로 카드 - 확대된 영역 */}
       <div className="card bg-gradient-to-br from-purple-600/10 to-indigo-600/10 border-2 border-purple-500/30">
@@ -237,7 +242,7 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
           >
             <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
               <span>🔮</span>
-              <span className="text-left">카드가 말해주는 이야기</span>
+              <span className="text-left">카드가 말해주는 이야기 <span className="text-sm font-normal text-white/60">자세히</span></span>
             </h2>
             {expandedSections.interpretation ? (
               <ChevronUp className="w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />

@@ -35,6 +35,25 @@ export interface DrawnCard {
 
 export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility' | 'daily-fortune';
 
+// 초보자용 "쉽게 보기" 구조화 해석 (결과 화면 도식에 사용)
+export type EasyTone = 'good' | 'neutral' | 'caution';
+export type EasySignal = 'go' | 'wait' | 'caution';
+
+export interface EasyCard {
+  position: string;  // 자리 이름 (예: 현재)
+  cardName: string;  // 카드 한글 이름
+  oneLine: string;   // 이 카드가 말하는 것 한 문장
+  forMe: string;     // 나에게는 이렇게 받아들이기
+  action: string;    // 오늘 해볼 한 가지
+  tone: EasyTone;
+}
+
+export interface EasyReading {
+  headline: string;  // 한 줄 결론
+  signal: EasySignal;
+  cards: EasyCard[];
+}
+
 export interface TarotReading {
   id: string;
   spreadType: SpreadType;

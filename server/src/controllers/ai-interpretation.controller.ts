@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { TarotService } from '../services/tarot.service';
 import aiService from '../services/ai.service';
-import type { SpreadType } from '../models/tarot.model';
+import { SPREAD_POSITIONS, type SpreadType } from '../models/tarot.model';
 
 const tarotService = new TarotService();
 
@@ -55,6 +55,11 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
 
     if (!spreadType) {
       res.status(400).json({ error: '스프레드 타입을 입력해주세요.' });
+      return;
+    }
+
+    if (typeof spreadType !== 'string' || !Object.prototype.hasOwnProperty.call(SPREAD_POSITIONS, spreadType)) {
+      res.status(400).json({ error: '지원하지 않는 스프레드 타입입니다.' });
       return;
     }
 
@@ -149,6 +154,7 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
         personalizedAdvice: aiInterpretation.personalizedAdvice,
         adviceCardInterpretation: aiInterpretation.adviceCardInterpretation,
         compatibilityReading: aiInterpretation.compatibilityReading || null,
+        ...(aiInterpretation.easyReading ? { easyReading: aiInterpretation.easyReading as any } : {}),
         aiProvider: process.env.GEMINI_API_KEY ? 'gemini' : 'claude'
       }
     });
@@ -254,6 +260,7 @@ export const getReadingById = async (req: Request, res: Response): Promise<void>
         personalizedAdvice: reading.personalizedAdvice,
         adviceCardInterpretation: reading.adviceCardInterpretation,
         compatibilityReading: reading.compatibilityReading,
+        easyReading: reading.easyReading ?? undefined,
       }
     });
   } catch (error) {
