@@ -85,7 +85,8 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
               <User className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">{user.name}님의 만세력</h1>
+              <p className="text-white/60 text-xs">사주 만세력</p>
+              <h1 className="text-2xl font-bold">{user.name}님의 타고난 성향</h1>
               <p className="text-white/60 text-sm">{user.email}</p>
             </div>
           </div>
@@ -113,8 +114,10 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
             </p>
           </div>
           <div className="bg-white/5 rounded-lg p-4 text-center">
-            <p className="text-white/60 text-sm mb-1">생시</p>
-            <p className="text-lg font-semibold">{birthInfo.hour}시</p>
+            <p className="text-white/60 text-sm mb-1">태어난 시간</p>
+            <p className="text-lg font-semibold">
+              {typeof birthInfo.hour === 'number' ? `${birthInfo.hour}시` : '모름'}
+            </p>
           </div>
           <div className="bg-white/5 rounded-lg p-4 text-center">
             <p className="text-white/60 text-sm mb-1">음력/양력</p>
@@ -164,7 +167,7 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
         ) : (
           <div className="text-center py-6">
             <p className="text-white/60 mb-4">
-              MBTI를 설정하면 타로 리딩에서 성격 유형에 맞는 맞춤 조언을 받을 수 있어요!
+              MBTI를 설정하면 타로 리딩에서 내 성격 유형에 맞춘 조언을 받을 수 있어요.
             </p>
             <button
               onClick={() => setShowMbtiSelector(true)}
@@ -227,20 +230,20 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
       <div className="card bg-gradient-to-br from-primary-600/20 to-mystical-gold/20">
         <h2 className="text-xl font-bold mb-4">💡 활용 팁</h2>
         <div className="space-y-3 text-white/90">
-          <p className="leading-relaxed">
-            • 일간이 강하면 자신감이 있고 추진력이 있지만, 독단적일 수 있어요.
+          <p className="leading-relaxed break-keep">
+            • 많은 기운은 내가 잘 쓰는 무기예요. 일이나 관계에서 자신 있게 써 보세요.
           </p>
-          <p className="leading-relaxed">
-            • 일간이 약하면 섬세하고 배려심이 깊지만, 우유부단할 수 있어요.
+          <p className="leading-relaxed break-keep">
+            • 부족한 기운은 단점이 아니라 채우면 좋은 부분이에요. 위 "한눈에 보는 나"의 생활 팁 중 하나만 골라 해 보세요.
           </p>
-          <p className="leading-relaxed">
-            • 강한 오행은 당신의 장점이고, 약한 오행은 보완이 필요한 부분이에요.
+          <p className="leading-relaxed break-keep">
+            • 신살은 정해진 운명이 아니라 경향이에요. 조심할 기운은 "이 부분만 신경 쓰면 된다" 정도로 보면 돼요.
           </p>
-          <p className="leading-relaxed">
-            • 타로 리딩에서 약한 오행과 관련된 카드가 나오면 특별히 주의깊게 보세요!
+          <p className="leading-relaxed break-keep">
+            • 타로 리딩은 이 사주 정보를 함께 읽어 해석해요. 부족한 기운과 관련된 카드가 나오면 조금 더 눈여겨보세요.
           </p>
-          <p className="leading-relaxed">
-            • MBTI를 설정하면 리딩에서 성격 유형에 맞는 주의사항과 조언을 받을 수 있어요!
+          <p className="leading-relaxed break-keep">
+            • MBTI를 설정하면 리딩에서 내 성격 유형에 맞춘 조언도 받을 수 있어요.
           </p>
         </div>
       </div>

@@ -21,6 +21,7 @@ saju-tarot-service/
 │   │   │   ├── cardSelectionConfig.ts   # 스프레드별 자리 이름·안내·배치
 │   │   │   ├── ChatBot.tsx
 │   │   │   ├── EasyReadingView.tsx      # 결과 "쉽게 보기" 도식
+│   │   │   ├── EasySajuView.tsx         # 사주 "한눈에 보는 나"
 │   │   │   ├── ElementGuide.tsx
 │   │   │   ├── IntegratedResult.tsx
 │   │   │   ├── SajuResult.tsx
@@ -30,6 +31,7 @@ saju-tarot-service/
 │   │   │   ├── ReadingPage.tsx
 │   │   │   ├── MyPage.tsx
 │   │   │   └── HistoryPage.tsx
+│   │   ├── data/                # salDetails.ts(신살 설명), elementPlain.ts(오행 쉬운 설명)
 │   │   ├── services/api.ts
 │   │   └── types/index.ts
 │   ├── vite.config.ts

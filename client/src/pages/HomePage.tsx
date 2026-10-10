@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Moon, Star, ArrowRight, Wand2, Eye } from 'lucide-react';
+import { Sparkles, Moon, Star, ArrowRight, Wand2, Eye, CirclePause } from 'lucide-react';
 
 interface HomePageProps {
   onStart: () => void;
@@ -13,6 +13,13 @@ const fadeUp = {
     transition: { delay: i * 0.15, duration: 0.6, ease: 'easeOut' as const },
   }),
 };
+
+// 결과 화면 "쉽게 보기"를 줄여 보여주는 정적 예시
+const SAMPLE_STEPS = [
+  { label: '이 카드는', text: '조용히 정보를 모으면 답이 보인다는 카드예요.' },
+  { label: '나에게는', text: '바로 결정하기보다 한 달 정도 살펴보면 더 좋은 선택지가 생겨요.' },
+  { label: '오늘 해볼 것', text: '관심 있는 회사 두 곳의 채용 공고 저장해 두기' },
+];
 
 export default function HomePage({ onStart }: HomePageProps) {
   return (
@@ -56,11 +63,11 @@ export default function HomePage({ onStart }: HomePageProps) {
         <motion.p
           variants={fadeUp}
           custom={2}
-          className="text-base md:text-xl text-white/60 max-w-xl mx-auto leading-relaxed mb-10"
+          className="text-base md:text-xl text-white/70 max-w-xl mx-auto leading-relaxed mb-10 break-keep"
         >
-          별자리, 사주, 타로를 AI가 하나로 융합해
+          궁금한 걸 적고 카드를 뽑으면,
           <br className="hidden md:block" />
-          당신만의 운명을 깊이 있게 들여다봅니다.
+          {' '}생년월일로 본 내 성향까지 함께 읽어서 쉬운 말로 풀어드려요.
         </motion.p>
 
         <motion.div variants={fadeUp} custom={3}>
@@ -71,11 +78,73 @@ export default function HomePage({ onStart }: HomePageProps) {
             운세 보러 가기
             <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
           </button>
-          <p className="text-white/40 text-xs mt-4">
-            로그인 후 AI 기반 맞춤 해석을 받아보세요
+          <p className="text-white/60 text-xs mt-4">
+            로그인하면 바로 시작할 수 있어요. 타로나 사주를 몰라도 괜찮아요.
           </p>
         </motion.div>
       </motion.div>
+
+      {/* 결과 예시 */}
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-50px" }}
+        className="mb-16 md:mb-24"
+        aria-labelledby="sample-title"
+      >
+        <motion.h3
+          id="sample-title"
+          variants={fadeUp}
+          custom={0}
+          className="text-2xl md:text-3xl font-bold mb-2 text-center text-white/90"
+        >
+          이렇게 풀어드려요
+        </motion.h3>
+        <motion.p variants={fadeUp} custom={0} className="text-sm text-white/60 text-center mb-8">
+          실제 결과 화면의 일부를 줄여서 보여드린 예시예요.
+        </motion.p>
+
+        <motion.div
+          variants={fadeUp}
+          custom={1}
+          className="max-w-2xl mx-auto rounded-2xl border-2 border-mystical-gold/40 bg-primary-900/20 p-5 md:p-7"
+        >
+          <p className="text-sm text-white/60">질문: 이직, 지금 해도 될까요?</p>
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-sm font-semibold text-amber-200">
+            <CirclePause className="h-4 w-4" aria-hidden="true" />
+            잠깐 기다려요
+          </span>
+          <p className="mt-3 break-keep font-serif text-2xl font-semibold leading-snug text-white md:text-3xl">
+            서두르지 말고 한 달만 지켜보세요
+          </p>
+
+          <div className="mt-6 flex items-start gap-4">
+            <div className="flex w-20 shrink-0 aspect-[2/3] items-center justify-center rounded-lg border border-mystical-gold/50 bg-gradient-to-br from-purple-700 via-indigo-800 to-purple-900 p-1.5 md:w-24" aria-hidden="true">
+              <div className="flex h-full w-full items-center justify-center rounded border-2 border-mystical-gold/30">
+                <Sparkles className="h-5 w-5 text-mystical-gold/60" />
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-white/60">미래 자리</p>
+              <p className="font-serif text-lg font-semibold text-mystical-gold">여사제</p>
+              <ol className="mt-2 space-y-2 border-l border-mystical-gold/30 pl-4">
+                {SAMPLE_STEPS.map((step, i) => (
+                  <li key={step.label} className="relative">
+                    <span
+                      className="absolute -left-[25px] top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-mystical-gold text-[10px] font-bold text-mystical-dark"
+                      aria-hidden="true"
+                    >
+                      {i + 1}
+                    </span>
+                    <p className="text-xs font-semibold text-white/60">{step.label}</p>
+                    <p className="break-keep text-[15px] leading-relaxed text-white/90">{step.text}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </motion.div>
+      </motion.section>
 
       {/* Features */}
       <motion.div
@@ -87,24 +156,24 @@ export default function HomePage({ onStart }: HomePageProps) {
         {[
           {
             icon: <Star className="w-7 h-7" />,
-            title: '별자리 분석',
-            desc: '생년월일 기반 별자리의 원소와 특성을 파악하여 성격과 운세에 반영합니다',
+            title: '별자리',
+            desc: '생일로 내 별자리를 찾아서, 타고난 성향을 리딩에 함께 반영해요.',
             color: 'from-sky-500/20 to-cyan-500/20',
             border: 'border-sky-500/20 hover:border-sky-400/40',
             iconBg: 'bg-sky-500/15 text-sky-400',
           },
           {
             icon: <Wand2 className="w-7 h-7" />,
-            title: '사주 만세력',
-            desc: '정통 사주팔자와 신살 분석으로 오행의 균형과 타고난 기운을 읽습니다',
+            title: '사주',
+            desc: '태어난 해·달·날·시간으로 나무·불·흙·쇠·물 다섯 기운 중 무엇이 많고 적은지 알려드려요.',
             color: 'from-violet-500/20 to-purple-500/20',
             border: 'border-violet-500/20 hover:border-violet-400/40',
             iconBg: 'bg-violet-500/15 text-violet-400',
           },
           {
             icon: <Eye className="w-7 h-7" />,
-            title: '타로 리딩',
-            desc: '10가지 스프레드로 사주와 별자리를 반영한 깊이 있는 해석을 제공합니다',
+            title: '타로',
+            desc: '질문에 맞는 카드 배치로 뽑고, 한 줄 결론과 카드별 쉬운 풀이를 받아요.',
             color: 'from-indigo-500/20 to-blue-500/20',
             border: 'border-indigo-500/20 hover:border-indigo-400/40',
             iconBg: 'bg-indigo-500/15 text-indigo-400',
@@ -120,7 +189,7 @@ export default function HomePage({ onStart }: HomePageProps) {
               {feature.icon}
             </div>
             <h3 className="text-lg font-semibold mb-2 text-white">{feature.title}</h3>
-            <p className="text-sm text-white/55 leading-relaxed">{feature.desc}</p>
+            <p className="text-sm text-white/70 leading-relaxed break-keep">{feature.desc}</p>
           </motion.div>
         ))}
       </motion.div>
@@ -142,10 +211,10 @@ export default function HomePage({ onStart }: HomePageProps) {
 
         <div className="grid md:grid-cols-4 gap-4 md:gap-5">
           {[
-            { num: '01', title: '생년월일 입력', desc: '음력/양력, 성별, 시간을 입력합니다' },
-            { num: '02', title: '별자리 + 사주 분석', desc: '별자리 특성과 사주 오행을 함께 분석합니다' },
-            { num: '03', title: '타로 선택', desc: '질문에 맞는 스프레드로 카드를 뽑습니다' },
-            { num: '04', title: 'AI 통합 해석', desc: '별자리+사주+타로를 융합한 맞춤 해석을 받습니다' },
+            { num: '01', title: '생년월일 입력', desc: '태어난 날과 시간을 입력해요. 시간을 몰라도 괜찮아요.' },
+            { num: '02', title: '타고난 성향 확인', desc: '나에게 많은 기운과 부족한 기운을 먼저 보여드려요.' },
+            { num: '03', title: '질문 적고 카드 뽑기', desc: '궁금한 걸 적으면 맞는 카드 배치를 추천해 드려요.' },
+            { num: '04', title: '쉬운 풀이 받기', desc: '한 줄 결론, 카드별 뜻, 오늘 해볼 일까지 정리해 드려요.' },
           ].map((item, i) => (
             <motion.div
               key={item.num}
@@ -157,7 +226,7 @@ export default function HomePage({ onStart }: HomePageProps) {
                 {item.num}
               </span>
               <h4 className="font-semibold mb-1.5 text-white/90">{item.title}</h4>
-              <p className="text-sm text-white/45 leading-relaxed">{item.desc}</p>
+              <p className="text-sm text-white/60 leading-relaxed break-keep">{item.desc}</p>
             </motion.div>
           ))}
         </div>

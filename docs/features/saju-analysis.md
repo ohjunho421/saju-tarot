@@ -1,7 +1,7 @@
 ---
 feature: 사주 분석
 status: active
-last_modified: 2026-05-25
+last_modified: 2026-10-10
 files:
   - server/src/services/saju.service.ts
   - server/src/models/saju.model.ts
@@ -9,6 +9,10 @@ files:
   - server/src/routes/saju.routes.ts
   - client/src/components/SajuResult.tsx
   - client/src/components/BirthInfoForm.tsx
+  - client/src/components/EasySajuView.tsx
+  - client/src/data/salDetails.ts
+  - client/src/data/elementPlain.ts
+  - client/src/components/ElementGuide.tsx
 tags: [사주, 팔자, 오행, 음양, 천간, 지지, 일간]
 ---
 
@@ -35,8 +39,15 @@ tags: [사주, 팔자, 오행, 음양, 천간, 지지, 일간]
 - 회원가입 시 `auth.controller.ts`에서 `sajuService.analyzeSaju()`를 호출해 결과를 DB에 저장
 - 오행 가중치(천간 2, 지지 1)는 전통 사주 해석 기준 — 임의 변경 금지
 
+## 화면 문구 (2026-10-10~)
+
+- SajuResult 맨 위 "한눈에 보는 나"(EasySajuView): 일간 오행 비유, 많은 기운(내 무기)·부족한 기운(생활 팁), 신살 요약. 저장된 데이터로만 계산, AI 호출 없음.
+- 부족한 기운 생활 팁(data/elementPlain.ts)은 서버 analyzePersonality의 추천(창의 활동·정서 표현·안정감·체계적 사고·명상)과 같은 방향을 유지.
+- 신살 설명(data/salDetails.ts)은 Record<SalType>이라 타입에 신살을 추가하면 설명도 반드시 추가해야 빌드된다.
+
 ## 변경 이력
 
 | 날짜 | 변경 내용 | 수정 파일 | 이유 |
 |------|-----------|-----------|------|
 | 2026-05-25 | 초기 문서화 | - | harness-init |
+| 2026-10-10 | 사주 결과 화면 쉬운 말 적용: 한눈에 보는 나 추가, 사주 표·오행 라벨 설명, 신살 23개 설명을 용어 없이 재작성(데이터 파일 분리), 길신/흉살 → 도움/조심 배지, 별자리 제목의 부정확한 "(지미두수)" 제거, "목 (木火土金水)" 표기 수정 | SajuResult.tsx, EasySajuView.tsx(신규), data/salDetails.ts(신규), data/elementPlain.ts(신규), ElementGuide.tsx | 사용자 요청(humanizer·eli5 적용) |
