@@ -71,6 +71,8 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
 
   // 카드 덱 (매번 섞임)
   const [deckCards, setDeckCards] = useState<number[]>([]);
+  // 덱 자리 → 그 자리 카드가 거꾸로 놓였는지. 실제 타로처럼 섞을 때 방향도 함께 정해 두고, 뽑을 때 그대로 쓴다
+  const [deckReversed, setDeckReversed] = useState<boolean[]>([]);
 
   const isPicking = selectedCards.length < totalCards;
   const baseLabels = isCustom ? (customPositions ?? []).map(p => p.label) : POSITION_LABELS[spreadType];
@@ -87,6 +89,9 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setDeckCards(shuffled);
+    // 거꾸로 놓이는 비율은 고정하지 않는다. 실제로 섞으면 그때그때 다르니 섞을 때마다 비율을 새로 뽑는다
+    const reversedRate = Math.random();
+    setDeckReversed(shuffled.map(() => Math.random() < reversedRate));
   }, [spreadType, question, allTarotCards]); // spreadType, question, allTarotCards가 변경될 때마다 섞음
 
   // 타로 카드 데이터 로드
@@ -157,8 +162,8 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
   const pickCard = (index: number) => {
     if (selectedCards.length >= totalCards) return;
 
-    // 30% 확률로 역방향 결정 (선택 시점에 결정)
-    const isReversed = Math.random() < 0.3;
+    // 섞을 때 그 자리에 놓인 방향 그대로 (뽑는 순간에 새로 정하지 않는다)
+    const isReversed = deckReversed[index] ?? false;
     const newSelected = [...selectedCards, { deckPosition: index, isReversed }];
     setSelectedCards(newSelected);
     setPreviewCard(null);
