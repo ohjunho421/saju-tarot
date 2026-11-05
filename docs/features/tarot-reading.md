@@ -66,3 +66,4 @@ tags: [타로, 카드, 스프레드, 리딩, 정방향, 역방향]
 | 2026-10-11 | 대화로 만드는 맞춤 배치 추가: 스프레드 선택 화면의 "AI와 대화로 맞춤 배치 만들기" → 2~7자리 제안·수정(최대 5턴) → 확정 시 바로 카드 선택. 카드 선택은 맞춤 자리 이름·뜻·장수를 사용하고 보드는 장수에 맞춰 자동 배치(4장까지 한 줄) | CustomSpreadBuilder.tsx(신규), TarotReading.tsx, CardSelection.tsx, cardSelectionConfig.ts, ReadingPage.tsx, HistoryPage.tsx, api.ts, types/index.ts | 고정 스프레드로 담기 어려운 질문(3지선다 등) |
 | 2026-11-04 | 카드 이미지 78장을 새 일러스트(고양이 덱, 768×1376)로 교체. 파일명 동일해 매핑 변경 없음 | server/public/tarot-images/*.jpg | 사용자 요청 |
 | 2026-11-04 | 카드 앞면 틀을 새 그림 비율(24:43)에 맞춤: 보드 기준 카드 80x120 → 67x120(높이 고정이라 배치 좌표 그대로), 쉽게 보기 썸네일 aspect-[2/3] → aspect-[24/43]. 부채꼴 덱·슬롯 줄(뒷면만 표시)은 그대로 | cardSelectionConfig.ts, EasyReadingView.tsx | 2:3 틀에서 그림 아래 카드 이름이 잘림 |
+| 2026-11-05 | 역방향을 뽑는 순간이 아니라 덱을 섞을 때 자리마다 정해 두고(30%), 뽑은 자리의 방향을 그대로 씀. 확률은 같음 | CardSelection.tsx | 실제 타로처럼 섞을 때 방향도 섞여 있어야 한다는 요청 |
