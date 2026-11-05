@@ -1,7 +1,7 @@
 ---
 feature: 타로 리딩
 status: active
-last_modified: 2026-11-04
+last_modified: 2026-11-05
 files:
   - server/src/services/tarot.service.ts
   - server/src/models/tarot.model.ts
@@ -37,7 +37,7 @@ tags: [타로, 카드, 스프레드, 리딩, 정방향, 역방향]
 ## 주의사항
 
 - `cardData`가 유효하지 않으면 fallback으로 랜덤 카드 사용 — 에러 로그 출력 후 정상 진행
-- 역방향(isReversed) 확률은 30% (`Math.random() < 0.3`)
+- 역방향(isReversed)은 클라이언트가 덱을 섞을 때 자리마다 장별 동전 던지기(50%)로 정해 두고, 뽑은 자리의 방향을 그대로 서버로 보냄. 서버의 `Math.random() < 0.3`은 방향 정보가 안 왔을 때의 fallback
 - `TAROT_CARDS` 데이터는 `tarot-cards.ts`에 하드코딩 — 카드 추가/삭제 시 인덱스 깨짐 주의
 - `adviceCard` 옵션은 메인 스프레드 외 추가 조언 카드 1장 드로우
 
@@ -67,3 +67,4 @@ tags: [타로, 카드, 스프레드, 리딩, 정방향, 역방향]
 | 2026-11-04 | 카드 이미지 78장을 새 일러스트(고양이 덱, 768×1376)로 교체. 파일명 동일해 매핑 변경 없음 | server/public/tarot-images/*.jpg | 사용자 요청 |
 | 2026-11-04 | 카드 앞면 틀을 새 그림 비율(24:43)에 맞춤: 보드 기준 카드 80x120 → 67x120(높이 고정이라 배치 좌표 그대로), 쉽게 보기 썸네일 aspect-[2/3] → aspect-[24/43]. 부채꼴 덱·슬롯 줄(뒷면만 표시)은 그대로 | cardSelectionConfig.ts, EasyReadingView.tsx | 2:3 틀에서 그림 아래 카드 이름이 잘림 |
 | 2026-11-05 | 역방향을 뽑는 순간이 아니라 덱을 섞을 때 자리마다 정해 두고(30%), 뽑은 자리의 방향을 그대로 씀. 확률은 같음 | CardSelection.tsx | 실제 타로처럼 섞을 때 방향도 섞여 있어야 한다는 요청 |
+| 2026-11-05 | 섞을 때 "역방향 비율"을 먼저 뽑던 단계를 제거. 섞는 동안 카드 한 장 한 장이 독립적으로 뒤집히거나 안 뒤집히는 것(50%)만 남김. 덱 배열·방향은 섞을 때 전부 확정되고 뽑기는 그 자리 정보를 읽기만 함 | CardSelection.tsx | 비율 개념은 실제 타로에 없다는 피드백 |

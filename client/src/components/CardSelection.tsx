@@ -89,9 +89,8 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
     setDeckCards(shuffled);
-    // 거꾸로 놓이는 비율은 고정하지 않는다. 실제로 섞으면 그때그때 다르니 섞을 때마다 비율을 새로 뽑는다
-    const reversedRate = Math.random();
-    setDeckReversed(shuffled.map(() => Math.random() < reversedRate));
+    // 실제 타로처럼 섞는 동안 카드 한 장 한 장이 독립적으로 뒤집히거나 안 뒤집힌다 (장마다 동전 던지기)
+    setDeckReversed(shuffled.map(() => Math.random() < 0.5));
   }, [spreadType, question, allTarotCards]); // spreadType, question, allTarotCards가 변경될 때마다 섞음
 
   // 타로 카드 데이터 로드
