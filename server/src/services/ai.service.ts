@@ -1,7 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import Anthropic from '@anthropic-ai/sdk';
 import type { SajuAnalysis } from '../models/saju.model';
-import type { DrawnCard, SpreadType, EasyReading, EasyTone, EasySignal } from '../models/tarot.model';
+import { SPREAD_POSITIONS } from '../models/tarot.model';
+import type { DrawnCard, SpreadType, EasyReading, EasyTone, EasySignal, CustomPosition } from '../models/tarot.model';
+import { sanitizeCustomPositions, cleanSpreadText } from '../utils/custom-spread';
 import { DateHelper } from '../utils/date-helper';
 import { ZodiacService } from './zodiac.service';
 
@@ -117,6 +119,12 @@ export class AIService {
 | "연애운" | 특정 운세 집중 리딩 | **three-card** |
 | "금전운 봐줘" | 특정 운세 집중 리딩 | **three-card** |
 | "오늘의 운세" | 오늘 하루 전체 운세 | **daily-fortune** |
+| "이번 시험 붙을까요?" | 결과가 예/아니오 | yes-no |
+| "전 애인과 다시 만날 수 있을까?" | 재회 가능성과 흐름 (궁합 아님) | three-card |
+| "다음 달에 이사 가도 괜찮을까?" | 가까운 결정의 결과 | three-card |
+| "A, B, C 중 어디가 좋을까?" | 선택지 3개 비교 | three-card |
+| "2027년 운세" | 한 해의 흐름 | six-months |
+| "이 직업이 나랑 맞을까?" | 나와 일의 적합성 (궁합 아님) | three-card |
 
 ## 스프레드 설명
 
@@ -138,6 +146,12 @@ export class AIService {
 - "이번달 연애운/금전운" → **three-card** (이번 달의 흐름)
 - "이번주 운세" → **three-card** (이번 주의 흐름)
 - "올해 연애운/금전운" → **six-months** (올해 장기 흐름)
+
+⚠️ compatibility는 "두 사람이 서로 잘 맞는지"를 볼 때만 쓰세요. 재회·연락처럼 상대의 행동이 궁금한 질문, 직업·회사와 내가 맞는지 묻는 질문은 compatibility가 아닙니다.
+⚠️ 선택지를 비교하는 질문은 선택지 수로 고르세요: 2개면 two-card, 3개면(예: A vs B vs C) three-card. celtic-cross는 선택지 비교에 쓰지 말고, 얽힌 상황 전체를 볼 때만 쓰세요.
+⚠️ six-months는 몇 달에 걸친 흐름이나 시기를 볼 때만 쓰세요. "다음 달 ~해도 될까"처럼 가까운 한 가지 결정은 three-card입니다.
+
+recommendedSpread에는 반드시 다음 값 중 하나를 그대로 쓰세요: one-card, yes-no, two-card, problem-solution, three-card, saju-custom, six-months, celtic-cross, compatibility, daily-fortune
 
 JSON 형식으로 답변:
 {
@@ -170,12 +184,21 @@ JSON 형식으로 답변:
         response = await this.tryGeminiWithFallback(prompt, 1024);
       }
 
-      // JSON 파싱
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        console.log('✅ AI 스프레드 추천 결과:', parsed.recommendedSpread);
-        return parsed;
+      // JSON 파싱 + 추천값 검증 (목록에 없는 값이 화면으로 가면 카드 선택이 깨진다)
+      const jsonText = this.extractFirstJsonObject(this.sanitizeJsonResponse(response));
+      if (jsonText) {
+        const parsed = JSON.parse(jsonText);
+        const recommendedSpread = this.normalizeSpreadType(parsed.recommendedSpread);
+        if (recommendedSpread) {
+          console.log('✅ AI 스프레드 추천 결과:', recommendedSpread);
+          return {
+            analysis: String(parsed.analysis || ''),
+            recommendedSpread,
+            reason: String(parsed.reason || '')
+          };
+        }
+        console.warn('⚠️ AI가 지원하지 않는 스프레드를 추천, fallback 사용:', String(parsed.recommendedSpread).slice(0, 40));
+        return this.fallbackSpreadRecommendation(question);
       }
 
       console.warn('⚠️ AI 응답에서 JSON 파싱 실패, fallback 사용');
@@ -186,19 +209,127 @@ JSON 형식으로 답변:
     }
   }
 
-  // Fallback 추천 로직
+  // "Three-Card", "three_card" 같은 표기 흔들림을 정리하고 실제 스프레드만 통과
+  private normalizeSpreadType(value: unknown): SpreadType | null {
+    if (typeof value !== 'string') return null;
+    const normalized = value.trim().toLowerCase().replace(/[_\s]+/g, '-');
+    // 맞춤 배치는 대화로만 만든다 (추천 대상 아님)
+    if (normalized === 'custom') return null;
+    return Object.prototype.hasOwnProperty.call(SPREAD_POSITIONS, normalized) ? normalized as SpreadType : null;
+  }
+
+  // 사용자와 대화하며 질문에 맞는 맞춤 배치(2~7자리)를 설계
+  async designCustomSpread(
+    question: string,
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    current: { name: string; positions: CustomPosition[] } | null
+  ): Promise<{ message: string; name: string; positions: CustomPosition[] }> {
+    const currentSection = current
+      ? `[지금 배치] ${current.name}\n${current.positions.map((p, i) => `${i + 1}. ${p.label}: ${p.meaning}`).join('\n')}`
+      : '[지금 배치] 아직 없음. 질문을 보고 처음 배치를 제안하세요.';
+    const conversation = messages.length > 0
+      ? messages.map(m => `${m.role === 'user' ? '사용자' : '리더'}: ${m.content}`).join('\n')
+      : '(아직 대화 없음)';
+
+    const prompt = `당신은 타로 리더입니다. 사용자의 질문에 꼭 맞는 카드 배치(스프레드)를 사용자와 함께 만듭니다.
+
+[사용자 질문] "${question}"
+${currentSection}
+
+[대화]
+${conversation}
+
+규칙:
+- 자리는 2~7개. 질문에 꼭 필요한 자리만 두고, 보통은 3~5개가 좋습니다.
+- 자리 이름(label)은 10자 이내의 쉬운 말로 쓰세요. 예: "지금 마음", "유학의 결과", "3개월 뒤"
+- 자리 뜻(meaning)은 이 자리에 나온 카드로 무엇을 보는지 해요체 한 문장(40자 안팎)으로 쓰세요. 예: "유학을 택하면 어떤 경험을 하게 될지 봐요"
+- 선택지를 비교하는 질문이면 선택지마다 한 자리씩 두세요.
+- 사용자가 수정을 요청하면 지금 배치를 바탕으로 요청한 부분만 바꾸세요.
+- "조언 카드"라는 자리 이름은 쓰지 마세요. 조언 카드는 따로 추가할 수 있습니다.
+- message에는 배치를 이렇게 짠 이유를 해요체 1~2문장으로 쓰세요. 이모지와 대시(—) 기호는 쓰지 마세요.
+
+JSON으로만 답하세요:
+{"message": "...", "name": "배치 이름 (15자 이내)", "positions": [{"label": "...", "meaning": "..."}]}`;
+
+    let response = '';
+    if (this.gemini) {
+      try {
+        // 사용자 입력이 그대로 들어가는 기능이라, 일부러 실패를 유도해 비싼 pro까지 호출되지 않게 flash만 쓴다
+        response = await this.tryGeminiWithFallback(prompt, 1024, { jsonMode: true, models: ['gemini-2.5-flash'] });
+      } catch (geminiError) {
+        console.warn('⚠️ 맞춤 배치 Gemini 실패:', (geminiError as Error).message);
+      }
+    }
+    if (!response && this.claude) {
+      try {
+        const message = await this.claude.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }]
+        });
+        response = message.content[0].type === 'text' ? message.content[0].text : '';
+      } catch (claudeError) {
+        console.warn('⚠️ 맞춤 배치 Claude 실패:', (claudeError as Error).message);
+      }
+    }
+
+    try {
+      const jsonText = this.extractFirstJsonObject(this.sanitizeJsonResponse(response));
+      if (jsonText) {
+        const parsed = JSON.parse(jsonText);
+        const positions = sanitizeCustomPositions(parsed.positions);
+        if (positions) {
+          return {
+            message: cleanSpreadText(parsed.message, 200) || '질문에 맞춰 자리를 짜 봤어요.',
+            name: cleanSpreadText(parsed.name, 15) || '맞춤 배치',
+            positions
+          };
+        }
+      }
+    } catch (parseError) {
+      console.warn('⚠️ 맞춤 배치 응답 파싱 실패:', (parseError as Error).message);
+    }
+
+    // AI가 실패하면: 수정 중이었으면 지금 배치를 유지, 처음이면 범용 배치
+    if (current) {
+      return { ...current, message: '지금은 배치를 고치지 못했어요. 바꾸고 싶은 점을 다시 말씀해 주세요.' };
+    }
+    return {
+      message: '질문을 여러 방향에서 볼 수 있게 기본 배치를 준비했어요. 바꾸고 싶은 점을 말씀해 주세요.',
+      name: '맞춤 배치',
+      positions: [
+        { label: '지금 상황', meaning: '이 질문을 둘러싼 지금의 상황' },
+        { label: '걸림돌', meaning: '일이 잘 안 풀리게 막고 있는 것' },
+        { label: '도움 되는 것', meaning: '내 편이 되어 줄 힘이나 기회' },
+        { label: '앞으로의 흐름', meaning: '이대로 가면 펼쳐질 모습' }
+      ]
+    };
+  }
+
+  // Fallback 추천 로직 (AI 추천이 실패했을 때만 사용)
+  // 순서가 중요: 궁합·재회 → 시기 → 선택지 → 기간별 운세 → 원인 → 결정 → 예/아니오 → 나머지
   private fallbackSpreadRecommendation(question: string): {
     analysis: string;
     recommendedSpread: SpreadType;
     reason: string;
   } {
     const lowerQ = question.toLowerCase();
+    const hasAny = (keywords: string[]) => keywords.some(keyword => lowerQ.includes(keyword));
 
-    // 0-1. 궁합 관련 질문 (compatibility) - 최우선 체크
-    const compatibilityKeywords = ['궁합', '잘 맞', '잘맞', '어울리', '맞는지', '우리 사이', '우리사이', '그 사람과', '이 사람과', '상대방과', '연인과', '남친과', '여친과', '남자친구와', '여자친구와', '배우자와', '우리 둘'];
-    const isCompatibilityQuestion = compatibilityKeywords.some(keyword => lowerQ.includes(keyword));
+    // 1. 재회·연락은 상대의 행동이 궁금한 질문이라 궁합이 아니라 흐름으로 본다
+    if (hasAny(['다시 만날', '다시만날', '재회', '돌아올', '연락 올', '연락올'])) {
+      return {
+        analysis: '다시 이어질 수 있을지, 관계의 흐름이 궁금한 질문입니다.',
+        recommendedSpread: 'three-card',
+        reason: '지난 관계, 지금 상태, 앞으로의 흐름을 차례로 보면 가능성을 판단하기 쉬워요.'
+      };
+    }
 
-    if (isCompatibilityQuestion) {
+    // 2. 궁합: 명시적 표현이거나, "잘 맞/어울리"가 사람과 함께 나올 때만 (직업·회사와 맞는지는 제외)
+    const relationPhrases = ['궁합', '우리 사이', '우리사이', '우리 둘', '그 사람과', '이 사람과', '상대방과', '연인과', '남친과', '여친과', '남자친구와', '여자친구와', '배우자와'];
+    const fitWords = ['잘 맞', '잘맞', '어울리', '맞는지'];
+    const personWords = ['사람', '남친', '여친', '남자친구', '여자친구', '배우자', '연인', '상대'];
+    if (hasAny(relationPhrases) || (hasAny(fitWords) && hasAny(personWords))) {
       return {
         analysis: '두 사람의 관계와 궁합을 알고 싶은 질문입니다.',
         recommendedSpread: 'compatibility',
@@ -206,11 +337,8 @@ JSON 형식으로 답변:
       };
     }
 
-    // 0. "언제" 시기 질문 (six-months) - 최우선 체크
-    const timingQuestionKeywords = ['언제', '몇월', '몇 월', '몇달', '몇 달', '시기', '때가'];
-    const isTimingQuestion = timingQuestionKeywords.some(keyword => lowerQ.includes(keyword));
-    
-    if (isTimingQuestion) {
+    // 3. "언제" 시기 질문
+    if (hasAny(['언제', '몇월', '몇 월', '몇달', '몇 달', '시기', '때가'])) {
       return {
         analysis: '시기를 알고 싶은 질문입니다.',
         recommendedSpread: 'six-months',
@@ -218,11 +346,17 @@ JSON 형식으로 답변:
       };
     }
 
-    // 1. 명확한 A vs B 비교 질문 (two-card)
-    const vsKeywords = ['vs', ' 아니면 ', '중에서', '중에 뭐', '둘 중', '둘중'];
-    const hasClearComparison = vsKeywords.some(keyword => lowerQ.includes(keyword));
-    
-    if (hasClearComparison) {
+    // 4. 선택지 비교: 3개 이상이면 three-card, 2개면 two-card
+    const choices = this.parseChoicesFromQuestion(question);
+    const optionCount = Math.max(choices.length, (lowerQ.match(/할지/g) || []).length);
+    if (optionCount >= 3) {
+      return {
+        analysis: '여러 선택지 중에서 고민하는 질문입니다.',
+        recommendedSpread: 'three-card',
+        reason: '선택지마다 카드를 한 장씩 두고 비교해 볼 수 있어요.'
+      };
+    }
+    if (optionCount === 2 || hasAny(['vs', ' 아니면 ', '중에서', '중에 뭐', '둘 중', '둘중'])) {
       return {
         analysis: '두 가지 선택지를 직접 비교하는 질문입니다.',
         recommendedSpread: 'two-card',
@@ -230,105 +364,38 @@ JSON 형식으로 답변:
       };
     }
 
-    // 2. 문제/해결 구조의 질문
-    const problemKeywords = ['왜 이런', '문제가', '해결', '어떻게 하면', '방법'];
-    const isProblemSolution = problemKeywords.some(keyword => lowerQ.includes(keyword));
-    
-    if (isProblemSolution) {
-      return {
-        analysis: '현재 문제의 원인과 해결책을 찾는 질문입니다.',
-        recommendedSpread: 'problem-solution',
-        reason: '문제의 원인과 해결책을 각각 카드로 확인할 수 있습니다.'
-      };
-    }
-
-    // 3. 선택/결정 질문 (three-card 또는 two-card)
-    const choiceKeywords = [
-      '어느', '어떤', '뭐가', '무엇이', '선택', '결정', '해야 할까', '해야할까',
-      '더 좋', '더좋', '낫', '할까 말까', '할까말까', '시작해도', 
-      '해도 될까', '해도될까', '맞을까', '좋을까', '괜찮을까', '어떨까'
-    ];
-    
-    const isChoiceQuestion = choiceKeywords.some(keyword => lowerQ.includes(keyword));
-    
-    if (isChoiceQuestion) {
-      // "A와 B 중에" 패턴이 있으면 two-card
-      if (lowerQ.includes('중에') || lowerQ.includes('중') && lowerQ.includes('가')) {
-        return {
-          analysis: '선택지 비교가 필요한 질문입니다.',
-          recommendedSpread: 'two-card',
-          reason: '두 가지 옵션을 직접 비교하는 투 카드 스프레드를 추천합니다.'
-        };
-      }
-      return {
-        analysis: '결정에 도움이 필요한 질문입니다.',
-        recommendedSpread: 'three-card',
-        reason: '상황의 흐름과 결과를 보기 위해 쓰리 카드 스프레드를 추천합니다.'
-      };
-    }
-
-    // 4. 간단한 예/아니오 질문
-    const yesNoPatterns = ['할 수 있을까', '할수있을까', '가능할까', '될까요'];
-    const isYesNo = yesNoPatterns.some(p => lowerQ.includes(p)) && lowerQ.length < 25;
-    
-    if (isYesNo) {
-      return {
-        analysis: '직관적인 답이 필요한 질문입니다.',
-        recommendedSpread: 'yes-no',
-        reason: '예/아니오 형태의 명확한 답을 얻을 수 있습니다.'
-      };
-    }
-
-    // 5-1. 운세 질문 (기간별 분기)
+    // 5. 운세 질문 (기간별 분기)
     const generalFortuneTopics = ['운세', '총운'];
-    const specificFortuneTopics = ['금전운', '연애운', '건강운', '직장운', '학업운', '사업운'];
-    const allFortuneTopics = [...generalFortuneTopics, ...specificFortuneTopics];
-    const isFortuneQuestion = allFortuneTopics.some(keyword => lowerQ.includes(keyword));
-    const isSpecificFortune = specificFortuneTopics.some(keyword => lowerQ.includes(keyword));
+    const specificFortuneTopics = ['금전운', '재물운', '연애운', '건강운', '직장운', '학업운', '사업운', '취업운', '시험운', '결혼운', '이직운'];
     const matchedTopic = specificFortuneTopics.find(keyword => lowerQ.includes(keyword));
-
-    if (isFortuneQuestion) {
-      // 기간 키워드에 따라 적절한 스프레드 선택
-      const monthlyKeywords = ['이번 달', '이번달', '이달', '금월', '월간'];
-      const yearlyKeywords = ['올해', '금년', '이번 해', '연간', '내년'];
-      const weeklyKeywords = ['이번 주', '이번주', '금주', '주간'];
-      const dailyKeywords = ['오늘', '오늘의', '일일', '하루'];
-
-      const isMonthly = monthlyKeywords.some(k => lowerQ.includes(k));
-      const isYearly = yearlyKeywords.some(k => lowerQ.includes(k));
-      const isWeekly = weeklyKeywords.some(k => lowerQ.includes(k));
-      const isDaily = dailyKeywords.some(k => lowerQ.includes(k));
+    if (matchedTopic || hasAny(generalFortuneTopics)) {
+      const topic = matchedTopic || '운세';
+      const isYearly = /(19|20)\d{2}\s*년/.test(lowerQ) || hasAny(['올해', '금년', '이번 해', '연간', '내년', '새해', '하반기', '상반기']);
+      const isMonthly = hasAny(['이번 달', '이번달', '이달', '금월', '월간', '다음 달', '다음달']);
+      const isWeekly = hasAny(['이번 주', '이번주', '금주', '주간']);
+      const isDaily = hasAny(['오늘', '하루', '일일']);
 
       if (isYearly) {
         return {
-          analysis: '올해의 운세 흐름을 묻는 질문입니다.',
+          analysis: `한 해의 ${topic} 흐름을 묻는 질문입니다.`,
           recommendedSpread: 'six-months',
-          reason: '향후 6개월간 월별 흐름을 통해 올해의 운세를 종합적으로 파악할 수 있습니다.'
+          reason: `향후 6개월간 월별 흐름으로 ${topic}을 살펴봅니다.`
         };
       }
-      if (isMonthly) {
+      if (isMonthly || isWeekly) {
         return {
-          analysis: `이번 달의 ${matchedTopic || '운세'}를 묻는 질문입니다.`,
+          analysis: `${isMonthly ? '이번 달' : '이번 주'}의 ${topic}를 묻는 질문입니다.`,
           recommendedSpread: 'three-card',
-          reason: `이번 달의 ${matchedTopic || '운세'} 흐름을 과거-현재-미래로 나눠 구체적으로 살펴봅니다.`
+          reason: `${topic} 흐름을 과거-현재-미래로 나눠 구체적으로 살펴봅니다.`
         };
       }
-      if (isWeekly) {
-        return {
-          analysis: `이번 주의 ${matchedTopic || '운세'}를 묻는 질문입니다.`,
-          recommendedSpread: 'three-card',
-          reason: `이번 주의 ${matchedTopic || '운세'} 흐름을 과거-현재-미래로 나눠 살펴봅니다.`
-        };
-      }
-      // 특정 운세(연애운, 금전운 등)를 기간 없이 물으면 → three-card로 집중 리딩
-      if (isSpecificFortune && !isDaily) {
+      if (matchedTopic && !isDaily) {
         return {
           analysis: `${matchedTopic}에 대해 집중적으로 묻는 질문입니다.`,
           recommendedSpread: 'three-card',
-          reason: `${matchedTopic}의 과거 흐름, 현재 상태, 미래 방향을 깊이 있게 살펴봅니다.`
+          reason: `${matchedTopic}의 과거 흐름, 현재 상태, 미래 방향을 살펴봅니다.`
         };
       }
-      // "오늘의 운세", "운세" 등 전체 운세 → daily-fortune
       return {
         analysis: '오늘의 운세를 묻는 질문입니다.',
         recommendedSpread: 'daily-fortune',
@@ -336,8 +403,35 @@ JSON 형식으로 답변:
       };
     }
 
-    // 5-2. 간단한 현재 상황 질문
-    if (lowerQ.includes('오늘') || lowerQ.includes('지금') || lowerQ.length < 10) {
+    // 6. 원인/해결
+    if (hasAny(['왜 이런', '왜 이렇게', '왜 자꾸', '왜 안', '안 풀', '안풀', '문제가', '해결', '어떻게 하면', '방법'])) {
+      return {
+        analysis: '현재 문제의 원인과 해결책을 찾는 질문입니다.',
+        recommendedSpread: 'problem-solution',
+        reason: '문제의 원인과 해결책을 각각 카드로 확인할 수 있습니다.'
+      };
+    }
+
+    // 7. 가까운 결정 ("해도 될까", "할까 말까")은 결과의 흐름을 본다
+    if (hasAny(['해도 될까', '해도될까', '할까 말까', '할까말까', '가도 될까', '가도 괜찮', '해도 괜찮', '시작해도', '그만둘까', '그만 둘까', '결정', '선택'])) {
+      return {
+        analysis: '결정에 도움이 필요한 질문입니다.',
+        recommendedSpread: 'three-card',
+        reason: '상황의 흐름과 결과를 보기 위해 쓰리 카드 스프레드를 추천합니다.'
+      };
+    }
+
+    // 8. 예/아니오
+    if (lowerQ.length < 30 && hasAny(['할 수 있을까', '할수있을까', '가능할까', '합격', '붙을까', '좋아할까', '될까요', '될까?', '올까요', '올까?'])) {
+      return {
+        analysis: '직관적인 답이 필요한 질문입니다.',
+        recommendedSpread: 'yes-no',
+        reason: '예/아니오 형태의 명확한 답을 얻을 수 있습니다.'
+      };
+    }
+
+    // 9. 간단한 현재 상황 질문
+    if (hasAny(['오늘', '지금']) || lowerQ.length < 10) {
       return {
         analysis: '간단한 질문입니다.',
         recommendedSpread: 'one-card',
@@ -345,11 +439,8 @@ JSON 형식으로 답변:
       };
     }
 
-    // 6. 시기/흐름 관련 질문
-    const timingKeywords = ['개월', '하반기', '상반기', '올해', '내년', '흐름'];
-    const pureTimingQuestion = timingKeywords.some(keyword => lowerQ.includes(keyword));
-    
-    if (pureTimingQuestion) {
+    // 10. 시기/흐름
+    if (hasAny(['개월', '흐름', '올해', '내년', '하반기', '상반기'])) {
       return {
         analysis: '시기와 흐름을 묻는 질문입니다.',
         recommendedSpread: 'six-months',
@@ -357,8 +448,8 @@ JSON 형식으로 답변:
       };
     }
 
-    // 7. 과거/현재/미래 흐름
-    if (lowerQ.includes('과거') || lowerQ.includes('현재') || lowerQ.includes('미래')) {
+    // 11. 과거/현재/미래 흐름
+    if (hasAny(['과거', '현재', '미래'])) {
       return {
         analysis: '시간의 흐름을 보는 질문입니다.',
         recommendedSpread: 'three-card',
@@ -366,8 +457,8 @@ JSON 형식으로 답변:
       };
     }
 
-    // 8. 오행/사주 관련
-    if (lowerQ.includes('재물') || lowerQ.includes('건강') || lowerQ.includes('오행') || lowerQ.includes('사주')) {
+    // 12. 사주/오행 관련
+    if (hasAny(['사주', '오행', '타고난', '적성', '재물', '건강'])) {
       return {
         analysis: '오행과 연관된 질문입니다.',
         recommendedSpread: 'saju-custom',
@@ -375,8 +466,8 @@ JSON 형식으로 답변:
       };
     }
 
-    // 9. 관계나 복잡한 상황
-    if (lowerQ.includes('관계') || lowerQ.includes('복잡') || lowerQ.length > 40) {
+    // 13. 관계나 복잡한 상황
+    if (hasAny(['관계', '복잡']) || lowerQ.length > 40) {
       return {
         analysis: '복합적인 상황 분석이 필요한 질문입니다.',
         recommendedSpread: 'celtic-cross',
@@ -384,7 +475,7 @@ JSON 형식으로 답변:
       };
     }
 
-    // 10. 기본값: 쓰리 카드 (가장 범용적)
+    // 14. 기본값: 쓰리 카드 (가장 범용적)
     return {
       analysis: '상황의 흐름을 파악하는 질문입니다.',
       recommendedSpread: 'three-card',
@@ -403,7 +494,8 @@ JSON 형식으로 답변:
     includeAdviceCard: boolean = false,
     userMbti?: string | null,
     partnerSajuAnalysis?: SajuAnalysis | null,
-    partnerMbti?: string
+    partnerMbti?: string,
+    customPositions?: CustomPosition[]
   ): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -452,7 +544,8 @@ JSON 형식으로 답변:
         seasonalElement,
         includeAdviceCard,
         partnerSajuAnalysis: partnerSajuAnalysis || undefined,
-        partnerMbti
+        partnerMbti,
+        customPositions
       });
 
       console.log('✅ 에이전틱 파이프라인 완료');
@@ -916,6 +1009,7 @@ ${partnerSection}
     includeAdviceCard: boolean;
     partnerSajuAnalysis?: SajuAnalysis;
     partnerMbti?: string;
+    customPositions?: CustomPosition[];
   }): Promise<{
     interpretation: string;
     elementalHarmony: string;
@@ -924,7 +1018,12 @@ ${partnerSection}
     compatibilityReading?: string;
     easyReading?: EasyReading;
   }> {
-    const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard, partnerSajuAnalysis, partnerMbti } = params;
+    const { analysisContext, sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, includeAdviceCard, partnerSajuAnalysis, partnerMbti, customPositions } = params;
+
+    // 맞춤 배치면 자리마다 무엇을 보는지 알려줘야 해석이 자리 의도에 맞는다
+    const customSpreadSection = spreadType === 'custom' && customPositions?.length
+      ? `\n[맞춤 배치: 사용자와 함께 만든 자리] 각 카드는 아래 자리의 뜻에 맞춰 해석하세요.\n${customPositions.map((p, i) => `${i + 1}. ${p.label}: ${p.meaning}`).join('\n')}`
+      : '';
 
     const userElement = sajuAnalysis.dayMasterElement;
     const elementDescriptions: Record<string, string> = {
@@ -1012,6 +1111,7 @@ ${previousContext && previousContext.length > 0 ? `[최근 상담 이력]\n${pre
 [질문] "${question}"
 ${choiceSection}
 
+${customSpreadSection}
 [뽑힌 카드 - ${spreadType}]
 ${mainCards.map((dc, i) => {
   const targetMonth = spreadType === 'six-months' ? ((dateContext.month + i - 1) % 12) + 1 : null;
@@ -1254,7 +1354,7 @@ ${easyCardTemplate}
   // Gemini 모델 fallback 로직
   // maxTokens는 "보이는 답" 분량. Gemini 2.5는 thinking 토큰도 maxOutputTokens에서 먼저 쓰기 때문에
   // thinking 예산을 명시하고 그만큼 한도에 더한다 (안 그러면 작은 한도 호출은 thinking만 하다 MAX_TOKENS로 잘림)
-  private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024, options?: { jsonMode?: boolean; minLength?: number; thinkingBudget?: number }): Promise<string> {
+  private async tryGeminiWithFallback(prompt: string, maxTokens: number = 1024, options?: { jsonMode?: boolean; minLength?: number; thinkingBudget?: number; models?: string[] }): Promise<string> {
     if (!this.gemini) {
       throw new Error('Gemini API가 초기화되지 않았습니다.');
     }
@@ -1269,7 +1369,7 @@ ${easyCardTemplate}
     }
 
     let lastFailure = '';
-    for (const modelName of this.geminiModels) {
+    for (const modelName of options?.models ?? this.geminiModels) {
       try {
         console.log(`🤖 Gemini 모델 시도: ${modelName}`);
         const model = this.gemini.getGenerativeModel({

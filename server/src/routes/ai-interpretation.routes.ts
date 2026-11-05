@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   analyzeQuestion,
+  designSpread,
   getAIIntegratedReading,
   getMyReadings,
   getReadingById
@@ -15,6 +16,9 @@ router.use(authMiddleware);
 
 // 질문 분석 및 스프레드 추천
 router.post('/analyze-question', analyzeQuestion);
+
+// 대화로 맞춤 배치 설계
+router.post('/design-spread', designSpread);
 
 // AI 기반 통합 해석
 router.post('/ai-reading', getAIIntegratedReading);

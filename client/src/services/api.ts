@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { BirthInfo, SajuAnalysis, SpreadType, IntegratedReading, TarotCard, ApiResponse } from '../types';
+import type { BirthInfo, SajuAnalysis, SpreadType, IntegratedReading, TarotCard, ApiResponse, CustomPosition, CustomSpreadDesign, SpreadChatMessage } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -97,6 +97,32 @@ export const aiApi = {
     return response.data.data;
   },
 
+  // 대화로 맞춤 배치 설계
+  designSpread: async (
+    question: string,
+    messages: SpreadChatMessage[],
+    current: CustomSpreadDesign | null
+  ): Promise<CustomSpreadDesign> => {
+    const fallbackMessage = '배치를 만들지 못했어요. 잠시 후 다시 시도해 주세요.';
+    try {
+      const response = await api.post<ApiResponse<CustomSpreadDesign>>('/ai/design-spread', {
+        question,
+        messages,
+        current: current ? { name: current.name, positions: current.positions } : null,
+      });
+      if (!response.data.success || !response.data.data) {
+        throw new Error(response.data.error || fallbackMessage);
+      }
+      return response.data.data;
+    } catch (error) {
+      // 서버 안내(호출 한도, 수정 횟수 초과 등)를 화면에 그대로 보여준다
+      const serverMessage = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+      if (typeof serverMessage === 'string') throw new Error(serverMessage);
+      if (error instanceof Error && !axios.isAxiosError(error)) throw error;
+      throw new Error(fallbackMessage);
+    }
+  },
+
   getAIReading: async (
     question: string,
     spreadType: SpreadType,
@@ -104,7 +130,8 @@ export const aiApi = {
     selectedCards?: { cardIndex: number; isReversed: boolean }[],
     includeAdviceCard?: boolean,
     partnerBirthInfo?: BirthInfo,
-    partnerMbti?: string
+    partnerMbti?: string,
+    customPositions?: CustomPosition[]
   ): Promise<IntegratedReading> => {
     const response = await api.post<ApiResponse<IntegratedReading>>('/ai/ai-reading', {
       question,
@@ -114,6 +141,7 @@ export const aiApi = {
       includeAdviceCard,
       partnerBirthInfo,
       partnerMbti,
+      customPositions,
     });
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || 'AI 해석에 실패했습니다.');

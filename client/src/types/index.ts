@@ -85,7 +85,24 @@ export interface SajuAnalysis {
 
 // 타로 관련 타입
 export type TarotSuit = 'major' | 'wands' | 'cups' | 'swords' | 'pentacles';
-export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility' | 'daily-fortune';
+export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility' | 'daily-fortune' | 'custom';
+
+// 대화로 만든 맞춤 배치 (spreadType === 'custom')
+export interface CustomPosition {
+  label: string;
+  meaning: string;
+}
+
+export interface CustomSpreadDesign {
+  message: string;
+  name: string;
+  positions: CustomPosition[];
+}
+
+export interface SpreadChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export interface TarotCard {
   id: string;

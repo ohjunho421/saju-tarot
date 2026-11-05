@@ -27,10 +27,11 @@ export class TarotService {
   public drawCards(
     spreadType: SpreadType, 
     question?: string, 
-    includeAdviceCard: boolean = false, 
-    cardData?: number[] | { cardIndex: number; isReversed: boolean }[]
+    includeAdviceCard: boolean = false,
+    cardData?: number[] | { cardIndex: number; isReversed: boolean }[],
+    customLabels?: string[] // 맞춤 배치(spreadType === 'custom')의 자리 이름
   ): DrawnCard[] {
-    const positions = SPREAD_POSITIONS[spreadType];
+    const positions = spreadType === 'custom' ? (customLabels ?? []) : SPREAD_POSITIONS[spreadType];
     
     // 사용자가 선택한 카드 데이터가 제공된 경우
     if (cardData && cardData.length > 0) {

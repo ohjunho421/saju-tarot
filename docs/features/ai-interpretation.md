@@ -1,7 +1,7 @@
 ---
 feature: AI 해석
 status: active
-last_modified: 2026-10-10
+last_modified: 2026-10-11
 files:
   - server/src/services/ai.service.ts
   - server/src/services/interpretation.service.ts
@@ -60,3 +60,6 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 | 2026-10-10 | 스프레드 추천·챗봇에서 Claude 호출 실패 시 Gemini로 넘어가도록 수정(기존엔 Claude 키가 설정만 돼 있으면 실패해도 Gemini를 시도하지 않음) | ai.service.ts | 문서상 fallback 동작과 불일치, 키 오류 시 챗봇 전면 불가 |
 | 2026-10-10 | 원격 PR #2(궁합 강화: buildCompatibilityFacts, 일지·띠 궁합)와 이번 변경 병합. generateReading 프롬프트 직전에서 충돌, 두 블록 모두 유지 | ai.service.ts | 로컬 main이 원격보다 2커밋 뒤처짐 |
 | 2026-10-10 | Step 2·레거시 응답에서 첫 번째 완결 JSON만 추출(extractFirstJsonObject). 기존 "첫 { ~ 마지막 }" 정규식은 JSON 뒤에 내용이 붙으면 파싱 실패 → 궁합 리딩 5회 중 1회 레거시로 떨어져 쉽게 보기·궁합 분석이 비었음 | ai.service.ts | 배포 전 검증 중 발견 |
+| 2026-10-10 | 스프레드 추천: AI 추천값을 SPREAD_POSITIONS로 검증(표기 정규화, 목록 밖이면 규칙 기반), JSON은 첫 완결 객체만 추출, 프롬프트에 합격·재회·가까운 결정·선택지 수·연도 운세 규칙 추가. 규칙 기반 추천을 재회 → 궁합 → 시기 → 선택지 → 기간별 운세 → 원인 → 결정 → 예/아니오 순으로 재정리 | ai.service.ts | 추천 점검: AI 15/18 → 18/18, 새 질문 10/12, 규칙 기반 11/18 → 18/18 |
+| 2026-10-11 | designCustomSpread(대화로 배치 설계, Gemini JSON 모드 → Claude, 실패 시 지금 배치 유지 또는 범용 배치) + POST /api/ai/design-spread(인증, 질문 5~200자·대화 10개·각 300자). 리딩 프롬프트에 "[맞춤 배치] 자리: 뜻" 블록 추가. 추천은 custom을 돌려주지 않음 | ai.service.ts, ai-interpretation.controller.ts, ai-interpretation.routes.ts, tarot.model.ts, tarot.service.ts, utils/custom-spread.ts | 맞춤 배치 기능 |
+| 2026-10-11 | 맞춤 배치 보안 리뷰 반영: 사용자별 호출 제한(10분 20회, 429), 서버에서 수정 5회 상한, 탈퇴 계정 확인, 이 기능은 Gemini flash만 사용(실패 유도로 pro까지 호출되는 비용 증폭 차단), 질문·대화의 줄바꿈·따옴표 정리, 자리 이름의 보이지 않는 유니코드 문자 제거 | ai-interpretation.controller.ts, ai.service.ts, utils/custom-spread.ts, utils/user-rate-limit.ts(신규), api.ts, CustomSpreadBuilder.tsx | 보안 리뷰(MEDIUM 1, LOW 3) |
