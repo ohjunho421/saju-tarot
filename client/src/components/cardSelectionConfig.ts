@@ -12,7 +12,8 @@ export const SPREAD_CARD_COUNTS: Record<SpreadType, number> = {
   'yes-no': 1,
   'problem-solution': 2,
   'compatibility': 4,
-  'daily-fortune': 3
+  'daily-fortune': 3,
+  'custom': 0 // 맞춤 배치: 장수는 customPositions로 정해짐
 };
 
 // 자리 이름: 서버 SPREAD_POSITIONS(server/src/models/tarot.model.ts)와 같아야 AI 해석 자리와 일치한다
@@ -26,7 +27,8 @@ export const POSITION_LABELS: Record<SpreadType, string[]> = {
   'yes-no': ['답변'],
   'problem-solution': ['문제의 원인', '해결책'],
   'compatibility': ['나의 기운', '상대방의 기운', '두 사람의 관계', '앞으로의 흐름'],
-  'daily-fortune': ['총운', '금전운', '연애운']
+  'daily-fortune': ['총운', '금전운', '연애운'],
+  'custom': []
 };
 
 export const ADVICE_LABEL = '조언 카드';
@@ -41,7 +43,8 @@ export const GUIDANCE_MESSAGES: Record<SpreadType, string> = {
   'yes-no': '마음속 질문을 떠올리며 직관적으로 한 장의 카드를 선택하세요.',
   'problem-solution': '현재 직면한 문제를 떠올리며 두 장의 카드를 선택하세요.',
   'compatibility': '두 사람의 에너지와 인연을 떠올리며 네 장의 카드를 차례로 선택하세요.',
-  'daily-fortune': '오늘 하루의 운세를 살펴봅니다. 총운, 금전운, 연애운 카드를 차례로 선택하세요.'
+  'daily-fortune': '오늘 하루의 운세를 살펴봅니다. 총운, 금전운, 연애운 카드를 차례로 선택하세요.',
+  'custom': '함께 만든 자리를 하나씩 떠올리며 카드를 차례로 선택하세요.'
 };
 
 // 사용자 질문에서 선택지(A/B/C 등)를 파싱하는 함수
@@ -161,10 +164,11 @@ export const POSITION_GUIDANCE: Record<SpreadType, string[]> = {
     '☀️ 총운 카드 - 오늘 하루의 전체적인 기운과 흐름을 느끼며 카드를 뽑아주세요',
     '💰 금전운 카드 - 오늘의 재물과 금전 흐름을 떠올리며 카드를 뽑아주세요',
     '💕 연애운 카드 - 오늘의 사랑과 인연의 기운을 느끼며 카드를 뽑아주세요'
-  ]
+  ],
+  'custom': [] // 자리별 안내는 customPositions의 meaning을 쓴다
 };
 
-// 스프레드별 카드 배치 (카드 중심 좌표, 기준 카드 80x120px)
+// 스프레드별 카드 배치 (카드 중심 좌표, 기준 카드 67x120px)
 export type CardPosition = { x: number; y: number; rotation?: number };
 export const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
   'one-card': [
@@ -223,10 +227,23 @@ export const SPREAD_LAYOUTS: Record<SpreadType, CardPosition[]> = {
     { x: -150, y: 0 },   // 총운
     { x: 0, y: 0 },      // 금전운
     { x: 150, y: 0 }     // 연애운
-  ]
+  ],
+  'custom': [] // buildCustomLayout으로 장수에 맞춰 생성
 };
 
-export const BASE_CARD_WIDTH = 80;
+// 맞춤 배치: 4장까지 한 줄, 넘으면 두 줄로 나눠 가운데 정렬
+export function buildCustomLayout(count: number): CardPosition[] {
+  const perRow = count <= 4 ? count : Math.ceil(count / 2);
+  return Array.from({ length: count }, (_, i) => {
+    const row = Math.floor(i / perRow);
+    const col = i % perRow;
+    const rowCount = Math.min(perRow, count - row * perRow);
+    return { x: (col - (rowCount - 1) / 2) * 110, y: row * 170 };
+  });
+}
+
+// 카드 그림 비율(768x1376 ≈ 24:43)에 맞춤. 높이를 고정해야 배치 좌표 간격(120)과 겹치지 않는다
+export const BASE_CARD_WIDTH = 67;
 export const BASE_CARD_HEIGHT = 120;
 export const MAX_BOARD_SCALE = 1.6;
 
@@ -254,8 +271,8 @@ export function getLayoutBounds(layout: CardPosition[], cardWidth: number, cardH
 }
 
 // 조언 카드는 기존 배치와 겹치지 않도록 레이아웃 맨 아래 가운데에 둔다
-export function buildBoardLayout(spreadType: SpreadType, includeAdviceCard: boolean): CardPosition[] {
-  const layout = [...SPREAD_LAYOUTS[spreadType]];
+export function buildBoardLayout(spreadType: SpreadType, includeAdviceCard: boolean, customCount = 0): CardPosition[] {
+  const layout = spreadType === 'custom' ? buildCustomLayout(customCount) : [...SPREAD_LAYOUTS[spreadType]];
   if (!includeAdviceCard) return layout;
   const bounds = getLayoutBounds(layout, BASE_CARD_WIDTH, BASE_CARD_HEIGHT);
   return [...layout, { x: (bounds.minX + bounds.maxX) / 2, y: bounds.maxY + 24 + BASE_CARD_HEIGHT / 2 }];

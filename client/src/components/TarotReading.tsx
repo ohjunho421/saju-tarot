@@ -1,15 +1,30 @@
 import { useState } from 'react';
-import type { SpreadType, BirthInfo, MBTIType } from '../types';
+import type { SpreadType, BirthInfo, MBTIType, CustomPosition, CustomSpreadDesign } from '../types';
 import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
-import { Sparkles, Wand2, Loader2, ChevronDown, ChevronUp, Heart } from 'lucide-react';
+import { Sparkles, Wand2, Loader2, ChevronDown, ChevronUp, Heart, MessagesSquare } from 'lucide-react';
 import { aiApi } from '../services/api';
+import CustomSpreadBuilder from './CustomSpreadBuilder';
 
 interface TarotReadingProps {
-  onComplete: (spreadType: SpreadType, question?: string, includeAdviceCard?: boolean, partnerBirthInfo?: BirthInfo, partnerMbti?: MBTIType) => void;
+  onComplete: (spreadType: SpreadType, question?: string, includeAdviceCard?: boolean, partnerBirthInfo?: BirthInfo, partnerMbti?: MBTIType, customPositions?: CustomPosition[]) => void;
+}
+
+// 스프레드를 누가 정했는지: 기본값이면 제출할 때 AI 추천으로 자동 결정
+type SpreadSource = 'default' | 'user' | 'ai';
+
+// AI 추천 API는 5자 이상만 받으므로, "연애운"처럼 짧은 질문은 여기서 정한다
+function spreadForShortQuestion(question: string): SpreadType | null {
+  if (question.includes('운세') || question.includes('총운')) return 'daily-fortune';
+  if (/운$/.test(question)) return 'three-card'; // 연애운, 금전운처럼 특정 운만 물을 때
+  return null;
 }
 
 export default function TarotReading({ onComplete }: TarotReadingProps) {
   const [selectedSpread, setSelectedSpread] = useState<SpreadType>('one-card');
+  const [spreadSource, setSpreadSource] = useState<SpreadSource>('default');
+  // 대화로 만든 맞춤 배치
+  const [customDesign, setCustomDesign] = useState<CustomSpreadDesign | null>(null);
+  const [builderQuestion, setBuilderQuestion] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
   const [includeAdviceCard, setIncludeAdviceCard] = useState(true); // 조언 카드 기본 활성화
   const [aiRecommendation, setAiRecommendation] = useState<{
@@ -54,6 +69,24 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
       cards: 3
     },
     {
+      type: 'yes-no' as SpreadType,
+      name: '예/아니오',
+      description: '한 장으로 보는 직관적인 답',
+      cards: 1
+    },
+    {
+      type: 'two-card' as SpreadType,
+      name: '투 카드 (A vs B)',
+      description: '두 가지 선택지 비교',
+      cards: 2
+    },
+    {
+      type: 'problem-solution' as SpreadType,
+      name: '문제와 해결',
+      description: '원인 한 장, 해결책 한 장',
+      cards: 2
+    },
+    {
       type: 'six-months' as SpreadType,
       name: '6개월 흐름',
       description: '향후 6개월의 월별 흐름',
@@ -85,24 +118,29 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
     }
   ];
 
-  // AI 질문 분석
-  const analyzeQuestionWithAI = async () => {
-    if (!question || question.length < 5) return;
-    
-    const token = localStorage.getItem('token');
-    if (!token) return; // 로그인하지 않은 경우 AI 분석 스킵
+  // AI 추천을 받아 적용하고, 적용한 스프레드를 돌려준다 (실패하거나 목록에 없는 값이면 null)
+  const fetchRecommendation = async (): Promise<SpreadType | null> => {
+    if (question.trim().length < 5 || !localStorage.getItem('token')) return null;
 
     setAnalyzingQuestion(true);
     try {
       const recommendation = await aiApi.analyzeQuestion(question);
+      if (!spreads.some(s => s.type === recommendation.recommendedSpread)) return null;
       setAiRecommendation(recommendation);
       setSelectedSpread(recommendation.recommendedSpread);
+      setSpreadSource('ai');
+      return recommendation.recommendedSpread;
     } catch (error) {
       console.error('AI 질문 분석 실패:', error);
-      // 실패해도 계속 진행
+      return null; // 실패해도 계속 진행
     } finally {
       setAnalyzingQuestion(false);
     }
+  };
+
+  // AI 질문 분석 (버튼)
+  const analyzeQuestionWithAI = async () => {
+    await fetchRecommendation();
   };
 
   // 상대방 정보가 유효한지 확인 (최소: 년, 월, 일 입력)
@@ -127,14 +165,38 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
     };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 맞춤 배치를 확정하면 바로 카드 선택으로
+  const handleCustomConfirm = (design: CustomSpreadDesign) => {
+    setCustomDesign(design);
+    setSelectedSpread('custom');
+    setSpreadSource('user');
+    setBuilderQuestion(null);
+    onComplete('custom', question, includeAdviceCard, buildPartnerBirthInfo(), partnerMbti || undefined, design.positions);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (analyzingQuestion) return;
     const partnerInfo = buildPartnerBirthInfo();
-    // 질문 없이 카드를 뽑거나 운세 관련 질문이면 자동으로 '오늘의 운세' 스프레드로 전환
-    const fortuneKeywords = ['운세', '오늘의 운', '총운', '금전운', '연애운', '일일운', '오늘 운'];
-    const isFortuneQuestion = fortuneKeywords.some(kw => question.trim().includes(kw));
-    const finalSpread = (!question.trim() || isFortuneQuestion) && selectedSpread !== 'daily-fortune' ? 'daily-fortune' as SpreadType : selectedSpread;
-    const finalQuestion = !question.trim() ? '오늘의 운세를 봐주세요' : question;
+    const trimmed = question.trim();
+
+    if (selectedSpread === 'custom' && customDesign && trimmed) {
+      onComplete('custom', question, includeAdviceCard, partnerInfo, partnerMbti || undefined, customDesign.positions);
+      return;
+    }
+
+    // 질문 없이 뽑으면 오늘의 운세. 질문이 있으면 사용자가 고른 스프레드나 AI 추천을 그대로 따른다
+    // (운세 단어만 보고 오늘의 운세로 바꾸면 "올해 연애운" 같은 질문까지 오늘 하루로 바뀐다)
+    let finalSpread: SpreadType = selectedSpread;
+    if (!trimmed) {
+      finalSpread = 'daily-fortune';
+    } else if (spreadSource === 'default') {
+      finalSpread = trimmed.length >= 5
+        ? (await fetchRecommendation()) ?? selectedSpread
+        : spreadForShortQuestion(trimmed) ?? selectedSpread;
+    }
+
+    const finalQuestion = !trimmed ? '오늘의 운세를 봐주세요' : question;
     onComplete(finalSpread, finalQuestion, includeAdviceCard, partnerInfo, partnerMbti || undefined);
   };
 
@@ -167,6 +229,7 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
               onChange={(e) => {
                 setQuestion(e.target.value);
                 setAiRecommendation(null); // 질문 변경 시 추천 초기화
+                setSpreadSource(source => (source === 'ai' ? 'default' : source)); // 직접 고른 건 유지
               }}
               placeholder="예: 올해 나의 재물운은 어떨까요?"
               className="input-field min-h-24 resize-none"
@@ -432,17 +495,68 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
             </div>
           )}
 
+          {/* 대화로 맞춤 배치 만들기 */}
+          {localStorage.getItem('token') && (
+            builderQuestion !== null ? (
+              <CustomSpreadBuilder
+                question={builderQuestion}
+                onConfirm={handleCustomConfirm}
+                onCancel={() => setBuilderQuestion(null)}
+              />
+            ) : (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setBuilderQuestion(question.trim())}
+                  disabled={question.trim().length < 5 || analyzingQuestion}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-mystical-gold/40 bg-white/5 px-5 py-3 font-semibold text-mystical-gold transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <MessagesSquare className="h-5 w-5" aria-hidden="true" />
+                  AI와 대화로 맞춤 배치 만들기
+                </button>
+                <p className="mt-2 text-center text-xs text-white/60">
+                  정해진 배치가 질문에 딱 맞지 않을 때, 자리를 같이 정해서 뽑아요.
+                </p>
+              </div>
+            )
+          )}
+
           {/* 스프레드 선택 */}
           <div>
             <label className="block mb-4 text-lg font-semibold">
               스프레드 선택
             </label>
             <div className="grid md:grid-cols-2 gap-4">
+              {customDesign && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSpread('custom');
+                    setSpreadSource('user');
+                  }}
+                  className={`text-left p-6 rounded-lg border-2 transition-all md:col-span-2 ${
+                    selectedSpread === 'custom'
+                      ? 'bg-primary-600/30 border-primary-500'
+                      : 'bg-white/5 border-mystical-gold/40 hover:border-mystical-gold/70'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-xl font-bold">맞춤 배치 · {customDesign.name}</h3>
+                    <span className="px-3 py-1 bg-mystical-gold/20 text-mystical-gold rounded-full text-sm">
+                      {customDesign.positions.length}장
+                    </span>
+                  </div>
+                  <p className="text-white/70 break-keep">{customDesign.positions.map(p => p.label).join(' · ')}</p>
+                </button>
+              )}
               {spreads.map((spread) => (
                 <button
                   key={spread.type}
                   type="button"
-                  onClick={() => setSelectedSpread(spread.type)}
+                  onClick={() => {
+                    setSelectedSpread(spread.type);
+                    setSpreadSource('user');
+                  }}
                   className={`text-left p-6 rounded-lg border-2 transition-all ${
                     selectedSpread === spread.type
                       ? 'bg-primary-600/30 border-primary-500'
@@ -502,6 +616,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
                     setAiRecommendation(null);
                     if (suggestion === '오늘의 운세를 봐주세요') {
                       setSelectedSpread('daily-fortune');
+                      setSpreadSource('user');
+                    } else {
+                      setSpreadSource(source => (source === 'ai' ? 'default' : source));
                     }
                   }}
                   className="text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/20 rounded-full text-white/70 hover:text-white transition-colors"
@@ -514,22 +631,41 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
 
           <button
             type="submit"
-            className="w-full btn-primary text-lg py-4"
+            disabled={analyzingQuestion}
+            className="w-full btn-primary text-lg py-4 disabled:opacity-70 disabled:cursor-wait"
           >
-            {!question.trim() ? '✨ 오늘의 운세 보기' : `카드 뽑기 ${includeAdviceCard ? '+ 조언 카드' : ''}`}
+            {analyzingQuestion
+              ? '질문에 맞는 카드 배치를 고르는 중...'
+              : !question.trim() ? '✨ 오늘의 운세 보기' : `카드 뽑기 ${includeAdviceCard ? '+ 조언 카드' : ''}`}
           </button>
+          {question.trim() && spreadSource === 'default' && (
+            <p className="-mt-6 text-center text-xs text-white/60">
+              스프레드를 직접 고르지 않으면 질문에 맞는 배치를 자동으로 골라 드려요.
+            </p>
+          )}
         </form>
       </div>
 
       {/* 스프레드 설명 */}
       <div className="mt-6 card">
-        <h3 className="font-semibold mb-4">선택한 스프레드: {spreads.find(s => s.type === selectedSpread)?.name}</h3>
+        <h3 className="font-semibold mb-4">
+          선택한 스프레드: {selectedSpread === 'custom' ? `맞춤 배치 · ${customDesign?.name ?? ''}` : spreads.find(s => s.type === selectedSpread)?.name}
+        </h3>
         <div className="text-white/70 space-y-2">
           {selectedSpread === 'one-card' && (
             <p>가장 간단한 스프레드로, 하나의 카드를 통해 현재 상황이나 질문에 대한 직접적인 답을 얻습니다.</p>
           )}
           {selectedSpread === 'three-card' && (
             <p>세 장의 카드로 과거-현재-미래의 흐름을 파악합니다. 상황의 원인과 현재, 그리고 앞으로의 전개를 볼 수 있습니다.</p>
+          )}
+          {selectedSpread === 'yes-no' && (
+            <p>한 장의 카드로 예/아니오에 가까운 답을 봐요. "합격할까?", "연락 올까?"처럼 결과가 궁금한 단순한 질문에 맞아요.</p>
+          )}
+          {selectedSpread === 'two-card' && (
+            <p>두 장의 카드로 두 가지 선택지를 나란히 비교해요. 질문에 "A vs B"처럼 선택지를 적으면 카드마다 어떤 선택지인지 안내해 드려요.</p>
+          )}
+          {selectedSpread === 'problem-solution' && (
+            <p>첫 장은 문제의 원인, 둘째 장은 해결책을 보여줘요. "왜 자꾸 일이 안 풀릴까?" 같은 질문에 맞아요.</p>
           )}
           {selectedSpread === 'six-months' && (
             <p>향후 6개월 동안의 월별 흐름을 살펴봅니다. "언제 어떻게 될까?"와 같은 시기 관련 질문에 적합하며, 매달의 주요 에너지와 조언을 확인할 수 있습니다.</p>
@@ -542,6 +678,13 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
           )}
           {selectedSpread === 'compatibility' && (
             <p>두 사람의 에너지와 관계를 네 장의 카드로 분석합니다. 나의 기운, 상대방의 기운, 두 사람의 관계, 앞으로의 흐름을 살펴봅니다. 상대방 정보를 입력하면 사주 궁합도 함께 분석됩니다.</p>
+          )}
+          {selectedSpread === 'custom' && customDesign && (
+            <ol className="space-y-1">
+              {customDesign.positions.map((p, i) => (
+                <li key={p.label} className="break-keep">{i + 1}. {p.label} · {p.meaning}</li>
+              ))}
+            </ol>
           )}
           {selectedSpread === 'daily-fortune' && (
             <p>오늘 하루의 전체 운세(총운), 금전운, 연애운을 세 장의 카드로 살펴봅니다. 당신의 사주 만세력, 12신살, MBTI를 반영하여 오늘 날짜의 절기와 연관 지어 해석해 드립니다.</p>

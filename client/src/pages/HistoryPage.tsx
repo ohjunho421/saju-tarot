@@ -15,6 +15,7 @@ const SPREAD_LABELS: Record<string, string> = {
   'problem-solution': '문제-해결',
   'compatibility': '궁합',
   'daily-fortune': '오늘의 운세',
+  'custom': '맞춤 배치',
 };
 
 interface HistoryPageProps {

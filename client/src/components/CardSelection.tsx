@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import type { SpreadType, TarotCard } from '../types';
+import type { SpreadType, TarotCard, CustomPosition } from '../types';
 import { Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { tarotApi } from '../services/api';
 import {
@@ -23,6 +23,7 @@ interface CardSelectionProps {
   question?: string;
   includeAdviceCard?: boolean;
   onComplete: (selectedCards: { cardIndex: number; isReversed: boolean }[]) => void;
+  customPositions?: CustomPosition[]; // 맞춤 배치(spreadType === 'custom')의 자리
 }
 
 function scrollToTop() {
@@ -40,8 +41,9 @@ function CardBack({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export default function CardSelection({ spreadType, question, includeAdviceCard = false, onComplete }: CardSelectionProps) {
-  const baseCardCount = SPREAD_CARD_COUNTS[spreadType];
+export default function CardSelection({ spreadType, question, includeAdviceCard = false, onComplete, customPositions }: CardSelectionProps) {
+  const isCustom = spreadType === 'custom';
+  const baseCardCount = isCustom ? (customPositions?.length ?? 0) : SPREAD_CARD_COUNTS[spreadType];
   const totalCards = baseCardCount + (includeAdviceCard ? 1 : 0); // 조언 카드 포함 시 +1
   const [selectedCards, setSelectedCards] = useState<{ deckPosition: number; isReversed: boolean }[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
@@ -71,7 +73,8 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
   const [deckCards, setDeckCards] = useState<number[]>([]);
 
   const isPicking = selectedCards.length < totalCards;
-  const slotLabels = [...POSITION_LABELS[spreadType], ...(includeAdviceCard ? [ADVICE_LABEL] : [])];
+  const baseLabels = isCustom ? (customPositions ?? []).map(p => p.label) : POSITION_LABELS[spreadType];
+  const slotLabels = [...baseLabels, ...(includeAdviceCard ? [ADVICE_LABEL] : [])];
 
   // 카드 덱 섞기 - 질문이 올때마다 섞임
   useEffect(() => {
@@ -308,8 +311,11 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
   const isAdviceTurn = currentIndex >= baseCardCount;
   const currentLabel = slotLabels[currentIndex] ?? '';
   const questionGuidance = isAdviceTurn ? null : getQuestionAwareGuidance(spreadType, question, currentIndex);
+  const positionGuidance = isCustom
+    ? (customPositions?.[currentIndex]?.meaning ?? '')
+    : stripGuidanceLabel(POSITION_GUIDANCE[spreadType][currentIndex] ?? '');
   const currentGuidance = questionGuidance
-    ?? stripGuidanceLabel(isAdviceTurn ? ADVICE_CARD_GUIDANCE : (POSITION_GUIDANCE[spreadType][currentIndex] ?? ''));
+    ?? (isAdviceTurn ? stripGuidanceLabel(ADVICE_CARD_GUIDANCE) : positionGuidance);
   const progressPercent = Math.round((selectedCards.length / totalCards) * 100);
   const slotSize = slotLabels.length > 7 ? 'w-8 md:w-12' : 'w-10 md:w-14';
 
@@ -477,7 +483,7 @@ export default function CardSelection({ spreadType, question, includeAdviceCard 
   );
 
   const renderBoard = () => {
-    const layout = buildBoardLayout(spreadType, includeAdviceCard);
+    const layout = buildBoardLayout(spreadType, includeAdviceCard, baseCardCount);
     const bounds = getLayoutBounds(layout, BASE_CARD_WIDTH, BASE_CARD_HEIGHT);
     const availableWidth = Math.max(240, rootWidth - 16);
     // 보드 위(헤더·진행 표시)와 아래(범례·버튼)를 뺀 높이 안에서만 커지게

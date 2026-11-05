@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { BirthInfo, SajuAnalysis, SpreadType, IntegratedReading } from '../types';
+import type { BirthInfo, SajuAnalysis, SpreadType, IntegratedReading, CustomPosition } from '../types';
 import BirthInfoForm from '../components/BirthInfoForm';
 import SajuResult from '../components/SajuResult';
 import TarotReading from '../components/TarotReading';
@@ -20,6 +20,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   const [includeAdviceCard, setIncludeAdviceCard] = useState<boolean>(false);
   const [partnerBirthInfo, setPartnerBirthInfo] = useState<BirthInfo | undefined>(undefined);
   const [partnerMbti, setPartnerMbti] = useState<string | undefined>(undefined);
+  const [customPositions, setCustomPositions] = useState<CustomPosition[] | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pendingReadingRef = useRef(false);
@@ -151,13 +152,14 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
     setStep('tarot');
   };
 
-  const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean, partnerInfo?: BirthInfo, mbti?: string) => {
+  const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean, partnerInfo?: BirthInfo, mbti?: string, positions?: CustomPosition[]) => {
     // State를 먼저 모두 설정한 후 다음 렌더링에서 step 변경
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
     setIncludeAdviceCard(includeAdvice || false);
     setPartnerBirthInfo(partnerInfo);
     setPartnerMbti(mbti);
+    setCustomPositions(spreadType === 'custom' ? positions : undefined);
 
     // setTimeout을 사용하여 state 업데이트 후 step 전환 보장
     setTimeout(() => {
@@ -189,7 +191,8 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
         selectedCards,
         includeAdviceCard,
         partnerBirthInfo,
-        partnerMbti
+        partnerMbti,
+        customPositions
       );
 
       // 정상 완료 - pending 정리
@@ -340,6 +343,7 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
             question={question}
             includeAdviceCard={includeAdviceCard}
             onComplete={handleCardSelectionComplete}
+            customPositions={customPositions}
           />
         );
       })()}

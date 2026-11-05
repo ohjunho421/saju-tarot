@@ -20,6 +20,7 @@ saju-tarot-service/
 │   │   │   ├── CardSelection.tsx
 │   │   │   ├── cardSelectionConfig.ts   # 스프레드별 자리 이름·안내·배치
 │   │   │   ├── ChatBot.tsx
+│   │   │   ├── CustomSpreadBuilder.tsx  # 대화로 맞춤 배치 만들기
 │   │   │   ├── EasyReadingView.tsx      # 결과 "쉽게 보기" 도식
 │   │   │   ├── EasySajuView.tsx         # 사주 "한눈에 보는 나"
 │   │   │   ├── ElementGuide.tsx

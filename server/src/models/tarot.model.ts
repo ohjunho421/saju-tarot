@@ -33,7 +33,13 @@ export interface DrawnCard {
   positionMeaning: string;
 }
 
-export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility' | 'daily-fortune';
+export type SpreadType = 'one-card' | 'two-card' | 'three-card' | 'celtic-cross' | 'saju-custom' | 'six-months' | 'yes-no' | 'problem-solution' | 'compatibility' | 'daily-fortune' | 'custom';
+
+// 사용자와 대화로 만든 맞춤 배치의 자리 (spreadType === 'custom')
+export interface CustomPosition {
+  label: string;    // 자리 이름 (10자 이내)
+  meaning: string;  // 이 자리에서 보는 것 (한 문장)
+}
 
 // 초보자용 "쉽게 보기" 구조화 해석 (결과 화면 도식에 사용)
 export type EasyTone = 'good' | 'neutral' | 'caution';
@@ -86,7 +92,8 @@ export const SPREAD_POSITIONS: Record<SpreadType, string[]> = {
   'yes-no': ['답변'],  // 간단한 예/아니오 질문용
   'problem-solution': ['문제의 원인', '해결책'],  // 문제-해결 구조
   'compatibility': ['나의 기운', '상대방의 기운', '두 사람의 관계', '앞으로의 흐름'],  // 궁합 전용
-  'daily-fortune': ['총운', '금전운', '연애운']  // 오늘의 운세
+  'daily-fortune': ['총운', '금전운', '연애운'],  // 오늘의 운세
+  'custom': []  // 맞춤 배치: 자리는 요청마다 customPositions로 받는다
 };
 
 // 스프레드 설명 (AI 추천 시 사용)
@@ -140,5 +147,10 @@ export const SPREAD_DESCRIPTIONS: Record<SpreadType, { name: string; description
     name: '오늘의 운세',
     description: '세 장으로 오늘 하루의 총운, 금전운, 연애운을 확인',
     bestFor: '오늘의 전체 운세, 일일 금전/연애 흐름, 하루의 방향'
+  },
+  'custom': {
+    name: '맞춤 배치',
+    description: '사용자와 대화하며 질문에 맞게 만든 2~7장 배치',
+    bestFor: '고정 배치로 담기 어려운 질문 (선택지 3개 이상, 여러 측면을 함께 보는 질문)'
   }
 };

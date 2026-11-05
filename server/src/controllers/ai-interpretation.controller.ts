@@ -2,7 +2,13 @@ import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
 import { TarotService } from '../services/tarot.service';
 import aiService from '../services/ai.service';
-import { SPREAD_POSITIONS, type SpreadType } from '../models/tarot.model';
+import { SPREAD_POSITIONS, type SpreadType, type CustomPosition } from '../models/tarot.model';
+import { sanitizeCustomPositions, cleanSpreadText } from '../utils/custom-spread';
+import { createUserRateLimiter } from '../utils/user-rate-limit';
+
+// 맞춤 배치 대화: 한 번 만들 때 최대 6회(첫 제안 + 수정 5회) 호출되므로 10분에 20회면 3번 정도 만들 수 있다
+const allowDesignSpread = createUserRateLimiter(20, 10 * 60 * 1000);
+const MAX_DESIGN_USER_TURNS = 5;
 
 const tarotService = new TarotService();
 
@@ -34,6 +40,67 @@ export const analyzeQuestion = async (req: Request, res: Response): Promise<void
   }
 };
 
+// 대화로 맞춤 배치 설계
+export const designSpread = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: '인증이 필요합니다.' });
+      return;
+    }
+
+    if (!allowDesignSpread(req.user.userId)) {
+      res.status(429).json({ error: '맞춤 배치 요청이 너무 많아요. 10분 뒤에 다시 시도해 주세요.' });
+      return;
+    }
+
+    const { question, messages, current } = req.body as { question?: unknown; messages?: unknown; current?: unknown };
+
+    if (typeof question !== 'string' || question.trim().length < 5 || question.length > 200) {
+      res.status(400).json({ error: '질문을 5~200자로 입력해주세요.' });
+      return;
+    }
+
+    const rawMessages = Array.isArray(messages) ? messages : [];
+    if (rawMessages.length > 10) {
+      res.status(400).json({ error: '대화가 너무 길어요. 처음부터 다시 만들어주세요.' });
+      return;
+    }
+
+    // 줄바꿈·따옴표를 정리해 프롬프트의 규칙 블록을 흉내 내지 못하게 한다
+    const history = rawMessages
+      .filter((m): m is { role: unknown; content: unknown } => !!m && typeof m === 'object')
+      .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+      .map(m => ({ role: m.role as 'user' | 'assistant', content: cleanSpreadText(m.content, 300) }))
+      .filter(m => m.content);
+
+    if (history.filter(m => m.role === 'user').length > MAX_DESIGN_USER_TURNS) {
+      res.status(400).json({ error: `수정은 ${MAX_DESIGN_USER_TURNS}번까지 할 수 있어요. 처음부터 다시 만들어주세요.` });
+      return;
+    }
+
+    // 탈퇴한 계정의 토큰으로 AI를 계속 부르지 못하게 확인
+    const userExists = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { id: true } });
+    if (!userExists) {
+      res.status(404).json({ error: '사용자를 찾을 수 없습니다.' });
+      return;
+    }
+
+    let currentDesign: { name: string; positions: CustomPosition[] } | null = null;
+    if (current && typeof current === 'object') {
+      const positions = sanitizeCustomPositions((current as Record<string, unknown>).positions);
+      if (positions) {
+        currentDesign = { name: cleanSpreadText((current as Record<string, unknown>).name, 15) || '맞춤 배치', positions };
+      }
+    }
+
+    const design = await aiService.designCustomSpread(cleanSpreadText(question, 200), history, currentDesign);
+    res.json({ success: true, data: design });
+  } catch (error) {
+    console.error('맞춤 배치 설계 오류:', error);
+    res.status(500).json({ error: '맞춤 배치를 만드는 중 오류가 발생했습니다.' });
+  }
+};
+
 // AI 기반 통합 해석
 export const getAIIntegratedReading = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -42,7 +109,7 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    const { question, spreadType, includeAdviceCard, cardPositions, selectedCards, sajuAnalysis: clientSajuAnalysis, partnerBirthInfo, partnerMbti }: {
+    const { question, spreadType, includeAdviceCard, cardPositions, selectedCards, sajuAnalysis: clientSajuAnalysis, partnerBirthInfo, partnerMbti, customPositions: rawCustomPositions }: {
       question: string;
       spreadType: SpreadType;
       includeAdviceCard?: boolean;
@@ -51,6 +118,7 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       sajuAnalysis?: any;
       partnerBirthInfo?: any; // 상대방 생년월일 (궁합용)
       partnerMbti?: string;   // 상대방 MBTI (선택)
+      customPositions?: unknown; // 맞춤 배치 자리 (spreadType === 'custom')
     } = req.body;
 
     if (!spreadType) {
@@ -60,6 +128,13 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
 
     if (typeof spreadType !== 'string' || !Object.prototype.hasOwnProperty.call(SPREAD_POSITIONS, spreadType)) {
       res.status(400).json({ error: '지원하지 않는 스프레드 타입입니다.' });
+      return;
+    }
+
+    // 맞춤 배치는 클라이언트가 보낸 자리를 서버에서 다시 검증
+    const customPositions = spreadType === 'custom' ? sanitizeCustomPositions(rawCustomPositions) : null;
+    if (spreadType === 'custom' && !customPositions) {
+      res.status(400).json({ error: '맞춤 배치 정보가 올바르지 않습니다.' });
       return;
     }
 
@@ -94,7 +169,13 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
     })) : null;
 
     // 사용자가 선택한 카드로 뽑기 (역방향 정보 포함)
-    const drawnCards = tarotService.drawCards(spreadType, question, includeAdviceCard || false, selectedCards || cardPositions);
+    const drawnCards = tarotService.drawCards(
+      spreadType,
+      question,
+      includeAdviceCard || false,
+      selectedCards || cardPositions,
+      customPositions?.map(p => p.label)
+    );
 
     // 사주 분석 정보 (클라이언트에서 전달받은 것 우선, 없으면 DB에서)
     let sajuData = clientSajuAnalysis || user.sajuAnalysis;
@@ -139,7 +220,8 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       includeAdviceCard || false,
       user.mbti || undefined,
       partnerSajuData,
-      partnerMbti || undefined
+      partnerMbti || undefined,
+      customPositions || undefined
     );
 
     // 리딩 결과 저장
