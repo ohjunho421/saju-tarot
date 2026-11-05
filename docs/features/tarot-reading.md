@@ -1,7 +1,7 @@
 ---
 feature: 타로 리딩
 status: active
-last_modified: 2026-10-10
+last_modified: 2026-11-05
 files:
   - server/src/services/tarot.service.ts
   - server/src/models/tarot.model.ts
@@ -54,3 +54,4 @@ tags: [타로, 카드, 스프레드, 리딩, 정방향, 역방향]
 | 2026-10-10 | 카드 선택 화면을 한 화면 구조로 재구성(슬롯 줄·미리보기 뽑기 버튼·공개 보드), 6개월 스프레드 3x2 배치 | CardSelection.tsx, cardSelectionConfig.ts(신규) | 뽑을 때마다 위아래 스크롤 왕복 |
 | 2026-10-10 | 버그 수정: 데스크톱 휠이 덱 로딩 전 값에 묶여 한 위치로 튐, 켈트 십자가 위쪽 카드 잘림, 조언 카드가 켈트/궁합 카드와 겹침, 켈트 안내 문구(먼 과거/최근 과거)와 서버 자리(무의식적 영향/과거) 불일치 | CardSelection.tsx, cardSelectionConfig.ts | 리뷰 |
 | 2026-10-10 | 카드 선택 중 상단 3단계 진행 표시가 2단계 미완료로 보이던 문제 수정 | ReadingPage.tsx | 리뷰 |
+| 2026-11-05 | 「6. 연인 카드」 이미지 교체: 300×518 저해상도 썸네일 → 다른 77장과 같은 RWS 스캔본(1122×1920, quality 75 재인코딩) | server/public/tarot-images/6. 연인 카드.jpg | 78장 중 이 한 장만 흐릿하게 표시됨 (이미지 미교체 보고) |
