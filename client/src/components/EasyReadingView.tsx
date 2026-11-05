@@ -75,7 +75,7 @@ function CardThumb({ drawn, className }: { drawn: DrawnCard; className: string }
   const alt = `${drawn.card.nameKo}${drawn.isReversed ? ' (역방향)' : ''}`;
 
   return (
-    <div className={`${className} aspect-[2/3] shrink-0 overflow-hidden rounded-lg border border-mystical-gold/40 bg-primary-900/40`}>
+    <div className={`${className} aspect-[24/43] shrink-0 overflow-hidden rounded-lg border border-mystical-gold/40 bg-primary-900/40`}>
       {drawn.card.imageUrl && !failed ? (
         <img
           src={drawn.card.imageUrl}
