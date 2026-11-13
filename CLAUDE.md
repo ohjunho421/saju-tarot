@@ -49,7 +49,7 @@ saju-tarot-service/
 │   │   ├── routes/
 │   │   ├── middleware/auth.middleware.ts
 │   │   ├── utils/
-│   │   └── data/tarot-cards.ts
+│   │   └── data/                # tarot-cards.ts, day-master-traits.ts(10천간 일간 성향)
 │   ├── prisma/schema.prisma
 │   └── Dockerfile
 └── .env.example

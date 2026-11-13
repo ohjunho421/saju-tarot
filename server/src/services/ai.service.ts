@@ -6,6 +6,26 @@ import type { DrawnCard, SpreadType, EasyReading, EasyTone, EasySignal, CustomPo
 import { sanitizeCustomPositions, cleanSpreadText } from '../utils/custom-spread';
 import { DateHelper } from '../utils/date-helper';
 import { ZodiacService } from './zodiac.service';
+import { getDayMasterTrait, formatDayMasterTrait } from '../data/day-master-traits';
+
+// 최근 리딩 기록 (리딩 흐름 연결용). cards·headline은 저장된 기록에 있을 때만 채워진다
+interface PreviousReading {
+  date: string;
+  question: string;
+  summary: string;
+  cards?: string;
+  headline?: string;
+}
+
+function formatPreviousReadings(previous: PreviousReading[]): string {
+  return previous.map((p, i) => {
+    const parts = [`${i + 1}. ${p.date} "${p.question}"`];
+    if (p.cards) parts.push(`카드: ${p.cards}`);
+    if (p.headline) parts.push(`결론: ${p.headline}`);
+    if (p.summary) parts.push(`요약: ${p.summary}`);
+    return parts.join(' / ');
+  }).join('\n');
+}
 
 // 리딩·챗봇 공통 문체 규칙 (타로 초보자 눈높이 + AI 말투 제거)
 const PLAIN_LANGUAGE_RULES = `⚠️ 쉬운 말 규칙 (가장 중요! 타로를 처음 보는 사람도 한 번에 이해해야 합니다):
@@ -489,7 +509,7 @@ JSON으로만 답하세요:
     drawnCards: DrawnCard[],
     spreadType: SpreadType,
     question: string,
-    previousContext?: Array<{ date: string; question: string; summary: string }> | null,
+    previousContext?: PreviousReading[] | null,
     userName?: string,
     includeAdviceCard: boolean = false,
     userMbti?: string | null,
@@ -575,7 +595,7 @@ JSON으로만 답하세요:
     drawnCards: DrawnCard[];
     spreadType: SpreadType;
     question: string;
-    previousContext?: Array<{ date: string; question: string; summary: string }> | null;
+    previousContext?: PreviousReading[] | null;
     userName?: string;
     includeAdviceCard: boolean;
     userMbti?: string | null;
@@ -599,6 +619,10 @@ JSON으로만 답하세요:
       '수': '물처럼 유연하고 지혜로운'
     };
     const elementNature = elementDescriptions[userElement] || '';
+    const trait = getDayMasterTrait(sajuAnalysis.dayMaster);
+    const dayMasterLine = trait
+      ? `${trait.name}(${trait.hanja}, ${trait.image}) - ${trait.nature}`
+      : `${sajuAnalysis.dayMaster}(${userElement}) - ${elementNature} 성향`;
     const mainCards = drawnCards.filter(dc => dc.positionMeaning !== '조언 카드');
     const adviceCard = drawnCards.find(dc => dc.positionMeaning === '조언 카드');
 
@@ -615,10 +639,10 @@ JSON으로만 답하세요:
 
     const prompt = `동양 철학과 서양 별자리, 그리고 타로를 융합한 전문 상담사로서 해석해주세요.
 
-[사용자] ${userName ? userName + '님, ' : ''}일간 ${sajuAnalysis.dayMaster}(${userElement}) - ${elementNature} 성향
-강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
+[사용자] ${userName ? userName + '님, ' : ''}일간 ${dayMasterLine}
+${trait ? `[일간 성향]\n${formatDayMasterTrait(trait)}\n` : ''}강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
 ${userMbti ? `MBTI: ${userMbti}` : ''}${salSection}${zodiacSection}
-
+${previousContext && previousContext.length > 0 ? `\n[최근 상담 이력]\n${formatPreviousReadings(previousContext)}\n오늘 질문과 주제가 확실히 이어지는 상담이 있으면 그때 카드·결론과 오늘 카드의 흐름을 엮고, 아니면 언급하지 마세요.\n` : ''}
 [질문] "${question}"
 
 [카드 - ${spreadType}]
@@ -627,11 +651,12 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 
 아래 JSON으로만 응답하세요. 마크다운 금지. ${userName ? `"${userName}님" 호칭.` : ''} 역방향 카드는 역방향 의미로만 해석. 솔직하게.
 가독성: 문단 사이에 줄바꿈(\\n\\n)을 넣고, 한 문단은 2~3문장까지만.
-카드 해석: (1) 카드 그림/상징 묘사 먼저 (2) 질문과의 연결 (3) 사주 연결은 자연스러울 때만.
+리딩 흐름: 이 사람의 성향 → 그 성향 때문에 생긴 고민의 뿌리 → 카드가 하는 말 → 이 사람에게 맞는 행동. 고민의 뿌리는 단정하지 말고 summary에서 한 번만 짚기.
+카드 해석: (1) 카드 그림/상징 묘사 먼저 (2) 질문과의 연결 (3) 이 사람 성향에 비춘 의미 (4) 사주 용어 연결은 자연스러울 때만.
 
 {
-  "summary": "인사 + 줄바꿈 + 핵심 결론 + 이유 (250~300자)",
-  "cardReadings": "각 카드: 그림/상징 묘사 → 질문 연결 → 사주 연결(선택). 카드당 300~400자. 카드 사이 줄바꿈(\\n\\n)",
+  "summary": "인사 + 고민의 뿌리(성향에서 이 고민이 왜 생겼을지 1~2문장) + 줄바꿈 + 핵심 결론 + 이유 (350~400자)",
+  "cardReadings": "각 카드: 그림/상징 묘사 → 질문 연결 → 성향에 비춘 의미 → 사주 연결(선택). 카드당 350~450자. 카드 사이 줄바꿈(\\n\\n)",
   "elementalHarmony": "${dateContext.season}(${seasonalElement})과 ${userElement} 기운의 조화를 자연 비유로 (250자)",
   "practiceAdvice": "카드별 실천 방법을 줄바꿈으로 구분 + 오행 활용/보완법 (350자)"${includeAdviceCard && adviceCard ? `,
   "adviceCardReading": "조언 카드 그림/상징 설명 + 실천 조언 (250자)"` : ''}
@@ -700,12 +725,15 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     userName?: string;
     userMbti?: string | null;
     salList?: Array<{ name: string; description: string; effect: string; isPositive: boolean; location?: string }>;
-    previousContext?: Array<{ date: string; question: string; summary: string }> | null;
+    previousContext?: PreviousReading[] | null;
     dateContext: { month: number; season: string; jieqi: string };
     seasonalElement: string;
     partnerSajuAnalysis?: SajuAnalysis;
     partnerMbti?: string;
   }): Promise<{
+    persona: string;
+    worryRoot: string;
+    previousLink: string;
     keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
     elementInterplay: string;
     readingTone: string;
@@ -715,6 +743,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     compatibilityInsight?: string;
   }> {
     const { sajuAnalysis, drawnCards, spreadType, question, userName, userMbti, salList, previousContext, dateContext, seasonalElement, partnerSajuAnalysis, partnerMbti } = params;
+    const trait = getDayMasterTrait(sajuAnalysis.dayMaster);
 
     // 궁합 분석 섹션 (상대방 정보가 있을 때)
     const partnerSection = partnerSajuAnalysis
@@ -750,6 +779,7 @@ ${this.buildCompatibilityFacts(sajuAnalysis, partnerSajuAnalysis)}` : '';
 
 [입력 정보]
 일간: ${sajuAnalysis.dayMaster}(${sajuAnalysis.dayMasterElement})
+${trait ? `[일간 성향]\n${formatDayMasterTrait(trait)}` : ''}
 강한오행: ${sajuAnalysis.strongElements.join('+')} / 약한오행: ${sajuAnalysis.weakElements.join('+')}
 ${userMbti ? `MBTI: ${userMbti}` : ''}
 ${zodiacText}
@@ -758,9 +788,13 @@ ${partnerSection}
 질문: ${question}
 카드: ${cardText}
 시기: ${dateContext.month}월 ${dateContext.season}
+${previousContext && previousContext.length > 0 ? `[최근 상담 이력]\n${formatPreviousReadings(previousContext)}` : ''}
 
 [응답 형식] 아래 JSON 구조를 정확히 따르세요:
 {
+  "persona": "일간 성향·별자리·MBTI를 하나로 합친 이 사람의 모습 2~3문장. 세 정보가 겹치는 기질을 중심에 두고, 서로 다른 부분은 '겉으로는 ~하지만 속으로는 ~'처럼 엮기. 주어진 정보만 사용",
+  "worryRoot": "이 질문의 고민이 이 사람의 어떤 성향에서 비롯됐을지 1~2문장. 바깥 사건이 원인이어도 이 사람이 그 일을 유독 무겁게 받아들이는 이유를 성향에서 찾기. 고민이 드러나지 않는 질문이면 빈 문자열",
+  "previousLink": "최근 상담 중 오늘 질문과 주제가 이어지는 것이 있으면 '날짜 질문: 그때 카드·결론이 오늘 질문과 어떻게 이어지는지' 한 문장, 없으면 빈 문자열",
   "keySalNames": "신살명1,신살명2",
   "keySalReasons": "이유1||이유2",
   "keySalPositive": "true,false",
@@ -768,7 +802,7 @@ ${partnerSection}
   "readingTone": "리딩 전체 톤 한 문장",
   "cardSummary": "카드명@@핵심상징@@사주연결##카드명@@핵심상징@@사주연결",
   "overallDirection": "핵심 메시지 방향 한 문장",
-  "mbtiInsight": "${userMbti ? `${userMbti} 성격 특성 한 문장` : '해당없음'}"${partnerSajuAnalysis ? `,
+  "mbtiInsight": "${userMbti ? `${userMbti} 성향이 이 질문에서 어떻게 작동하는지 한 문장` : '해당없음'}"${partnerSajuAnalysis ? `,
   "compatibilityInsight": "두 사람 오행 관계와 궁합 핵심 한 문장"` : ''}
 }
 
@@ -776,17 +810,27 @@ ${partnerSection}
 - 배열 [] 사용 금지, 모든 값은 문자열
 - cardSummary: 카드 내부 @@, 카드 간 ##
 - keySalReasons: 이유 간 ||
-- 신살 없으면 빈 문자열`;
+- 신살 없으면 빈 문자열
+- previousLink: 주제가 확실히 이어질 때만. 애매하면 빈 문자열
+- 모든 값은 "~해요"체로. persona·worryRoot는 "정화의 ~, 게자리의 ~, INFJ의 ~"처럼 정보 출처를 나열하지 말고 한 사람의 성향으로 말하기`;
+
+    // Step 1이 실패하거나 페르소나를 비워 보내도 일간 성향만으로 기본 모습을 만든다
+    const fallbackPersona = [
+      trait ? `${trait.name}(${trait.image}) 기질: ${trait.nature}` : `${sajuAnalysis.dayMasterElement} 기운이 중심인 사람`,
+      zodiacInfo ? `${zodiacInfo.sign}: ${zodiacInfo.strengths.slice(0, 2).join(', ')}` : '',
+      userMbti ? `MBTI ${userMbti}` : ''
+    ].filter(Boolean).join(' / ');
 
     try {
       let response = '';
       let parsed: any = null;
 
-      // Gemini 시도
+      // Gemini 시도 (페르소나·고민 분석 필드가 늘어 출력 한도를 3072로)
       if (this.gemini) {
         try {
-          response = await this.tryGeminiWithFallback(prompt, 2048, { jsonMode: true });
-          console.log('📋 Step 1 Gemini 응답 (첫 500자):', response.substring(0, 500));
+          response = await this.tryGeminiWithFallback(prompt, 3072, { jsonMode: true });
+          // 응답에 사용자 고민·이전 질문이 담기므로 본문은 남기지 않는다
+          console.log(`📋 Step 1 Gemini 응답 길이: ${response.length}자`);
           parsed = this.parseStep1Json(response);
         } catch (geminiError) {
           console.warn('⚠️ Step 1 Gemini 실패:', (geminiError as Error).message);
@@ -799,11 +843,11 @@ ${partnerSection}
           console.log('🔄 Step 1 Claude fallback 시도...');
           const message = await this.claude.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 2048,
+            max_tokens: 3072,
             messages: [{ role: 'user', content: prompt }]
           });
           response = message.content[0].type === 'text' ? message.content[0].text : '';
-          console.log('📋 Step 1 Claude 응답 (첫 500자):', response.substring(0, 500));
+          console.log(`📋 Step 1 Claude 응답 길이: ${response.length}자`);
           parsed = this.parseStep1Json(response);
         } catch (claudeError) {
           console.warn('⚠️ Step 1 Claude도 실패:', (claudeError as Error).message);
@@ -841,7 +885,13 @@ ${partnerSection}
         direction: parsed.overallDirection?.substring(0, 50)
       });
 
+      // 새 필드는 Step 2 프롬프트(JSON 예시 안 포함)에 그대로 들어가므로
+      // 문자열만 받고 따옴표·보이지 않는 문자·줄바꿈을 정리한 뒤 길이를 자른다
       return {
+        persona: cleanSpreadText(parsed.persona, 400) || fallbackPersona,
+        worryRoot: cleanSpreadText(parsed.worryRoot, 300),
+        // 이력이 없는데 모델이 연결을 지어내는 경우를 막는다
+        previousLink: previousContext && previousContext.length > 0 ? cleanSpreadText(parsed.previousLink, 300) : '',
         keySals,
         elementInterplay: parsed.elementInterplay || '',
         readingTone: parsed.readingTone || '균형 잡힌 해석',
@@ -858,6 +908,9 @@ ${partnerSection}
         : undefined;
 
       return {
+        persona: fallbackPersona,
+        worryRoot: '',
+        previousLink: '',
         keySals: (salList || []).slice(0, 3).map(s => ({
           name: s.name,
           reason: s.effect,
@@ -884,7 +937,7 @@ ${partnerSection}
       throw new Error('Step 1 응답이 비어있음');
     }
 
-    console.log('🔍 parseStep1Json 입력 (첫 500자):', response.substring(0, 500));
+    console.log(`🔍 parseStep1Json 입력 길이: ${response.length}자`);
 
     // 시도 1: 직접 파싱
     try {
@@ -901,9 +954,9 @@ ${partnerSection}
       const openBraceIdx = response.indexOf('{');
       if (openBraceIdx !== -1) {
         jsonStr = this.repairIncompleteJson(response.substring(openBraceIdx));
-        console.log('🔧 불완전 JSON 복구 시도:', jsonStr.substring(0, 300));
+        console.log(`🔧 불완전 JSON 복구 시도 (${jsonStr.length}자)`);
       } else {
-        console.warn('❌ JSON 블록 없음. 전체 응답:', response.substring(0, 500));
+        console.warn(`❌ JSON 블록 없음 (응답 ${response.length}자)`);
         throw new Error('JSON 블록 없음');
       }
     }
@@ -988,6 +1041,9 @@ ${partnerSection}
   // ============================================================
   private async generateReading(params: {
     analysisContext: {
+      persona: string;
+      worryRoot: string;
+      previousLink: string;
       keySals: Array<{ name: string; reason: string; isPositive: boolean }>;
       elementInterplay: string;
       readingTone: string;
@@ -1003,7 +1059,7 @@ ${partnerSection}
     userName?: string;
     userMbti?: string | null;
     salList?: Array<{ name: string; description: string; effect: string; isPositive: boolean }>;
-    previousContext?: Array<{ date: string; question: string; summary: string }> | null;
+    previousContext?: PreviousReading[] | null;
     dateContext: { month: number; season: string; jieqi: string; solarDate?: string; weekday?: string };
     seasonalElement: string;
     includeAdviceCard: boolean;
@@ -1034,6 +1090,13 @@ ${partnerSection}
       '수': '물처럼 유연하고 지혜로운'
     };
     const elementNature = elementDescriptions[userElement] || '';
+    // 같은 오행이라도 천간마다 기질이 다르다 (병화=태양, 정화=촛불). 데이터가 없으면 오행 설명으로
+    const trait = getDayMasterTrait(sajuAnalysis.dayMaster);
+    const dayMasterLine = trait
+      ? `${trait.name}(${trait.hanja}, ${trait.image}) - ${trait.nature}`
+      : `${sajuAnalysis.dayMaster}(${userElement}) - ${elementNature} 성향`;
+    const callName = userName ? `${userName}님` : '당신';
+    const hasPrevious = !!previousContext && previousContext.length > 0;
 
     // 분석 계획에서 핵심 신살 정보 구성
     const keySalSection = analysisContext.keySals.length > 0
@@ -1072,7 +1135,7 @@ ${partnerSection}
     // 별자리 정보
     const zodiacInfo = (sajuAnalysis as any).zodiac;
     const zodiacSection = zodiacInfo
-      ? `\n[별자리 - 지미두수 연계]\n${zodiacInfo.symbol} ${zodiacInfo.sign}(${zodiacInfo.signEnglish}) - ${zodiacInfo.element} 원소, ${zodiacInfo.quality}\n성격: ${zodiacInfo.personality}\n강점: ${zodiacInfo.strengths.join(', ')} / 약점: ${zodiacInfo.weaknesses.join(', ')}\n동서양 원소 연결: ${ZodiacService.getElementBridge(zodiacInfo.element, userElement)}`
+      ? `\n[별자리]\n${zodiacInfo.symbol} ${zodiacInfo.sign}(${zodiacInfo.signEnglish}) - ${zodiacInfo.element} 원소, ${zodiacInfo.quality}\n성격: ${zodiacInfo.personality}\n강점: ${zodiacInfo.strengths.join(', ')} / 약점: ${zodiacInfo.weaknesses.join(', ')}\n동서양 원소 연결: ${ZodiacService.getElementBridge(zodiacInfo.element, userElement)}`
       : '';
 
     // 궁합 사전 분석 팩트 (일간 오행/일간합/일지 배우자궁/띠 궁합/공통신살)
@@ -1082,12 +1145,18 @@ ${partnerSection}
 
     // 초보자용 "쉽게 보기" 카드 템플릿 (drawnCards 순서 = 메인 카드 → 조언 카드)
     const easyCardTemplate = drawnCards.map(dc =>
-      `    {"position": "${dc.positionMeaning}", "cardName": "${dc.card.nameKo}", "oneLine": "이 카드가 지금 말하는 것 한 문장 (30자 안팎)", "forMe": "질문에 비추어 나는 이걸 어떻게 받아들이면 되는지 한두 문장 (70자 안팎)", "action": "오늘 바로 해볼 수 있는 행동 하나 (30자 안팎)", "tone": "good | neutral | caution 중 하나"}`
+      `    {"position": "${dc.positionMeaning}", "cardName": "${dc.card.nameKo}", "oneLine": "이 카드가 지금 말하는 것 한 문장 (30자 안팎)", "forMe": "내 성향과 질문에 비추어 이걸 어떻게 받아들이면 되는지 한두 문장 (70자 안팎)", "action": "오늘 바로 해볼 수 있는 행동 하나 (30자 안팎)", "tone": "good | neutral | caution 중 하나"}`
     ).join(',\n');
 
-    const prompt = `당신은 동양 사주명리학, 서양 별자리(지미두수), 타로를 융합한 전문 상담사입니다.
+    const prompt = `당신은 동양 사주명리학, 서양 별자리, 타로를 융합한 전문 상담사입니다.
+이 리딩은 카드 설명이 아니라 한 사람을 위한 상담입니다. 아래 [이 사람의 모습]을 기준으로 전체 리딩을 쓰세요.
 아래의 "분석 계획"에 따라 해석을 생성하세요. 분석 계획은 사전에 수립된 것이므로 이를 충실히 따르세요.
 별자리 정보가 있다면, 사주 분석과 자연스럽게 융합하여 리딩에 반영하세요. 동양의 오행과 서양의 4원소가 어떻게 조화를 이루는지 설명해주세요.
+
+[이 사람의 모습 (페르소나)]
+${analysisContext.persona}
+${analysisContext.worryRoot ? `고민의 뿌리: ${analysisContext.worryRoot}` : ''}
+${trait ? `[일간 성향]\n${formatDayMasterTrait(trait)}` : ''}
 
 [분석 계획]
 해석 방향: ${analysisContext.overallDirection}
@@ -1102,11 +1171,11 @@ ${cardConnectionSection}
 
 [사용자 정보]
 ${userName ? `이름: ${userName}님` : ''}
-일간: ${sajuAnalysis.dayMaster}(${userElement}) - ${elementNature} 성향
+일간: ${dayMasterLine}
 강한 오행: ${sajuAnalysis.strongElements.join(', ')} / 약한 오행: ${sajuAnalysis.weakElements.join(', ')}
 ${zodiacInfo ? `별자리: ${zodiacInfo.symbol} ${zodiacInfo.sign}` : ''}
 ${userMbti ? `MBTI: ${userMbti}` : ''}
-${previousContext && previousContext.length > 0 ? `[최근 상담 이력]\n${previousContext.map((ctx, i) => `${i + 1}. "${ctx.question}" (${ctx.date}) - ${ctx.summary}`).join('\n')}` : ''}
+${hasPrevious ? `[최근 상담 이력]\n${formatPreviousReadings(previousContext ?? [])}` : ''}
 
 [질문] "${question}"
 ${choiceSection}
@@ -1126,12 +1195,25 @@ ${dailyFortuneInstruction}
 ${userName ? `"${userName}님"이라고 자연스럽게 호칭하세요.` : '"당신"이라고 호칭하세요.'}
 역방향 카드는 반드시 역방향 의미로만 해석하세요.
 좋은 점만 말하지 말고 주의점과 어려움도 솔직하게 전달하세요.
-${previousContext && previousContext.length > 0 ? `
+${hasPrevious ? `
 ⚠️ 이전 상담 연결 (매우 중요!):
-- 이 사용자는 최근에 아래와 같은 상담을 받았습니다. 이전 흐름을 자연스럽게 연결하세요.
-${previousContext.map((ctx, i) => `  ${i + 1}. "${ctx.question}" (${ctx.date})`).join('\n')}
-- 이전 상담의 주제와 오늘 질문이 연결된다면, "지난번 ~에 대해 상담하셨는데, 그 흐름을 이어서 보면..." 처럼 자연스럽게 언급하세요.
+- 이 사용자는 최근에 위 [최근 상담 이력]의 상담을 받았습니다.
+${analysisContext.previousLink
+  ? `- 사전 분석에서 찾은 연결: ${analysisContext.previousLink}\n- "지난번 ~에 대해 보셨을 때 [그때 카드]가 ~라고 했는데, 오늘 카드는 그 흐름을 이어서 ~라고 말해요"처럼 그때 카드·결론과 오늘 카드를 엮으세요.`
+  : '- 사전 분석에서는 오늘 질문과 이어지는 상담을 찾지 못했습니다. 주제가 확실히 이어지는 게 아니라면 언급하지 마세요.'}
 - 이전 상담과 관련 없는 새 질문이라면 억지로 연결하지 마세요.` : ''}
+
+⚠️ 리딩 흐름 (이 사람에게 와닿게, 매우 중요!):
+- 전체 흐름: 이 사람의 성향 → 그 성향 때문에 생긴 고민의 뿌리 → 카드가 하는 말 → 이 사람에게 맞는 행동.
+${isDailyFortune
+  ? `- 오늘의 운세는 고민 대신 "이 성향의 사람에게 오늘 기운이 어떻게 작용하는지"를 짚으세요.`
+  : `- summary에서 고민의 뿌리를 한 번 짚으세요. 예: "${callName}은 ${trait ? `${trait.image} 같은 ${trait.name}` : `${userElement}`} 기질이라 ~해서 이 고민이 커졌을 수 있어요. 카드는 ~라고 말해요."`}
+- 단정하지 말고 "~해서 이런 고민이 생겼을 수 있어요" 정도로 한 번만 짚으세요. 성향 설명을 카드마다 반복하지 마세요.
+- 카드 해석에서는 같은 메시지라도 이 사람의 성향에 맞춰 초점을 잡으세요. 예: 같은 "기다려라"도 앞장서는 기질에게는 "밀어붙이지 말고 한 박자 쉬어라", 속앓이하는 기질에게는 "혼자 삭이지 말고 조용히 지켜보라"가 돼요.
+- 조언과 말투는 [일간 성향]의 '와닿는 말 방식'에 맞추세요.
+- 일간 이름${trait ? `(${trait.name})` : ''}은 summary에서 한 번 밝히면 충분해요. 별자리·MBTI까지 "A의 ~, B의 ~, C의 ~" 식으로 나열하지 말고 한 사람의 성향으로 녹여 말하세요.
+- [이 사람의 모습] 문장을 그대로 옮기지 말고 해요체로 풀어 쓰세요.
+- 카드 해석의 성향 부분에 "정화 일간", "INFJ" 같은 이름을 카드마다 다시 붙이지 마세요. 이름 없이 "섬세하게 마음을 쓰는 ${callName}에게는"처럼 성향으로 말하세요.
 
 ${PLAIN_LANGUAGE_RULES}
 
@@ -1142,14 +1224,14 @@ ${PLAIN_LANGUAGE_RULES}
 - practiceAdvice에서도 각 항목 사이에 줄바꿈(\\n\\n)을 넣으세요.
 
 ⚠️ 카드 해석 방식 (매우 중요!):
-- 각 카드는 이 순서로 해석하세요: (1) 이 카드가 지금 말하는 것을 한 문장으로 먼저 (2) 카드 그림을 1~2문장으로 짧게 묘사. 예: "달빛 아래 두 탑 사이로 길이 나 있고, 개와 늑대가 달을 보고 울고 있어요." (3) 그 뜻이 질문에 어떤 의미인지 일상 비유와 함께 설명 (4) 사주/신살/별자리와 자연스럽게 이어질 때만 쉬운 말로 한두 문장 덧붙이기.
-- 모든 카드를 억지로 사주에 연결하지 마세요. 자연스러운 연결이 있을 때만 언급하세요.
+- 각 카드는 이 순서로 해석하세요: (1) 이 카드가 지금 말하는 것을 한 문장으로 먼저 (2) 카드 그림을 1~2문장으로 짧게 묘사. 예: "달빛 아래 두 탑 사이로 길이 나 있고, 개와 늑대가 달을 보고 울고 있어요." (3) 그 뜻이 질문에 어떤 의미인지 일상 비유와 함께 설명 (4) 이 사람의 성향에 비추면 이 메시지가 특히 어떤 뜻인지 한두 문장 (5) 신살·오행 관계·별자리와 자연스럽게 이어질 때만 쉬운 말로 한두 문장 덧붙이기.
+- 신살·오행 관계 같은 사주 용어는 자연스러운 연결이 있을 때만 쓰세요. 다만 (4) 성향에 비춘 해석은 모든 카드에 넣으세요.
 - 별자리 정보가 있다면, 카드 해석 중 별자리 특성과 자연스럽게 연결되는 부분이 있을 때 언급하세요. (예: "사자자리의 리더십 기질이 이 카드의 메시지와 맞닿아 있어요")
 ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 어떤 선택지를 대표하는지 명확히 밝히세요.\n- 각 선택지의 장단점을 카드를 통해 구체적으로 설명하세요.\n- 마지막에 "종합적으로 어떤 선택이 더 유리한지" 명확한 조언을 제시하세요.\n` : ''}
 {
   "summary": "${isDailyFortune
-    ? `${userName ? userName + '님' : ''}에게 전하는 오늘(${dateContext.solarDate} ${dateContext.weekday})의 인사 + 오늘의 절기(${dateContext.jieqi})와 사주의 관계를 간단히 언급 + 오늘의 전체적인 운세 핵심 한 줄 요약 (300자).${previousContext && previousContext.length > 0 ? ` 최근 상담에서 '${previousContext[0].question}'을 물어본 적이 있으니, 그 흐름과 연결하여 오늘의 운세를 자연스럽게 이어가세요.` : ''} 예: "안녕하세요! 오늘은 절기상 ${dateContext.jieqi} 시기로, ${seasonalElement}. ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 [상생/상극] 관계를 이루어..." 인사와 결론 사이에 줄바꿈을 넣으세요.`
-    : `${userName ? userName + '님' : ''}에게 전하는 인사 + 핵심 결론 한 문장 + 간단한 이유 (250~300자). ${previousContext && previousContext.length > 0 ? `최근 '${previousContext[0].question}'(${previousContext[0].date}) 상담과 오늘 질문이 연결된다면 흐름을 자연스럽게 이어가세요. 연결이 없다면 무시.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게! 인사와 결론 사이에 줄바꿈을 넣으세요.`}",
+    ? `${userName ? userName + '님' : ''}에게 전하는 오늘(${dateContext.solarDate} ${dateContext.weekday})의 인사 + 오늘의 절기(${dateContext.jieqi})와 사주의 관계를 간단히 언급 + 오늘의 전체적인 운세 핵심 한 줄 요약 + 이 사람의 성향에 비춰 오늘 특히 신경 쓸 점 한 문장 (300~350자).${analysisContext.previousLink ? ` 사전 분석에서 찾은 이전 상담 연결(${analysisContext.previousLink})을 오늘의 운세와 자연스럽게 이어가세요.` : ''} 예: "안녕하세요! 오늘은 절기상 ${dateContext.jieqi} 시기로, ${seasonalElement}. ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 [상생/상극] 관계를 이루어..." 인사와 결론 사이에 줄바꿈을 넣으세요.`
+    : `${userName ? userName + '님' : ''}에게 전하는 인사 + 고민의 뿌리(이 사람의 성향 때문에 이 고민이 왜 생겼을지 1~2문장, 단정하지 말 것) + 줄바꿈 + 카드가 말하는 핵심 결론 한 문장 + 간단한 이유 (350~400자). ${analysisContext.previousLink ? `사전 분석에서 찾은 이전 상담 연결(${analysisContext.previousLink})이 있으니 결론 문단에서 그때 카드·결론과 오늘 카드의 흐름을 이어가세요.` : ''} 분석 계획의 '해석 방향'과 '전체 톤'을 반영하여 명확한 결론을 제시하세요. 모호하지 않게! 인사·고민의 뿌리 문단과 결론 문단 사이에 줄바꿈을 넣으세요.`}",
   "easyReading": {
     "headline": "질문에 대한 한 줄 결론. 20자 이내의 쉬운 말 (예: 서두르지 말고 한 달만 지켜보세요)",
     "signal": "go(진행해도 좋음) | wait(잠시 기다림) | caution(조심) 중 하나를 영어 소문자로",
@@ -1158,16 +1240,16 @@ ${easyCardTemplate}
     ]
   },
   "cardReadings": "${isDailyFortune
-    ? `오늘의 운세를 총운/금전운/연애운 순서로 해석합니다. 각 운에 대해: (0) 이 운세의 결론 한 문장 (1) 카드 그림/상징 묘사 1~2문장 (2) 이 카드가 오늘의 해당 운세에서 의미하는 바를 일상 비유로 (3) 사주의 ${userElement} 기운과 오늘 절기(${dateContext.jieqi})의 영향을 연결 (4) 신살 중 관련 있는 것 언급 ${userMbti ? `(5) ${userMbti} 성향에 맞는 구체적 조언` : ''}. 각 운세별 400~500자. 각 운세 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.`
-    : `${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})${isChoiceQuestion && i < parsedChoices.length ? ` → "${parsedChoices[i]}"` : ''}`).join(', ')} 각 카드를 해석하되, 반드시 이 순서를 따르세요: (1) 이 카드가 지금 말하는 것 한 문장 (2) 카드 그림/상징 묘사 1~2문장 (3) 이 상징이 질문에 어떤 의미인지 일상 비유와 함께 해석 ${isChoiceQuestion ? '(해당 선택지와 연결하여 장단점 분석)' : ''} (4) 사주/신살과 자연스러운 연결이 있으면 쉬운 말로 덧붙이기. 카드당 300~400자. 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.${isChoiceQuestion ? ' 마지막에 선택지 간 비교 총평을 추가하세요.' : ''}`}",
+    ? `오늘의 운세를 총운/금전운/연애운 순서로 해석합니다. 각 운에 대해: (0) 이 운세의 결론 한 문장 (1) 카드 그림/상징 묘사 1~2문장 (2) 이 카드가 오늘의 해당 운세에서 의미하는 바를 일상 비유로 (3) ${trait ? `${trait.name}(${trait.image}) 기질과` : `사주의 ${userElement} 기운과`} 오늘 절기(${dateContext.jieqi})의 영향을 연결 (4) 신살 중 관련 있는 것 언급 ${userMbti ? `(5) ${userMbti} 성향에 맞는 구체적 조언` : ''}. 각 운세별 400~500자. 각 운세 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.`
+    : `${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})${isChoiceQuestion && i < parsedChoices.length ? ` → "${parsedChoices[i]}"` : ''}`).join(', ')} 각 카드를 해석하되, 반드시 이 순서를 따르세요: (1) 이 카드가 지금 말하는 것 한 문장 (2) 카드 그림/상징 묘사 1~2문장 (3) 이 상징이 질문에 어떤 의미인지 일상 비유와 함께 해석 ${isChoiceQuestion ? '(해당 선택지와 연결하여 장단점 분석)' : ''} (4) 이 사람의 성향에 비추면 이 메시지가 특히 어떤 뜻인지 한두 문장 (5) 신살·오행 관계와 자연스러운 연결이 있으면 쉬운 말로 덧붙이기. 카드당 350~450자. 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.${isChoiceQuestion ? ' 마지막에 선택지 간 비교 총평을 추가하세요.' : ''}`}",
   "elementalHarmony": "${isDailyFortune
     ? `오늘(${dateContext.solarDate})은 절기상 ${dateContext.jieqi} 시기로 ${seasonalElement}. 이 계절 기운이 사용자의 ${userElement} 일간과 어떻게 작용하는지 자연 비유로 설명.${zodiacInfo ? ` 별자리(${zodiacInfo.sign}, ${zodiacInfo.element} 원소)와 사주 오행의 동서양 에너지 조화도 함께 설명.` : ''} 오늘 하루 특히 주의할 오행 에너지와 활용할 에너지를 구체적으로 안내 (300자).`
     : `현재 ${dateContext.season}(${seasonalElement} 기운)과 사용자의 ${userElement} 기운, 카드들의 오행이 어떻게 조화/충돌하는지 자연 비유로 설명.${zodiacInfo ? ` 서양 별자리(${zodiacInfo.sign})의 ${zodiacInfo.element} 원소와 동양 오행(${userElement})의 조화/보완 관계도 언급.` : ''} (300자).`}",
   "practiceAdvice": "${isDailyFortune
     ? `오늘 하루 실천할 수 있는 구체적 조언을 총운/금전운/연애운별로 정리. 럭키 컬러, 럭키 아이템, 좋은 방위 등을 하나씩 추천. 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 포함 (400자)`
-    : `카드별 구체적 실천 방법을 각각 줄바꿈으로 구분하여 작성 + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (350자)`}"${includeAdviceCard && adviceCard ? `,
+    : `카드별 구체적 실천 방법을 각각 줄바꿈으로 구분하여 작성(이 사람의 성향에 맞는 방식으로. [일간 성향]의 '와닿는 말 방식' 참고) + 강한 오행(${sajuAnalysis.strongElements.join(',')}) 활용법 + 약한 오행(${sajuAnalysis.weakElements.join(',')}) 보완법 (350자)`}"${includeAdviceCard && adviceCard ? `,
   "adviceCardReading": "조언 카드 ${adviceCard.card.nameKo}의 그림/상징을 먼저 설명하고, 그 메시지가 현재 상황에서 어떤 실천 조언이 되는지 서술 (250자)"` : ''}${userMbti ? `,
-  "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법 (200자)"` : ''}${partnerSajuAnalysis ? `,
+  "mbtiAdvice": "분석 계획의 MBTI 인사이트를 바탕으로, ${userMbti} 타입이 이 상황에서 주의할 점과 강점 활용법. summary에서 한 성향 이야기는 반복하지 말 것 (200자)"` : ''}${partnerSajuAnalysis ? `,
   "compatibilityReading": "아래 [궁합 사전 분석] 사실을 근거로 두 사람의 궁합을 심층 분석하세요 (450~550자). 추측하지 말고 주어진 합/충/관계 사실을 정확히 반영하세요.\\n\\n[궁합 사전 분석]\\n${compatibilityFacts.replace(/\n/g, '\\\\n')}\\n\\n위 사실을 바탕으로 다음 순서로 작성:\\n\\n오행 궁합: 나(${sajuAnalysis.dayMasterElement})와 상대(${partnerSajuAnalysis.dayMasterElement})의 상생/상극/비화가 관계에서 어떤 의미인지\\n\\n일지 배우자궁: 두 사람의 일지 관계(합이면 끌림·안정, 충/원진/해면 갈등 양상)를 구체적으로\\n\\n띠 궁합: 두 사람 띠(년지)의 관계가 첫인상·기본 케미에 주는 영향\\n\\n신살 교차: 공통/교차 신살이 관계에 미치는 영향${partnerMbti ? `\\n\\nMBTI 궁합: ${userMbti ? `${userMbti}(나)` : ''}${userMbti && partnerMbti ? ' vs ' : ''}${partnerMbti}(상대) 두 유형의 소통 방식` : ''}\\n\\n타로 카드 연결: 뽑힌 카드가 두 사람 관계에 전하는 메시지\\n\\n총평: 강점·주의점·앞으로의 조언. 각 항목 사이 줄바꿈(\\\\n\\\\n) 구분"` : ''}
 }`;
 
@@ -1196,6 +1278,7 @@ ${easyCardTemplate}
       if (analysisContext.keySals.length > 0) maxTokens += Math.min(analysisContext.keySals.length * 300, 1500);
       if (zodiacInfo) maxTokens += 600;
       maxTokens += cardCount * 250; // easyReading 카드별 요약
+      maxTokens += 400 + cardCount * 150; // 고민의 뿌리 + 카드별 성향에 비춘 해석
 
       if (this.gemini) {
         try {
@@ -1695,9 +1778,6 @@ ${easyCardTemplate}
     console.log('=== 파싱 디버깅 ===');
     console.log('conclusionText 길이:', conclusionText.length);
     console.log('cardDetailsText 길이:', cardDetailsText.length);
-    if (conclusionText) {
-      console.log('결론 내용 (앞 200자):', conclusionText.substring(0, 200));
-    }
 
     if (conclusionText && cardDetailsText) {
       sections.interpretation = `${conclusionText}\n\n===CARD_DETAILS===\n\n${cardDetailsText}`;
@@ -1738,7 +1818,7 @@ ${easyCardTemplate}
       const paragraphs = response.split(/\n\n+/).filter(p => p.trim().length > 30 && !p.startsWith('['));
       if (paragraphs.length > 0) {
         sections.interpretation = paragraphs[0].trim();
-        console.warn('⚠️ 모든 파싱 실패, 첫 문단을 핵심요약으로 사용:', sections.interpretation.substring(0, 100));
+        console.warn(`⚠️ 모든 파싱 실패, 첫 문단을 핵심요약으로 사용 (${sections.interpretation.length}자)`);
       } else {
         sections.interpretation = response.substring(0, 500).trim();
         console.warn('⚠️ 최종 fallback: 응답 앞 500자를 핵심요약으로 사용');

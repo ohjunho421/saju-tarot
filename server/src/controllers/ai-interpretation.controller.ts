@@ -10,7 +10,38 @@ import { createUserRateLimiter } from '../utils/user-rate-limit';
 const allowDesignSpread = createUserRateLimiter(20, 10 * 60 * 1000);
 const MAX_DESIGN_USER_TURNS = 5;
 
+// 타로 리딩: 한 번에 AI를 2~3회(분석 → 해석, 실패 시 레거시) 호출하고 카드 고르는 데도 시간이 걸리므로
+// 10분에 10회면 일반 사용에는 닿지 않고 반복 호출만 막는다
+const allowAIReading = createUserRateLimiter(10, 10 * 60 * 1000);
+const MAX_QUESTION_LENGTH = 200; // 클라이언트 질문 입력창 maxLength와 같게
+
 const tarotService = new TarotService();
+
+// 이전 리딩을 다음 리딩 프롬프트 재료로 정리
+// 저장된 값도 사용 시 다시 정리한다 (cleanSpreadText: 보이지 않는 문자·따옴표·줄바꿈 제거 + 길이 제한)
+const describeDrawnCard = (dc: unknown): string => {
+  if (!dc || typeof dc !== 'object') return '';
+  const { positionMeaning, isReversed, card } = dc as { positionMeaning?: unknown; isReversed?: unknown; card?: { nameKo?: unknown } };
+  const name = cleanSpreadText(card?.nameKo, 30);
+  if (!name) return '';
+  const position = cleanSpreadText(positionMeaning, 30);
+  return `${position ? `${position}:` : ''}${name}(${isReversed === true ? '역' : '정'})`;
+};
+
+function toPreviousReading(r: { question: string; createdAt: Date; interpretation: string; drawnCards: unknown; easyReading: unknown }) {
+  const cards = Array.isArray(r.drawnCards) ? r.drawnCards.map(describeDrawnCard).filter(Boolean).join(', ') : '';
+  const headline = r.easyReading && typeof r.easyReading === 'object'
+    ? (r.easyReading as { headline?: unknown }).headline
+    : undefined;
+  return {
+    date: r.createdAt.toISOString().split('T')[0],
+    question: cleanSpreadText(r.question, 200),
+    // interpretation은 "요약 ===CARD_DETAILS=== 상세" 형식이라 요약만 쓴다
+    summary: cleanSpreadText(r.interpretation.split('===CARD_DETAILS===')[0], 300),
+    cards: cleanSpreadText(cards, 300),
+    headline: cleanSpreadText(headline, 60)
+  };
+}
 
 // 질문 분석 및 스프레드 추천
 export const analyzeQuestion = async (req: Request, res: Response): Promise<void> => {
@@ -138,6 +169,21 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
+    // 질문 타입·길이 확인 (빈 질문은 화면이 "오늘의 운세를 봐주세요"로 채워 보낸다)
+    // 프롬프트에는 보이지 않는 문자·따옴표를 정리한 질문을 넣고, DB에는 원문을 저장한다
+    // (화면 꺼짐 복구가 저장된 질문과 보낸 질문을 그대로 비교하기 때문)
+    const promptQuestion = cleanSpreadText(question, MAX_QUESTION_LENGTH);
+    if (typeof question !== 'string' || question.length > MAX_QUESTION_LENGTH || !promptQuestion) {
+      res.status(400).json({ error: `질문은 1~${MAX_QUESTION_LENGTH}자로 입력해주세요.` });
+      return;
+    }
+
+    // 입력 검증을 통과한 요청만 횟수에 센다
+    if (!allowAIReading(req.user.userId)) {
+      res.status(429).json({ error: '리딩 요청이 너무 많아요. 10분 뒤에 다시 시도해주세요.' });
+      return;
+    }
+
     // 사용자 정보 조회 (mbti 필드는 Prisma 마이그레이션 후 사용 가능)
     const user = await prisma.user.findUnique({
       where: { id: req.user.userId }
@@ -148,30 +194,29 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
-    // 최근 리딩 내역 조회 (컨텍스트용)
+    // 최근 리딩 내역 조회 (리딩 흐름 연결용)
+    // 오늘의 운세는 고민 흐름이 없고 매일 쌓이면 실제 고민 리딩을 밀어내므로 제외
     const recentReadings = await prisma.reading.findMany({
-      where: { userId: user.id },
+      where: { userId: user.id, spreadType: { not: 'daily-fortune' } },
       orderBy: { createdAt: 'desc' },
       take: 3, // 최근 3개만
       select: {
         question: true,
         spreadType: true,
         createdAt: true,
-        interpretation: true
+        interpretation: true,
+        drawnCards: true,
+        easyReading: true
       }
     });
 
-    // 컨텍스트 생성
-    const previousContext = recentReadings.length > 0 ? recentReadings.map(r => ({
-      date: r.createdAt.toISOString().split('T')[0],
-      question: r.question,
-      summary: r.interpretation.substring(0, 150) + '...'
-    })) : null;
+    // 컨텍스트 생성 (질문 + 그때 카드 + 한 줄 결론 + 요약)
+    const previousContext = recentReadings.length > 0 ? recentReadings.map(toPreviousReading) : null;
 
     // 사용자가 선택한 카드로 뽑기 (역방향 정보 포함)
     const drawnCards = tarotService.drawCards(
       spreadType,
-      question,
+      promptQuestion,
       includeAdviceCard || false,
       selectedCards || cardPositions,
       customPositions?.map(p => p.label)
@@ -180,8 +225,9 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
     // 사주 분석 정보 (클라이언트에서 전달받은 것 우선, 없으면 DB에서)
     let sajuData = clientSajuAnalysis || user.sajuAnalysis;
     
-    // sal 필드가 없는 기존 데이터면 재계산
-    if (sajuData && !(sajuData as any).sal && user.birthInfo) {
+    // sal 또는 zodiac 필드가 없는 기존 데이터면 재계산
+    // (2026-02-15 살 분석 ~ 2026-03-16 별자리 추가 사이 저장분은 sal만 있고 zodiac이 없다)
+    if (sajuData && (!(sajuData as any).sal || !(sajuData as any).zodiac) && user.birthInfo) {
       try {
         const { SajuService } = require('../services/saju.service');
         const sajuSvc = new SajuService();
@@ -214,7 +260,7 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       sajuData as any,
       drawnCards,
       spreadType,
-      question,
+      promptQuestion,
       previousContext,
       user.name || undefined,
       includeAdviceCard || false,
