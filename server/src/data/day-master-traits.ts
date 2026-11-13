@@ -4,6 +4,7 @@
 export interface DayMasterTrait {
   name: string;
   hanja: string;
+  symbol: string;         // 문장 안에 넣을 짧은 상징 (촛불, 태양 등)
   image: string;
   nature: string;
   strengths: string[];
@@ -16,6 +17,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '갑': {
     name: '갑목',
     hanja: '甲木',
+    symbol: '큰 나무',
     image: '하늘로 곧게 뻗는 큰 나무',
     nature: '한번 정한 방향으로 곧게 밀고 나가는 사람이에요. 자존심과 책임감이 강하고 앞장서는 역할을 자연스럽게 맡아요.',
     strengths: ['추진력', '리더십', '정직함', '성장 욕구'],
@@ -26,6 +28,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '을': {
     name: '을목',
     hanja: '乙木',
+    symbol: '풀꽃',
     image: '바람에 휘어도 꺾이지 않는 풀과 덩굴',
     nature: '부드럽고 눈치가 빨라서 어떤 환경에도 잘 적응하는 사람이에요. 겉은 여려 보여도 끈질긴 생활력이 있어요.',
     strengths: ['유연함', '친화력', '끈기', '현실 감각'],
@@ -36,6 +39,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '병': {
     name: '병화',
     hanja: '丙火',
+    symbol: '태양',
     image: '모두를 고르게 비추는 한낮의 태양',
     nature: '밝고 솔직해서 어디서든 분위기를 띄우는 사람이에요. 생각이 바로 표정과 말로 나오고 숨기는 걸 못해요.',
     strengths: ['열정', '표현력', '공정함', '낙천성'],
@@ -46,6 +50,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '정': {
     name: '정화',
     hanja: '丁火',
+    symbol: '촛불',
     image: '어둠 속에서 한 곳을 따뜻하게 밝히는 촛불',
     nature: '겉으로는 조용하고 부드럽지만 속에는 오래 타는 열정이 있는 사람이에요. 가까운 사람의 마음을 세심하게 헤아리고, 한번 마음 준 일에는 깊이 몰입해요.',
     strengths: ['섬세한 배려', '집중력', '따뜻함', '직관'],
@@ -56,6 +61,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '무': {
     name: '무토',
     hanja: '戊土',
+    symbol: '큰 산',
     image: '흔들림 없이 자리를 지키는 큰 산',
     nature: '묵직하고 믿음직해서 주변 사람들이 기대는 사람이에요. 쉽게 흔들리지 않고 여러 사람을 품어요.',
     strengths: ['신뢰감', '포용력', '중재력', '인내'],
@@ -66,6 +72,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '기': {
     name: '기토',
     hanja: '己土',
+    symbol: '논밭',
     image: '씨앗을 품어 키우는 기름진 논밭',
     nature: '꼼꼼하고 실속을 챙기며 자기 사람을 알뜰하게 돌보는 사람이에요. 겉으로 드러내기보다 안에서 조용히 일을 키워요.',
     strengths: ['꼼꼼함', '실속', '돌봄', '현실 판단력'],
@@ -76,6 +83,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '경': {
     name: '경금',
     hanja: '庚金',
+    symbol: '바위',
     image: '단단한 바위와 아직 다듬지 않은 무쇠',
     nature: '결단이 빠르고 의리가 있으며, 옳다고 믿는 일은 밀어붙이는 사람이에요. 말과 행동이 곧고 직선적이에요.',
     strengths: ['결단력', '의리', '실행력', '정의감'],
@@ -86,6 +94,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '신': {
     name: '신금',
     hanja: '辛金',
+    symbol: '보석',
     image: '잘 다듬어진 보석',
     nature: '감각이 예리하고 기준이 높아 무엇이든 깔끔하게 해내려는 사람이에요. 자존심이 강하고 자기만의 미적 감각이 있어요.',
     strengths: ['섬세함', '높은 기준', '미적 감각', '분별력'],
@@ -96,6 +105,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '임': {
     name: '임수',
     hanja: '壬水',
+    symbol: '바다',
     image: '넓게 흐르며 모든 것을 품는 바다',
     nature: '생각의 폭이 넓고 자유로우며 큰 그림을 보는 사람이에요. 어디로든 흘러갈 수 있는 적응력과 배짱이 있어요.',
     strengths: ['넓은 시야', '지혜', '포용력', '모험심'],
@@ -106,6 +116,7 @@ const DAY_MASTER_TRAITS: Record<string, DayMasterTrait> = {
   '계': {
     name: '계수',
     hanja: '癸水',
+    symbol: '이슬비',
     image: '조용히 땅을 적시는 이슬비',
     nature: '감수성이 풍부하고 직관이 좋아 말하지 않아도 분위기를 읽는 사람이에요. 스며들듯 조용히 사람을 돕는 배려가 있어요.',
     strengths: ['직관', '감수성', '상상력', '조용한 배려'],

@@ -62,6 +62,8 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 - 이전 리딩 재료(컨트롤러 toPreviousReading): 최근 3건(오늘의 운세 제외)의 질문, 그때 카드, easyReading.headline, 요약(`===CARD_DETAILS===` 앞 300자). Step 1·Step 2·레거시 프롬프트 모두에 들어간다.
 - 응답 JSON 필드·저장 컬럼은 변경 없음. 페르소나는 프롬프트 내부에서만 쓰고 화면에 노출하지 않는다.
 - Step 1 응답·파싱 로그는 길이만 남긴다(본문에 고민·이전 질문이 담김).
+- 읽기 쉬움 유지: summary 첫 문단은 짧은 문장 3개(기질 → 특징 → 그래서 생긴 고민), 카드별 성향 문장은 "○○님에게는 ~"으로 한 문장만. 기질 이름은 summary에서 한 번. 프롬프트 끝의 "쓰기 전 마지막 확인"에서 해요체·문장 50자 안팎·마크다운 금지를 다시 강조한다(화면은 텍스트를 그대로 보여줘 `**`가 노출됨). 일간 데이터의 `symbol`(촛불, 태양 등)을 문장에 쓴다.
+- 프롬프트 분량·단계를 바꿀 때는 같은 입력으로 전후 리딩을 돌려 문장 길이·긴 문장 수·"~합니다"체 수를 비교한다.
 
 ## 변경 이력
 
@@ -78,6 +80,7 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 | 2026-10-10 | 스프레드 추천: AI 추천값을 SPREAD_POSITIONS로 검증(표기 정규화, 목록 밖이면 규칙 기반), JSON은 첫 완결 객체만 추출, 프롬프트에 합격·재회·가까운 결정·선택지 수·연도 운세 규칙 추가. 규칙 기반 추천을 재회 → 궁합 → 시기 → 선택지 → 기간별 운세 → 원인 → 결정 → 예/아니오 순으로 재정리 | ai.service.ts | 추천 점검: AI 15/18 → 18/18, 새 질문 10/12, 규칙 기반 11/18 → 18/18 |
 | 2026-10-11 | designCustomSpread(대화로 배치 설계, Gemini JSON 모드 → Claude, 실패 시 지금 배치 유지 또는 범용 배치) + POST /api/ai/design-spread(인증, 질문 5~200자·대화 10개·각 300자). 리딩 프롬프트에 "[맞춤 배치] 자리: 뜻" 블록 추가. 추천은 custom을 돌려주지 않음 | ai.service.ts, ai-interpretation.controller.ts, ai-interpretation.routes.ts, tarot.model.ts, tarot.service.ts, utils/custom-spread.ts | 맞춤 배치 기능 |
 | 2026-11-14 | 페르소나 리딩: 10천간 성향 데이터 신규, Step 1에 persona·worryRoot·previousLink 추가(출력 한도 2048→3072), Step 2·레거시 흐름을 성향→고민의 뿌리→카드→행동으로, 카드별 "성향에 비춘 의미" 단계 추가(카드당 350~450자), 이전 리딩 재료를 질문+카드+headline+요약으로 보강하고 오늘의 운세 기록 제외, 오늘의 운세의 이전 상담 강제 연결 제거, 사주 재계산 조건에 zodiac 누락 추가, 프롬프트의 "서양 별자리(지미두수)" 표기 수정 | ai.service.ts, ai-interpretation.controller.ts, data/day-master-traits.ts(신규) | 일간 특성 기반 페르소나·고민 연결·이전 리딩 연계 요청 |
+| 2026-11-14 | 상세 해석 읽기 쉽게 다듬기: 1차 변경 후 같은 입력 비교에서 평균 문장 길이 49~57자 → 61~90자, "~합니다"체 최대 10문장으로 나빠짐 → summary 첫 문단을 짧은 문장 3개 틀로, 카드별 성향 문장 1개로 제한, 길이 summary 280~330자·카드 300~400자로 되돌림, 해요체·50자·마크다운 금지 마지막 확인 추가, 일간 데이터에 symbol 추가. 재비교 3회: 카드 평균 문장 40~51자, "~합니다"체 0문장 | ai.service.ts, data/day-master-traits.ts | 리딩이 어려워졌는지 점검 요청 |
 | 2026-11-14 | 리딩 API에 사용자별 호출 제한(10분 10회, 429)과 질문 검증(문자열 1~200자, 400) 추가. 화면은 4xx 거절 시 "연결이 끊어졌습니다" 대신 서버 안내를 바로 표시(기존엔 모든 실패가 3초 뒤 복구 경로로 감). 2차 보안 리뷰 반영: 프롬프트·카드 뽑기에는 cleanSpreadText로 정리한 질문을 쓰고(보이지 않는 문자만이면 400) DB에는 원문 저장(복구 시 질문 비교 유지), 맞춤 배치 확정 때 질문 칸이 비었으면 배치를 만든 질문 사용, 화면에서 보낼 때 200자로 자름(한글 조합 중 maxLength 초과 대비) | ai-interpretation.controller.ts, api.ts, ReadingPage.tsx, TarotReading.tsx | 보안 리뷰 MEDIUM(비용 남용) 후속 |
 | 2026-11-14 | 보안 리뷰 반영: Step 1 응답·파싱·레거시 결론 로그를 길이만 남기도록 변경, 일간 조회에 typeof·hasOwnProperty 확인, 이전 리딩 재료와 Step 1 새 필드를 cleanSpreadText로 정리, 역방향 판정 `=== true` | ai.service.ts, ai-interpretation.controller.ts, data/day-master-traits.ts | 보안 리뷰(MEDIUM 1, LOW 3) |
 | 2026-10-11 | 맞춤 배치 보안 리뷰 반영: 사용자별 호출 제한(10분 20회, 429), 서버에서 수정 5회 상한, 탈퇴 계정 확인, 이 기능은 Gemini flash만 사용(실패 유도로 pro까지 호출되는 비용 증폭 차단), 질문·대화의 줄바꿈·따옴표 정리, 자리 이름의 보이지 않는 유니코드 문자 제거 | ai-interpretation.controller.ts, ai.service.ts, utils/custom-spread.ts, utils/user-rate-limit.ts(신규), api.ts, CustomSpreadBuilder.tsx | 보안 리뷰(MEDIUM 1, LOW 3) |
