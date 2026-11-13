@@ -12,6 +12,9 @@ interface TarotReadingProps {
 // 스프레드를 누가 정했는지: 기본값이면 제출할 때 AI 추천으로 자동 결정
 type SpreadSource = 'default' | 'user' | 'ai';
 
+// 서버 리딩 API의 질문 상한과 같게. 한글 조합 중 maxLength를 넘는 브라우저가 있어 보낼 때도 자른다
+const MAX_QUESTION_LENGTH = 200;
+
 // AI 추천 API는 5자 이상만 받으므로, "연애운"처럼 짧은 질문은 여기서 정한다
 function spreadForShortQuestion(question: string): SpreadType | null {
   if (question.includes('운세') || question.includes('총운')) return 'daily-fortune';
@@ -171,7 +174,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
     setSelectedSpread('custom');
     setSpreadSource('user');
     setBuilderQuestion(null);
-    onComplete('custom', question, includeAdviceCard, buildPartnerBirthInfo(), partnerMbti || undefined, design.positions);
+    // 배치를 만든 뒤 질문 칸을 지웠다면 배치를 만든 질문으로 본다 (빈 질문은 서버가 거절)
+    const confirmedQuestion = question.trim() ? question : (builderQuestion ?? question);
+    onComplete('custom', confirmedQuestion.slice(0, MAX_QUESTION_LENGTH), includeAdviceCard, buildPartnerBirthInfo(), partnerMbti || undefined, design.positions);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,7 +186,7 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
     const trimmed = question.trim();
 
     if (selectedSpread === 'custom' && customDesign && trimmed) {
-      onComplete('custom', question, includeAdviceCard, partnerInfo, partnerMbti || undefined, customDesign.positions);
+      onComplete('custom', question.slice(0, MAX_QUESTION_LENGTH), includeAdviceCard, partnerInfo, partnerMbti || undefined, customDesign.positions);
       return;
     }
 
@@ -196,7 +201,7 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
         : spreadForShortQuestion(trimmed) ?? selectedSpread;
     }
 
-    const finalQuestion = !trimmed ? '오늘의 운세를 봐주세요' : question;
+    const finalQuestion = !trimmed ? '오늘의 운세를 봐주세요' : question.slice(0, MAX_QUESTION_LENGTH);
     onComplete(finalSpread, finalQuestion, includeAdviceCard, partnerInfo, partnerMbti || undefined);
   };
 
@@ -233,7 +238,7 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
               }}
               placeholder="예: 올해 나의 재물운은 어떨까요?"
               className="input-field min-h-24 resize-none"
-              maxLength={200}
+              maxLength={MAX_QUESTION_LENGTH}
             />
             <p className="text-xs text-white/50 mt-2">
               * 구체적인 질문일수록 더 명확한 답을 얻을 수 있습니다
