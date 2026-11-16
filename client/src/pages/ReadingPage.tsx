@@ -4,7 +4,7 @@ import BirthInfoForm from '../components/BirthInfoForm';
 import SajuResult from '../components/SajuResult';
 import TarotReading from '../components/TarotReading';
 import CardSelection from '../components/CardSelection';
-import { sajuApi, authApi, aiApi } from '../services/api';
+import { sajuApi, authApi, aiApi, ReadingRejectedError } from '../services/api';
 import { Loader2 } from 'lucide-react';
 
 interface ReadingPageProps {
@@ -200,6 +200,14 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       pendingReadingRef.current = false;
       onComplete(reading);
     } catch (err) {
+      // 서버가 거절한 요청(호출 한도, 잘못된 질문 등)은 복구할 리딩이 없으니 안내를 바로 보여준다
+      if (err instanceof ReadingRejectedError) {
+        localStorage.removeItem('pendingReading');
+        pendingReadingRef.current = false;
+        setError(err.message);
+        setLoading(false);
+        return;
+      }
       // 네트워크 에러(화면 꺼짐으로 인한)인 경우 복구 시도
       if (pendingReadingRef.current) {
         // 3초 후 서버에서 결과 복구 시도

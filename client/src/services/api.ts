@@ -34,6 +34,9 @@ api.interceptors.response.use(
   }
 );
 
+// 서버가 리딩 요청을 거절함(4xx: 호출 한도, 잘못된 질문 등). 저장된 리딩이 없어 복구할 것도 없다
+export class ReadingRejectedError extends Error {}
+
 // 인증 토큰 관리
 export const setAuthToken = (token: string | null) => {
   if (token) {
@@ -142,6 +145,14 @@ export const aiApi = {
       partnerBirthInfo,
       partnerMbti,
       customPositions,
+    }).catch((error: unknown) => {
+      // 서버가 거절했으면 안내 문구를 그대로 보여준다. 5xx·네트워크 오류는 그대로 던져 화면 꺼짐 복구가 처리하게 둔다
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status ?? 0;
+        const message = error.response?.data?.error;
+        if (status >= 400 && status < 500 && typeof message === 'string') throw new ReadingRejectedError(message);
+      }
+      throw error;
     });
     if (!response.data.success || !response.data.data) {
       throw new Error(response.data.error || 'AI 해석에 실패했습니다.');
