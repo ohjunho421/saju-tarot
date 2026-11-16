@@ -1,7 +1,7 @@
 ---
 feature: AI 해석
 status: active
-last_modified: 2026-11-14
+last_modified: 2026-11-16
 files:
   - server/src/services/ai.service.ts
   - server/src/data/day-master-traits.ts
@@ -45,6 +45,7 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 - 스프레드 추천·챗봇은 Claude 우선이지만, Claude 호출이 실패(키 오류 등)하면 Gemini로 넘어간다.
 - `/api/ai/ai-reading`: 질문은 문자열 1~200자(화면 입력창 maxLength와 동일), 사용자별 10분 10회(메모리 기반, 서버 재시작 시 초기화). 입력 검증을 통과한 요청만 횟수에 센다. 한도를 바꾸면 컨트롤러의 429 안내 문구도 함께 바꿀 것.
 - 화면은 서버가 4xx로 거절한 리딩(ReadingRejectedError)이면 화면 꺼짐 복구를 건너뛰고 서버 안내를 바로 보여준다. 5xx·네트워크 오류는 기존대로 복구를 시도한다.
+- AI 응답의 글 필드(summary, cardReadings, elementalHarmony, practiceAdvice, mbtiAdvice, adviceCardReading, compatibilityReading)는 반드시 toPlainText()를 거친다. 모델이 문자열 대신 배열·객체를 돌려주면 템플릿 문자열에서 "[object Object]"가 되어 그대로 DB에 저장된다.
 
 ## 쉽게 보기 (easyReading, 2026-10-10~)
 
@@ -84,3 +85,4 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 | 2026-11-14 | 리딩 API에 사용자별 호출 제한(10분 10회, 429)과 질문 검증(문자열 1~200자, 400) 추가. 화면은 4xx 거절 시 "연결이 끊어졌습니다" 대신 서버 안내를 바로 표시(기존엔 모든 실패가 3초 뒤 복구 경로로 감). 2차 보안 리뷰 반영: 프롬프트·카드 뽑기에는 cleanSpreadText로 정리한 질문을 쓰고(보이지 않는 문자만이면 400) DB에는 원문 저장(복구 시 질문 비교 유지), 맞춤 배치 확정 때 질문 칸이 비었으면 배치를 만든 질문 사용, 화면에서 보낼 때 200자로 자름(한글 조합 중 maxLength 초과 대비) | ai-interpretation.controller.ts, api.ts, ReadingPage.tsx, TarotReading.tsx | 보안 리뷰 MEDIUM(비용 남용) 후속 |
 | 2026-11-14 | 보안 리뷰 반영: Step 1 응답·파싱·레거시 결론 로그를 길이만 남기도록 변경, 일간 조회에 typeof·hasOwnProperty 확인, 이전 리딩 재료와 Step 1 새 필드를 cleanSpreadText로 정리, 역방향 판정 `=== true` | ai.service.ts, ai-interpretation.controller.ts, data/day-master-traits.ts | 보안 리뷰(MEDIUM 1, LOW 3) |
 | 2026-10-11 | 맞춤 배치 보안 리뷰 반영: 사용자별 호출 제한(10분 20회, 429), 서버에서 수정 5회 상한, 탈퇴 계정 확인, 이 기능은 Gemini flash만 사용(실패 유도로 pro까지 호출되는 비용 증폭 차단), 질문·대화의 줄바꿈·따옴표 정리, 자리 이름의 보이지 않는 유니코드 문자 제거 | ai-interpretation.controller.ts, ai.service.ts, utils/custom-spread.ts, utils/user-rate-limit.ts(신규), api.ts, CustomSpreadBuilder.tsx | 보안 리뷰(MEDIUM 1, LOW 3) |
+| 2026-11-16 | AI 글 필드를 toPlainText()로 문자열화(배열은 문단, 객체는 값만 줄 단위로). Step 2·레거시 두 경로 모두 적용 | ai.service.ts | 레거시 경로에서 cardReadings가 객체 배열로 와 히스토리에 "[object Object]"가 저장·표시됨 |
