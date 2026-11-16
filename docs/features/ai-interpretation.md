@@ -1,7 +1,7 @@
 ---
 feature: AI 해석
 status: active
-last_modified: 2026-10-11
+last_modified: 2026-11-16
 files:
   - server/src/services/ai.service.ts
   - server/src/services/interpretation.service.ts
@@ -39,6 +39,7 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 - API 키는 환경변수로만 관리 — 코드에 하드코딩 금지
 - Gemini 2.5는 thinking 토큰이 maxOutputTokens 안에서 먼저 소비된다. tryGeminiWithFallback의 maxTokens는 "보이는 답" 분량이고, thinking 예산(기본 1024, 본 해석 4096)을 명시해 한도에 더한다. 작은 한도로 호출할 때 예산 없이 부르면 MAX_TOKENS로 잘린다.
 - 스프레드 추천·챗봇은 Claude 우선이지만, Claude 호출이 실패(키 오류 등)하면 Gemini로 넘어간다.
+- AI 응답의 글 필드(summary, cardReadings, elementalHarmony, practiceAdvice, mbtiAdvice, adviceCardReading, compatibilityReading)는 반드시 toPlainText()를 거친다. 모델이 문자열 대신 배열·객체를 돌려주면 템플릿 문자열에서 "[object Object]"가 되어 그대로 DB에 저장된다.
 
 ## 쉽게 보기 (easyReading, 2026-10-10~)
 
@@ -63,3 +64,4 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 | 2026-10-10 | 스프레드 추천: AI 추천값을 SPREAD_POSITIONS로 검증(표기 정규화, 목록 밖이면 규칙 기반), JSON은 첫 완결 객체만 추출, 프롬프트에 합격·재회·가까운 결정·선택지 수·연도 운세 규칙 추가. 규칙 기반 추천을 재회 → 궁합 → 시기 → 선택지 → 기간별 운세 → 원인 → 결정 → 예/아니오 순으로 재정리 | ai.service.ts | 추천 점검: AI 15/18 → 18/18, 새 질문 10/12, 규칙 기반 11/18 → 18/18 |
 | 2026-10-11 | designCustomSpread(대화로 배치 설계, Gemini JSON 모드 → Claude, 실패 시 지금 배치 유지 또는 범용 배치) + POST /api/ai/design-spread(인증, 질문 5~200자·대화 10개·각 300자). 리딩 프롬프트에 "[맞춤 배치] 자리: 뜻" 블록 추가. 추천은 custom을 돌려주지 않음 | ai.service.ts, ai-interpretation.controller.ts, ai-interpretation.routes.ts, tarot.model.ts, tarot.service.ts, utils/custom-spread.ts | 맞춤 배치 기능 |
 | 2026-10-11 | 맞춤 배치 보안 리뷰 반영: 사용자별 호출 제한(10분 20회, 429), 서버에서 수정 5회 상한, 탈퇴 계정 확인, 이 기능은 Gemini flash만 사용(실패 유도로 pro까지 호출되는 비용 증폭 차단), 질문·대화의 줄바꿈·따옴표 정리, 자리 이름의 보이지 않는 유니코드 문자 제거 | ai-interpretation.controller.ts, ai.service.ts, utils/custom-spread.ts, utils/user-rate-limit.ts(신규), api.ts, CustomSpreadBuilder.tsx | 보안 리뷰(MEDIUM 1, LOW 3) |
+| 2026-11-16 | AI 글 필드를 toPlainText()로 문자열화(배열은 문단, 객체는 값만 줄 단위로). Step 2·레거시 두 경로 모두 적용 | ai.service.ts | 레거시 경로에서 cardReadings가 객체 배열로 와 히스토리에 "[object Object]"가 저장·표시됨 |

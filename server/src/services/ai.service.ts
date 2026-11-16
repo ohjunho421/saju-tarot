@@ -669,15 +669,18 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
     if (legacyJson) {
       try {
         const parsed = JSON.parse(legacyJson);
-        const interpretation = parsed.summary && parsed.cardReadings
-          ? `${parsed.summary}\n\n===CARD_DETAILS===\n\n${parsed.cardReadings}`
-          : parsed.summary || parsed.cardReadings || response.substring(0, 500);
-        
+        const summary = this.toPlainText(parsed.summary);
+        const cardReadings = this.toPlainText(parsed.cardReadings);
+        const interpretation = summary && cardReadings
+          ? `${summary}\n\n===CARD_DETAILS===\n\n${cardReadings}`
+          : summary || cardReadings || response.substring(0, 500);
+        const adviceCardReading = this.toPlainText(parsed.adviceCardReading);
+
         return {
           interpretation,
-          elementalHarmony: parsed.elementalHarmony || '오행의 흐름을 분석하고 있어요.',
-          personalizedAdvice: parsed.practiceAdvice || '실천 가능한 조언을 준비하고 있어요.',
-          ...(parsed.adviceCardReading ? { adviceCardInterpretation: parsed.adviceCardReading } : {})
+          elementalHarmony: this.toPlainText(parsed.elementalHarmony) || '오행의 흐름을 분석하고 있어요.',
+          personalizedAdvice: this.toPlainText(parsed.practiceAdvice) || '실천 가능한 조언을 준비하고 있어요.',
+          ...(adviceCardReading ? { adviceCardInterpretation: adviceCardReading } : {})
         };
       } catch (e) {
         console.warn('Legacy JSON 파싱 실패, regex fallback');
@@ -1226,12 +1229,13 @@ ${easyCardTemplate}
       const parsed = JSON.parse(jsonText);
 
       // 구조화된 JSON → 기존 반환 형식으로 변환
-      const interpretation = parsed.summary && parsed.cardReadings
-        ? `${parsed.summary}\n\n===CARD_DETAILS===\n\n${parsed.cardReadings}`
-        : parsed.summary || parsed.cardReadings || response.substring(0, 500);
+      const summary = this.toPlainText(parsed.summary);
+      const cardReadings = this.toPlainText(parsed.cardReadings);
+      const interpretation = summary && cardReadings
+        ? `${summary}\n\n===CARD_DETAILS===\n\n${cardReadings}`
+        : summary || cardReadings || response.substring(0, 500);
 
-      const personalizedAdviceParts = [parsed.practiceAdvice];
-      if (parsed.mbtiAdvice) personalizedAdviceParts.push(parsed.mbtiAdvice);
+      const personalizedAdviceParts = [this.toPlainText(parsed.practiceAdvice), this.toPlainText(parsed.mbtiAdvice)];
 
       const result: {
         interpretation: string;
@@ -1242,16 +1246,18 @@ ${easyCardTemplate}
         easyReading?: EasyReading;
       } = {
         interpretation,
-        elementalHarmony: parsed.elementalHarmony || '오행의 흐름을 분석하고 있어요.',
+        elementalHarmony: this.toPlainText(parsed.elementalHarmony) || '오행의 흐름을 분석하고 있어요.',
         personalizedAdvice: personalizedAdviceParts.filter(Boolean).join('\n\n') || '실천 가능한 조언을 준비하고 있어요.'
       };
 
-      if (parsed.adviceCardReading) {
-        result.adviceCardInterpretation = parsed.adviceCardReading;
+      const adviceCardReading = this.toPlainText(parsed.adviceCardReading);
+      if (adviceCardReading) {
+        result.adviceCardInterpretation = adviceCardReading;
       }
 
-      if (parsed.compatibilityReading) {
-        result.compatibilityReading = parsed.compatibilityReading;
+      const compatibilityReading = this.toPlainText(parsed.compatibilityReading);
+      if (compatibilityReading) {
+        result.compatibilityReading = compatibilityReading;
       }
 
       const easyReading = this.normalizeEasyReading(parsed.easyReading, drawnCards);
@@ -1272,6 +1278,20 @@ ${easyCardTemplate}
       console.error('❌ Step 2 해석 생성 실패:', error);
       throw error;
     }
+  }
+
+  // AI가 글 필드를 문자열 대신 배열·객체로 돌려줄 때가 있다(예: cardReadings를 카드별 [{...}]로).
+  // 그대로 템플릿 문자열에 넣으면 "[object Object]"가 저장되므로, 안에 든 글만 꺼내 이어 붙인다.
+  // 배열 항목은 문단(\n\n), 한 객체 안의 값은 줄(\n)로 구분. 숫자·불리언 같은 글이 아닌 값은 버린다
+  private toPlainText(value: unknown): string {
+    if (typeof value === 'string') return value.trim();
+    if (Array.isArray(value)) {
+      return value.map(v => this.toPlainText(v)).filter(Boolean).join('\n\n');
+    }
+    if (value && typeof value === 'object') {
+      return Object.values(value).map(v => this.toPlainText(v)).filter(Boolean).join('\n');
+    }
+    return '';
   }
 
   // 응답에서 첫 번째로 완결된 JSON 객체만 꺼낸다.
