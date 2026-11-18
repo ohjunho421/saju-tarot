@@ -1,7 +1,7 @@
 ---
 feature: AI 해석
 status: active
-last_modified: 2026-11-16
+last_modified: 2026-11-18
 files:
   - server/src/services/ai.service.ts
   - server/src/data/day-master-traits.ts
@@ -57,13 +57,14 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 
 ## 페르소나 리딩 흐름 (2026-11-14~)
 
-- 리딩 흐름: 이 사람의 성향 → 그 성향 때문에 생긴 고민의 뿌리 → 카드가 하는 말 → 이 사람에게 맞는 행동. 오늘의 운세는 고민 대신 "이 성향에게 오늘 기운이 어떻게 작용하는지".
+- 리딩 흐름(2026-11-18~): 공감(이 상황에서 느꼈을 마음) → 카드가 하는 말 → 구체적으로 해볼 행동. 페르소나(일간·별자리·MBTI)는 리딩에서 말하지 않고, 어떤 마음일지 헤아리고 조언 말투를 고르는 데만 쓴다. summary는 ① 공감 2문장 ② 카드의 결론+이유 ③ 오늘·이번 주에 해볼 행동 세 문단. 오늘의 운세는 오늘 느낄 법한 마음 + 해볼 일, 절기와 일간 기운의 관계 설명은 유지(MBTI 유형 이름은 쓰지 않음). 오행 조화(elementalHarmony)·MBTI 조언(mbtiAdvice) 항목은 기존대로 사주·MBTI를 설명한다.
 - `data/day-master-traits.ts`: 10천간별 상징·본성·강점·약점·고민이 생기기 쉬운 지점·와닿는 말 방식. 같은 화(火)라도 병화(태양)와 정화(촛불)를 구분한다. 데이터가 없으면 기존 오행 5개 설명으로 대체.
-- Step 1(analyzeContext) 출력에 `persona`(일간·별자리·MBTI를 합친 모습), `worryRoot`(고민의 뿌리), `previousLink`(이어지는 이전 상담) 추가. 세 필드는 cleanSpreadText로 정리·길이 제한 후 Step 2에 들어간다. 이력이 없으면 previousLink는 강제로 빈 값. Step 1 실패 시 일간 성향으로 기본 페르소나를 만든다.
+- Step 1(analyzeContext) 출력에 `persona`(일간·별자리·MBTI를 합친 모습), `feeling`(이 상황에서 느꼈을 마음, 성향 설명 없이. 2026-11-18 전에는 `worryRoot` 고민의 뿌리), `previousLink`(이어지는 이전 상담) 추가. 세 필드는 cleanSpreadText로 정리·길이 제한 후 Step 2에 들어간다. 이력이 없으면 previousLink는 강제로 빈 값. Step 1 실패 시 일간 성향으로 기본 페르소나를 만든다.
 - 이전 리딩 재료(컨트롤러 toPreviousReading): 최근 3건(오늘의 운세 제외)의 질문, 그때 카드, easyReading.headline, 요약(`===CARD_DETAILS===` 앞 300자). Step 1·Step 2·레거시 프롬프트 모두에 들어간다.
 - 응답 JSON 필드·저장 컬럼은 변경 없음. 페르소나는 프롬프트 내부에서만 쓰고 화면에 노출하지 않는다.
 - Step 1 응답·파싱 로그는 길이만 남긴다(본문에 고민·이전 질문이 담김).
-- 읽기 쉬움 유지: summary 첫 문단은 짧은 문장 3개(기질 → 특징 → 그래서 생긴 고민), 카드별 성향 문장은 "○○님에게는 ~"으로 한 문장만. 기질 이름은 summary에서 한 번. 프롬프트 끝의 "쓰기 전 마지막 확인"에서 해요체·문장 50자 안팎·마크다운 금지를 다시 강조한다(화면은 텍스트를 그대로 보여줘 `**`가 노출됨). 일간 데이터의 `symbol`(촛불, 태양 등)을 문장에 쓴다.
+- 읽기 쉬움 유지: 카드별로 "○○님에게는 ~" 한 문장만 이 사람에게 맞춘 의미를 붙이고, 일간·별자리·MBTI 이름이나 성격 설명은 summary·cardReadings·easyReading에 쓰지 않는다. 프롬프트 끝의 "쓰기 전 마지막 확인"에서 해요체·문장 50자 안팎·마크다운 금지를 다시 강조한다(화면은 텍스트를 그대로 보여줘 `**`가 노출됨). 일간 데이터의 `symbol`(촛불, 태양 등)은 현재 프롬프트에서 쓰지 않는다.
+- 프롬프트만 확인할 때는 `getAIService()`로 실제 인스턴스를 받아 `tryGeminiWithFallback`을 바꿔 끼운다. default export는 get만 넘기는 Proxy라 거기에 대입하면 인스턴스에 반영되지 않는다.
 - 프롬프트 분량·단계를 바꿀 때는 같은 입력으로 전후 리딩을 돌려 문장 길이·긴 문장 수·"~합니다"체 수를 비교한다.
 
 ## 변경 이력
@@ -86,3 +87,4 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 | 2026-11-14 | 보안 리뷰 반영: Step 1 응답·파싱·레거시 결론 로그를 길이만 남기도록 변경, 일간 조회에 typeof·hasOwnProperty 확인, 이전 리딩 재료와 Step 1 새 필드를 cleanSpreadText로 정리, 역방향 판정 `=== true` | ai.service.ts, ai-interpretation.controller.ts, data/day-master-traits.ts | 보안 리뷰(MEDIUM 1, LOW 3) |
 | 2026-10-11 | 맞춤 배치 보안 리뷰 반영: 사용자별 호출 제한(10분 20회, 429), 서버에서 수정 5회 상한, 탈퇴 계정 확인, 이 기능은 Gemini flash만 사용(실패 유도로 pro까지 호출되는 비용 증폭 차단), 질문·대화의 줄바꿈·따옴표 정리, 자리 이름의 보이지 않는 유니코드 문자 제거 | ai-interpretation.controller.ts, ai.service.ts, utils/custom-spread.ts, utils/user-rate-limit.ts(신규), api.ts, CustomSpreadBuilder.tsx | 보안 리뷰(MEDIUM 1, LOW 3) |
 | 2026-11-16 | AI 글 필드를 toPlainText()로 문자열화(배열은 문단, 객체는 값만 줄 단위로). Step 2·레거시 두 경로 모두 적용 | ai.service.ts | 레거시 경로에서 cardReadings가 객체 배열로 와 히스토리에 "[object Object]"가 저장·표시됨 |
+| 2026-11-18 | 리딩 흐름을 공감 → 카드 → 구체적 행동으로 변경. 페르소나는 리딩에서 말하지 않고 공감·조언 맞춤에만 사용. Step 1 worryRoot → feeling(느꼈을 마음), summary 세 문단(공감·카드의 답·해볼 것), 카드 해석·쉽게 보기에서 일간·별자리·MBTI 이름과 성격 설명 금지, 오늘의 운세의 "INFJ 타입은 ~" 예시를 유형 이름 없는 조언으로. 오행 조화·MBTI 조언 항목은 유지. 로컬 키(Gemini 크레딧 소진 402, Claude 키 무효 401)로 실제 출력 확인은 못 하고 조립된 프롬프트만 확인 | ai.service.ts | 페르소나를 굳이 말하지 말고 공감 → 카드 해석 → 구체적 행동 흐름으로 해 달라는 요청 |
