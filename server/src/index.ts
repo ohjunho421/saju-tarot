@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 
 // 먼저 환경변수 로드 (다른 import보다 먼저!)
@@ -49,6 +50,28 @@ app.use('/api/tarot', tarotRoutes);
 app.use('/api/interpretation', interpretationRoutes);
 app.use('/api/ai', aiInterpretationRoutes);
 app.use('/api/readings', readingRoutes);
+
+// 클라이언트 화면 (Docker 빌드에서 client/dist를 만든다. 로컬 개발처럼 빌드가 없으면 API만 동작)
+const clientDist = path.join(__dirname, '../../client/dist');
+const clientIndex = path.join(clientDist, 'index.html');
+if (fs.existsSync(clientIndex)) {
+  // 파일명에 해시가 붙는 assets는 오래 캐시하고, index.html은 매번 새로 받게 한다
+  app.use(express.static(clientDist, {
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
+  // 화면 전환은 클라이언트 상태로 하므로, API·이미지가 아닌 GET 요청은 모두 index.html
+  // 확장자가 있는 요청(없는 번들·이미지)은 HTML 대신 404로 둔다. 배포 후 예전 번들을 찾는 경우 등
+  app.get('*', (req: Request, res: Response, next) => {
+    if (req.path.startsWith('/api/') || req.path.startsWith('/tarot-images/') || path.extname(req.path)) return next();
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(clientIndex);
+  });
+}
 
 // Error handling
 app.use((err: Error, req: Request, res: Response, next: any) => {

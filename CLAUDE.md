@@ -35,6 +35,7 @@ saju-tarot-service/
 │   │   ├── data/                # salDetails.ts(신살 설명), elementPlain.ts(오행 쉬운 설명)
 │   │   ├── services/api.ts
 │   │   └── types/index.ts
+│   ├── public/landing/cards/  # 랜딩용 카드 그림 (웹용 webp)
 │   ├── vite.config.ts
 │   └── tailwind.config.js
 ├── server/                    # Express 백엔드
@@ -52,6 +53,8 @@ saju-tarot-service/
 │   │   └── data/                # tarot-cards.ts, day-master-traits.ts(10천간 일간 성향)
 │   ├── prisma/schema.prisma
 │   └── Dockerfile
+├── PRODUCT.md                 # 제품 맥락 (사용자·포지셔닝)
+├── DESIGN.md                  # 디자인 시스템 (색·글꼴·움직임 규칙)
 └── .env.example
 ```
 
@@ -87,14 +90,14 @@ cd server && npm start        # prisma migrate deploy + node dist/index.js
 | 백엔드 | Express 4, TypeScript, Prisma (PostgreSQL) |
 | AI | Google Gemini (gemini-2.5-flash/pro), Anthropic Claude |
 | 인증 | JWT (jsonwebtoken), bcryptjs |
-| 배포 | 클라이언트: Vercel / 서버: Railway (Docker) |
+| 배포 | Railway (Docker, API + 화면) / Vercel (화면, 병행) |
 
 ## 배포 환경
 
-- **클라이언트**: Vercel (`saju-tarot.vercel.app`)
-- **서버**: Railway (Docker, node:20-slim)
+- **Railway**: Docker(node:20-slim) 하나가 API와 클라이언트 화면을 함께 제공 (`saju-tarot-production.up.railway.app`). 상세: `docs/deployment/railway.md`
+- **Vercel**: 클라이언트 화면 병행 운영 (`saju-tarot.vercel.app`)
 - **DB**: PostgreSQL (Railway 호스팅)
-- **CORS**: 프로덕션에서 `*.vercel.app` 허용
+- **CORS**: 프로덕션에서 `*.vercel.app` 허용 (Railway 화면은 같은 주소라 해당 없음)
 
 ## 보안 규칙
 
