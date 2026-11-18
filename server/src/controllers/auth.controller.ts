@@ -101,7 +101,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       where: { email }
     });
     
-    if (!user) {
+    // 카카오로 가입한 사용자는 비밀번호가 없다
+    if (!user || !user.password) {
       res.status(401).json({ error: '이메일 또는 비밀번호가 올바르지 않습니다.' });
       return;
     }

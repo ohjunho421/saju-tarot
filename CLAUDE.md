@@ -16,6 +16,7 @@ saju-tarot-service/
 │   ├── src/
 │   │   ├── components/        # UI 컴포넌트
 │   │   │   ├── AuthModal.tsx
+│   │   │   ├── KakaoLoginButton.tsx
 │   │   │   ├── BirthInfoForm.tsx
 │   │   │   ├── CardSelection.tsx
 │   │   │   ├── cardSelectionConfig.ts   # 스프레드별 자리 이름·안내·배치
@@ -31,7 +32,8 @@ saju-tarot-service/
 │   │   │   ├── HomePage.tsx
 │   │   │   ├── ReadingPage.tsx
 │   │   │   ├── MyPage.tsx
-│   │   │   └── HistoryPage.tsx
+│   │   │   ├── HistoryPage.tsx
+│   │   │   └── KakaoSignupPage.tsx   # 카카오 가입 마무리 (생년월일 확인 → MBTI)
 │   │   ├── data/                # salDetails.ts(신살 설명), elementPlain.ts(오행 쉬운 설명)
 │   │   ├── services/api.ts
 │   │   └── types/index.ts
@@ -45,7 +47,8 @@ saju-tarot-service/
 │   │   │   ├── saju.service.ts     # 사주 분석
 │   │   │   ├── tarot.service.ts    # 타로 카드
 │   │   │   ├── zodiac.service.ts   # 띠/운세
-│   │   │   └── interpretation.service.ts
+│   │   │   ├── interpretation.service.ts
+│   │   │   └── kakao.service.ts    # 카카오 로그인 (REST, 돌아갈 주소 허용 목록)
 │   │   ├── routes/
 │   │   ├── middleware/auth.middleware.ts
 │   │   ├── utils/
@@ -74,7 +77,7 @@ cd server && npm start        # prisma migrate deploy + node dist/index.js
 |------|-----------|
 | 사주 분석 | `server/src/services/saju.service.ts`, `client/src/components/SajuResult.tsx` |
 | 타로 리딩 (AI 해석) | `server/src/services/ai.service.ts`, `client/src/components/TarotReading.tsx` |
-| 회원 인증 (JWT) | `server/src/routes/auth.routes.ts`, `client/src/components/AuthModal.tsx` |
+| 회원 인증 (JWT, 카카오 로그인) | `server/src/routes/auth.routes.ts`, `server/src/controllers/kakao-auth.controller.ts`, `client/src/components/AuthModal.tsx`, `client/src/pages/KakaoSignupPage.tsx` |
 | 리딩 히스토리 | `server/src/routes/reading.routes.ts`, `client/src/pages/HistoryPage.tsx` |
 | 포인트 시스템 | `server/prisma/schema.prisma` (PointTransaction 모델) |
 | 챗봇 | `server/src/controllers/chat.controller.ts`, `client/src/components/ChatBot.tsx` |
@@ -86,7 +89,7 @@ cd server && npm start        # prisma migrate deploy + node dist/index.js
 | 프론트엔드 | React 19, TypeScript 5.9, Vite (rolldown), Tailwind CSS 3, shadcn/ui, Zustand, Framer Motion |
 | 백엔드 | Express 4, TypeScript, Prisma (PostgreSQL) |
 | AI | Google Gemini (gemini-2.5-flash/pro), Anthropic Claude |
-| 인증 | JWT (jsonwebtoken), bcryptjs |
+| 인증 | JWT (jsonwebtoken), bcryptjs, 카카오 로그인 (REST API) |
 | 배포 | 클라이언트: Vercel / 서버: Railway (Docker) |
 
 ## 배포 환경

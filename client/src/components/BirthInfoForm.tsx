@@ -1,21 +1,38 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { BirthInfo } from '../types';
 import { Calendar, Clock } from 'lucide-react';
 
 interface BirthInfoFormProps {
   onSubmit: (birthInfo: BirthInfo) => void;
+  // 아래는 카카오 가입 마무리처럼 미리 채운 값으로 쓸 때만. 없으면 리딩 첫 단계 그대로
+  initialValue?: BirthInfo;
+  title?: string;
+  intro?: ReactNode; // 제목 아래 안내
+  children?: ReactNode; // 생년월일 위에 넣을 칸 (예: 이름)
+  submitLabel?: string;
+  note?: string; // 카드 아래 안내
 }
 
-export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
-  const [formData, setFormData] = useState<BirthInfo>({
-    year: 1990,
-    month: 1,
-    day: 1,
-    hour: undefined,
-    isLunar: false,
-    isLeapMonth: false,
-    gender: 'male'
-  });
+const DEFAULT_BIRTH_INFO: BirthInfo = {
+  year: 1990,
+  month: 1,
+  day: 1,
+  hour: undefined,
+  isLunar: false,
+  isLeapMonth: false,
+  gender: 'male'
+};
+
+export default function BirthInfoForm({
+  onSubmit,
+  initialValue,
+  title = '생년월일시 입력',
+  intro,
+  children,
+  submitLabel = '사주 분석 시작',
+  note = '입력하신 정보는 사주 분석에만 사용되며 저장되지 않습니다.',
+}: BirthInfoFormProps) {
+  const [formData, setFormData] = useState<BirthInfo>(initialValue ?? DEFAULT_BIRTH_INFO);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,9 +42,12 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
   return (
     <div className="max-w-2xl mx-auto px-4">
       <div className="card">
-        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-center">생년월일시 입력</h2>
-        
+        <h2 className={`text-xl md:text-2xl font-bold text-center break-keep ${intro ? 'mb-2' : 'mb-4 md:mb-6'}`}>{title}</h2>
+        {intro && <div className="mb-4 md:mb-6 text-center text-sm text-white/70 break-keep">{intro}</div>}
+
         <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
+          {children}
+
           {/* 생년월일 */}
           <div>
             <label className="flex items-center gap-2 mb-3 text-lg font-semibold">
@@ -194,14 +214,14 @@ export default function BirthInfoForm({ onSubmit }: BirthInfoFormProps) {
             type="submit"
             className="w-full btn-primary text-base md:text-lg py-3 md:py-4"
           >
-            사주 분석 시작
+            {submitLabel}
           </button>
         </form>
       </div>
 
       {/* 안내 메시지 */}
       <div className="mt-6 text-center text-white/60 text-sm">
-        <p>입력하신 정보는 사주 분석에만 사용되며 저장되지 않습니다.</p>
+        <p>{note}</p>
       </div>
     </div>
   );
