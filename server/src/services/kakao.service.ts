@@ -1,7 +1,7 @@
 // 카카오 로그인 (REST API, 인가 코드 방식)
 // 문서: https://developers.kakao.com/docs/latest/ko/kakaologin/rest-api
-// 생일·출생 연도·성별은 카카오 개발자 콘솔에서 동의항목을 받아야 온다. 없으면 빈 값으로 두고 사용자가 직접 입력한다
-import type { BirthInfo } from '../models/saju.model';
+// 카카오에서는 회원번호와 닉네임만 받는다. 생년월일은 가입 마무리 화면에서 사용자가 직접 입력한다
+// (카카오의 생일·출생 연도·성별은 비즈 앱 전환과 동의항목 심사가 필요해 쓰지 않는다)
 
 const AUTHORIZE_URL = 'https://kauth.kakao.com/oauth/authorize';
 const TOKEN_URL = 'https://kauth.kakao.com/oauth/token';
@@ -13,8 +13,7 @@ export const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 export interface KakaoProfile {
   kakaoId: string;
-  nickname: string;
-  birthInfo: Partial<BirthInfo>; // 카카오가 준 것만 채운다
+  nickname: string; // 닉네임 동의를 안 했으면 빈 문자열
 }
 
 interface KakaoConfig {
@@ -100,7 +99,7 @@ const exchangeCode = async (config: KakaoConfig, code: string): Promise<string> 
   return accessToken;
 };
 
-// 카카오 사용자 정보에서 생년월일 관련 값만 골라 낸다. 형식이 다르면 버린다
+// 카카오 사용자 정보에서 회원번호와 닉네임만 골라 낸다
 export const parseKakaoUser = (data: unknown): KakaoProfile | null => {
   if (!isRecord(data) || (typeof data.id !== 'number' && typeof data.id !== 'string')) return null;
   const account = isRecord(data.kakao_account) ? data.kakao_account : {};
@@ -110,25 +109,7 @@ export const parseKakaoUser = (data: unknown): KakaoProfile | null => {
   // 글자 단위로 자른다(이모지를 반으로 자르면 깨진 문자가 남는다)
   const nickname = typeof nicknameRaw === 'string' ? Array.from(nicknameRaw.trim()).slice(0, 30).join('') : '';
 
-  const birthInfo: Partial<BirthInfo> = {};
-  if (typeof account.birthyear === 'string' && /^\d{4}$/.test(account.birthyear)) {
-    birthInfo.year = Number(account.birthyear);
-  }
-  if (typeof account.birthday === 'string' && /^\d{4}$/.test(account.birthday)) {
-    const month = Number(account.birthday.slice(0, 2));
-    const day = Number(account.birthday.slice(2));
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      birthInfo.month = month;
-      birthInfo.day = day;
-      birthInfo.isLunar = account.birthday_type === 'LUNAR';
-      birthInfo.isLeapMonth = birthInfo.isLunar && account.is_leap_month === true;
-    }
-  }
-  if (account.gender === 'male' || account.gender === 'female') {
-    birthInfo.gender = account.gender;
-  }
-
-  return { kakaoId: String(data.id), nickname, birthInfo };
+  return { kakaoId: String(data.id), nickname };
 };
 
 export const fetchKakaoProfile = async (code: string): Promise<KakaoProfile> => {

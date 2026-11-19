@@ -153,7 +153,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthMo
           <div className="mb-5">
             <KakaoLoginButton />
             <p className="mt-2 text-center text-xs text-white/50 break-keep">
-              {mode === 'login' ? '처음이면 카카오에 저장된 생일로 바로 가입할 수 있어요.' : '카카오에 저장된 생일을 가져와 입력을 줄여 드려요.'}
+              {mode === 'login' ? '처음이면 카카오 계정으로 바로 가입할 수 있어요.' : '이메일·비밀번호 없이 카카오 계정으로 가입해요.'}
             </p>
             <div className="mt-5 flex items-center gap-3 text-xs text-white/40">
               <span className="h-px flex-1 bg-white/10" />

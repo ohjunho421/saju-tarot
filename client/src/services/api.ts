@@ -54,10 +54,9 @@ if (savedToken) {
   setAuthToken(savedToken);
 }
 
-// 카카오가 준 값만 채워져 온다(동의항목 심사 전이면 비어 있음)
+// 카카오에서는 닉네임만 받는다(동의하지 않았으면 빈 문자열). 생년월일은 가입 화면에서 직접 입력
 export interface KakaoSignupProfile {
   nickname: string;
-  birthInfo: Partial<BirthInfo>;
 }
 
 export type KakaoSessionResult =

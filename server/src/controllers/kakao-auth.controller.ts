@@ -229,7 +229,7 @@ export const kakaoCallback = async (req: Request, res: Response): Promise<void> 
     }
     const ticket = signTicket(
       'kakao-signup',
-      { kid: profile.kakaoId, nick: profile.nickname, bi: profile.birthInfo, bh: state.bh },
+      { kid: profile.kakaoId, nick: profile.nickname, bh: state.bh },
       SIGNUP_TICKET_TTL_SECONDS
     );
     redirectWithHash(res, returnTo, 'kakao_signup', ticket);
@@ -277,7 +277,6 @@ export const kakaoSession = async (req: Request, res: Response): Promise<void> =
           type: 'signup',
           profile: {
             nickname: typeof signup.nick === 'string' ? signup.nick : '',
-            birthInfo: isRecord(signup.bi) ? signup.bi : {},
           },
         },
       });

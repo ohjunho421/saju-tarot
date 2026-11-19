@@ -33,7 +33,7 @@ saju-tarot-service/
 │   │   │   ├── ReadingPage.tsx
 │   │   │   ├── MyPage.tsx
 │   │   │   ├── HistoryPage.tsx
-│   │   │   └── KakaoSignupPage.tsx   # 카카오 가입 마무리 (생년월일 확인 → MBTI)
+│   │   │   └── KakaoSignupPage.tsx   # 카카오 가입 마무리 (생년월일 입력 → MBTI)
 │   │   ├── data/                # salDetails.ts(신살 설명), elementPlain.ts(오행 쉬운 설명)
 │   │   ├── services/api.ts
 │   │   └── types/index.ts

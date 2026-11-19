@@ -14,34 +14,6 @@ interface KakaoSignupPageProps {
   onCancel: () => void;
 }
 
-const FALLBACK_YEAR = 1995; // 카카오가 출생 연도를 주지 않았을 때 칸에 넣어 두는 값 (안내문으로 확인을 부탁한다)
-
-const prefillBirthInfo = (partial: Partial<BirthInfo>): BirthInfo => ({
-  year: partial.year ?? FALLBACK_YEAR,
-  month: partial.month ?? 1,
-  day: partial.day ?? 1,
-  hour: undefined,
-  isLunar: partial.isLunar ?? false,
-  isLeapMonth: partial.isLeapMonth ?? false,
-  gender: partial.gender ?? 'male',
-});
-
-// 카카오에서 무엇을 가져왔는지에 따라 확인을 부탁할 칸을 알려 준다
-const introLines = (partial: Partial<BirthInfo>): string[] => {
-  const hasDate = partial.month !== undefined && partial.day !== undefined;
-  const lines: string[] = [];
-  if (hasDate && partial.year !== undefined) {
-    lines.push('카카오에 저장된 생일을 가져왔어요. 다르면 고쳐 주세요.');
-  } else if (hasDate) {
-    lines.push('카카오에서 생일을 가져왔어요. 태어난 해를 꼭 확인해 주세요.');
-  } else {
-    lines.push('생년월일을 입력해 주세요.');
-  }
-  if (hasDate && partial.gender === undefined) lines.push('성별도 확인해 주세요.');
-  lines.push('태어난 시간은 카카오에 없어서, 아시면 골라 주세요.');
-  return lines;
-};
-
 const errorMessage = (error: unknown): string => {
   const serverMessage = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
   return typeof serverMessage === 'string' ? serverMessage : '가입을 마치지 못했어요. 잠시 후 다시 시도해 주세요.';
@@ -50,7 +22,8 @@ const errorMessage = (error: unknown): string => {
 export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCancel }: KakaoSignupPageProps) {
   const [step, setStep] = useState<'birth' | 'mbti'>('birth');
   const [name, setName] = useState(profile.nickname);
-  const [birthInfo, setBirthInfo] = useState<BirthInfo>(() => prefillBirthInfo(profile.birthInfo));
+  // 2단계에서 이전으로 돌아오면 입력했던 값을 그대로 보여 준다
+  const [birthInfo, setBirthInfo] = useState<BirthInfo | undefined>(undefined);
   const [zodiac, setZodiac] = useState<ZodiacInfo | null | 'loading'>('loading');
   const [mbti, setMbti] = useState<MBTIType | ''>('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,6 +48,7 @@ export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCance
   };
 
   const handleComplete = async () => {
+    if (!birthInfo) return;
     setSubmitting(true);
     setError('');
     try {
@@ -99,8 +73,8 @@ export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCance
         {stepLabel}
         <BirthInfoForm
           initialValue={birthInfo}
-          title="생년월일 확인"
-          intro={introLines(profile.birthInfo).map((line) => <p key={line}>{line}</p>)}
+          title="생년월일 입력"
+          intro={<p>카카오로 로그인했어요. 사주와 별자리를 볼 생년월일을 알려 주세요.</p>}
           submitLabel="다음"
           note="생년월일은 사주와 별자리 계산에 쓰이고, 가입하면 내 정보에 저장돼요."
           onSubmit={handleBirthSubmit}
