@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T00:15:00+09:00",
+  "title": "Design System: 별사탕",
+  "extensions": {
+    "colorMeta": {
+      "night-table": { "role": "neutral", "displayName": "밤 탁자", "canonical": "#1a1a2e", "tonalRamp": ["#0c0c16", "#14142a", "#1a1a2e", "#25254a", "#33335f", "#4b4b80", "#8080b0", "#d6d6ea"] },
+      "lamp-gold": { "role": "primary", "displayName": "등불 금색", "canonical": "#d4af37", "tonalRamp": ["#3d300a", "#6b5413", "#9c7b1d", "#d4af37", "#e2c25a", "#ecd488", "#f4e5b5", "#fbf5e1"] },
+      "lamp-gold-bright": { "role": "primary", "displayName": "밝은 등불 금색", "canonical": "#e2c25a" },
+      "action-violet": { "role": "secondary", "displayName": "행동 보라", "canonical": "#7c3aed", "tonalRamp": ["#2e1065", "#4c1d95", "#6d28d9", "#7c3aed", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ede9fe"] },
+      "tile-indigo": { "role": "neutral", "displayName": "남보라 면", "canonical": "#232348" },
+      "tile-midnight": { "role": "neutral", "displayName": "한밤 면", "canonical": "#1c2340" },
+      "tile-plum": { "role": "neutral", "displayName": "자두 면", "canonical": "#2a2433" },
+      "signal-amber": { "role": "tertiary", "displayName": "신호 호박색", "canonical": "#fde68a" },
+      "ink-white": { "role": "neutral", "displayName": "잉크 흰색", "canonical": "#ffffff" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "랜딩 첫 화면 제목 하나. 두 줄 이내." },
+      "headline": { "displayName": "Headline", "purpose": "섹션 제목, 결과 한 줄 결론." },
+      "title": { "displayName": "Title", "purpose": "큰 면 안의 이름." },
+      "body": { "displayName": "Body", "purpose": "설명 문장. 휴대폰 16px, 패널 15px." },
+      "label": { "displayName": "Label", "purpose": "결과 단계 이름." }
+    },
+    "shadows": [
+      { "name": "table-card", "value": "0 22px 40px -14px rgba(6,6,18,0.9)", "purpose": "첫 화면 탁자 위 카드." },
+      { "name": "drawn-card", "value": "0 30px 60px -20px rgba(6,6,18,0.95)", "purpose": "결과 예시의 뽑힌 큰 카드." },
+      { "name": "lamp-button", "value": "0 10px 30px -10px rgba(212,175,55,0.55)", "purpose": "금색 주요 버튼 아래 따뜻한 빛." }
+    ],
+    "motion": [
+      { "name": "deal-spring", "value": "spring(stiffness 110, damping 18), 카드마다 60ms 간격", "purpose": "첫 화면 카드가 탁자에 놓이는 순간." },
+      { "name": "draw-spring", "value": "spring(stiffness 90, damping 16)", "purpose": "결과 예시 카드가 기울어진 상태에서 똑바로 서는 순간." },
+      { "name": "emerge", "value": "600ms cubic-bezier(0.16, 1, 0.3, 1), blur 6px→0, 단계마다 140ms 간격", "purpose": "결과 단계가 차례로 떠오름." },
+      { "name": "plane-parallax", "value": "스크롤 진행에 따라 먼 층 -40px, 중간 -90px, 가까운 층 -160px", "purpose": "탁자 카드의 깊이감." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "화면마다 하나뿐인 주요 행동.",
+      "html": "<button class=\"ds-btn-primary\">운세 보러 가기 <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 10px; background: #d4af37; color: #1a1a2e; padding: 16px 32px; border: none; border-radius: 12px; font-size: 18px; font-weight: 600; box-shadow: 0 10px 30px -10px rgba(212,175,55,0.55); cursor: pointer; transition: background-color 200ms; } .ds-btn-primary:hover { background: #e2c25a; } .ds-btn-primary:hover svg { transform: translateX(4px); } .ds-btn-primary svg { transition: transform 200ms; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid #d4af37; outline-offset: 4px; }"
+    },
+    {
+      "name": "Element Chip",
+      "kind": "chip",
+      "refersTo": "chip-element",
+      "description": "다섯 기운 표시. 강조와 부족은 글자로도 밝힌다.",
+      "html": "<ul class=\"ds-chips\"><li class=\"ds-chip\">나무</li><li class=\"ds-chip ds-chip--strong\">불 <span>많음</span></li><li class=\"ds-chip\">흙</li><li class=\"ds-chip ds-chip--weak\">쇠 <span>적음</span></li><li class=\"ds-chip\">물</li></ul>",
+      "css": ".ds-chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 0; font-size: 14px; } .ds-chip { border-radius: 9999px; padding: 4px 12px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.8); } .ds-chip span { margin-left: 4px; font-size: 12px; } .ds-chip--strong { background: #d4af37; color: #1a1a2e; font-weight: 600; } .ds-chip--weak { background: transparent; border: 1px dashed rgba(255,255,255,0.4); color: rgba(255,255,255,0.7); }"
+    },
+    {
+      "name": "Result Panel",
+      "kind": "card",
+      "description": "결과 쉽게 보기의 축소판: 질문, 신호, 한 줄 결론, 단계.",
+      "html": "<div class=\"ds-panel\"><p class=\"ds-panel__q\">질문: 이직, 지금 해도 될까요?</p><span class=\"ds-signal\">잠깐 기다려요</span><p class=\"ds-panel__head\">서두르지 말고 한 달만 지켜보세요</p><ol class=\"ds-steps\"><li><b>1</b><small>이 카드는</small>조용히 정보를 모으면 답이 보인다는 카드예요.</li></ol></div>",
+      "css": ".ds-panel { border-radius: 16px; border: 1px solid rgba(212,175,55,0.25); background: rgba(255,255,255,0.04); padding: 24px; color: #fff; } .ds-panel__q { font-size: 14px; color: rgba(255,255,255,0.6); margin: 0; } .ds-signal { display: inline-block; margin-top: 12px; border-radius: 9999px; border: 1px solid rgba(252,211,77,0.4); background: rgba(252,211,77,0.1); padding: 4px 12px; font-size: 14px; font-weight: 600; color: #fde68a; } .ds-panel__head { margin: 12px 0 0; font-family: 'Gowun Batang', serif; font-size: 24px; font-weight: 700; line-height: 1.375; word-break: keep-all; } .ds-steps { margin: 16px 0 0; padding-left: 20px; border-left: 1px solid rgba(212,175,55,0.3); list-style: none; } .ds-steps li { position: relative; font-size: 15px; line-height: 1.625; color: rgba(255,255,255,0.9); } .ds-steps b { position: absolute; left: -29px; top: 2px; width: 16px; height: 16px; border-radius: 9999px; background: #d4af37; color: #1a1a2e; font-size: 10px; display: flex; align-items: center; justify-content: center; } .ds-steps small { display: block; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }"
+    },
+    {
+      "name": "Info Tile",
+      "kind": "card",
+      "description": "세 가지 읽기의 큰 면. 면 색은 서로 다르게.",
+      "html": "<article class=\"ds-tile\"><h4>별자리</h4><p>생일로 내 별자리를 찾아서, 타고난 성향을 리딩에 함께 반영해요.</p></article>",
+      "css": ".ds-tile { border-radius: 16px; background: #1c2340; padding: 24px; color: #fff; } .ds-tile h4 { margin: 0; font-family: 'Gowun Batang', serif; font-size: 24px; font-weight: 700; } .ds-tile p { margin: 8px 0 0; font-size: 15px; line-height: 1.625; color: rgba(255,255,255,0.75); word-break: keep-all; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "밤의 카드 탁자",
+    "overview": "별사탕은 불을 낮춘 방에서 카드를 펼쳐 놓은 탁자다. 바탕은 화면 전체를 덮는 밤 남색이고, 그 위에 크림색 테두리의 수채·잉크 고양이 카드가 실제 물건처럼 놓인다. 화면의 색과 질감은 카드 그림이 맡고, 인터페이스는 등불 같은 금색 하나로 행동을 가리킨다.\n\n밀도는 낮고 숨이 길다. 섹션마다 한 가지만 말하고, 제목은 카드 속 고전 세리프 글자와 어울리는 한글 세리프로 쓰며, 본문은 휴대폰에서 바로 읽히는 시스템 고딕으로 둔다. 움직임은 카드가 탁자에 놓이는 순간과 한 장이 뽑혀 세워지는 순간에만 쓴다.",
+    "keyCharacteristics": ["밤 남색 한 가지 바탕, 섹션마다 테마를 뒤집지 않는다", "실제 카드 그림이 유일한 일러스트", "금색은 화면마다 주요 행동 하나에만", "제목은 한글 세리프, 본문은 고딕", "깊이는 카드의 그림자와 층(가깝게·멀게)으로 만든다"],
+    "rules": [
+      { "name": "The One Lamp Rule", "body": "한 화면의 강조색은 하나다. 랜딩은 금색, 앱 안쪽 화면은 기존 보라색. 한 섹션 안에 둘을 섞지 않는다.", "section": "colors" },
+      { "name": "The Word-Keep Rule", "body": "한글 제목과 안내문은 단어 단위로만 줄을 바꾸고(word-break: keep-all), 제목은 줄 길이를 맞춘다(text-wrap: balance). \"볼까 / 요?\"처럼 글자 하나가 다음 줄로 떨어지면 안 된다.", "section": "typography" },
+      { "name": "The Cards-Only Shadow Rule", "body": "그림자는 실제 카드 그림과 주요 버튼에만 있다. 글 패널을 그림자로 띄우지 않는다.", "section": "elevation" }
+    ],
+    "dos": ["Do 실제 카드 그림을 일러스트로 쓴다. 웹용은 client/public/landing/cards/에 320px(큰 카드 520px) webp로 둔다.", "Do 금색은 화면마다 주요 행동 하나에만 쓴다 (The One Lamp Rule).", "Do 한글은 단어 단위로 줄을 바꾼다 (The Word-Keep Rule).", "Do 카드 위에 글을 올릴 때는 밤 남색을 반투명으로 한 겹 깔아 대비를 지킨다.", "Do 움직임에는 줄인 움직임 설정의 정지 상태를 함께 만든다."],
+    "donts": ["Don't 제목 위에 작은 라벨(아이브로우)을 얹지 않는다.", "Don't 같은 크기의 아이콘+제목+설명 카드를 나란히 반복해 섹션을 만들지 않는다.", "Don't 섹션 하나만 밝은 테마로 뒤집지 않는다. 바탕은 늘 밤 남색이다.", "Don't 카드 그림을 CSS 도형이나 그라데이션으로 흉내 내지 않는다.", "Don't 이용 후기, 이용자 수, 평점을 지어내지 않는다. 예시는 예시라고 밝힌다."]
+  }
+}

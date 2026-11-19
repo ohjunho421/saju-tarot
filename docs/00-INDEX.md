@@ -1,6 +1,6 @@
 ---
 type: index
-last_modified: 2026-10-10
+last_modified: 2026-11-19
 ---
 
 # 별사탕 문서 인덱스
@@ -23,13 +23,14 @@ last_modified: 2026-10-10
 | 챗봇, 채팅, 대화, 후속질문 | docs/features/chatbot.md | `chat.controller.ts`, `ChatBot.tsx` |
 | 띠, 운세, 별자리, 궁합 | docs/features/zodiac.md | `zodiac.service.ts` |
 | 랜딩, 홈, 마이페이지, 내 정보, 문구 | docs/features/home-mypage.md | `HomePage.tsx`, `MyPage.tsx` |
+| 디자인, 색, 글꼴, 디자인 시스템 | DESIGN.md (루트), PRODUCT.md (루트) | `HomePage.tsx`, `.impeccable/design.json` |
 | 리뷰, 체크리스트, 교훈 | docs/code-review-checklist.md | - |
 
 ### 인프라/운영
 
 | 키워드 | 문서 경로 | 관련 코드 |
 |--------|-----------|-----------|
-| 배포, Docker, Railway | deployment/ (추후 추가) | `Dockerfile`, `railway.json` |
+| 배포, Docker, Railway, Vercel, 정적 파일 | docs/deployment/railway.md | `Dockerfile`, `railway.json`, `server/src/index.ts` |
 | DB, Prisma, 마이그레이션 | deployment/ (추후 추가) | `server/prisma/schema.prisma` |
 | 환경변수, API 키 | deployment/ (추후 추가) | `.env.example` |
 
@@ -57,6 +58,7 @@ docs/
 │   ├── zodiac.md                띠/별자리 운세
 │   └── home-mypage.md           랜딩·마이페이지
 ├── deployment/                  배포, 인프라
+│   └── railway.md               Railway 배포 (API + 화면)
 ├── operations/                  환경, 테스트, 점검
 └── product/
     └── CHANGELOG.md             변경 이력
