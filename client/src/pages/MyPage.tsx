@@ -87,7 +87,7 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
             <div>
               <p className="text-white/60 text-xs">사주 만세력</p>
               <h1 className="text-2xl font-bold">{user.name}님의 타고난 성향</h1>
-              <p className="text-white/60 text-sm">{user.email}</p>
+              <p className="text-white/60 text-sm">{user.email ?? '카카오로 로그인'}</p>
             </div>
           </div>
           <button

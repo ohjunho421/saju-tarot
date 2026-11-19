@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { authApi } from '../services/api';
+import KakaoLoginButton from './KakaoLoginButton';
 import { X, Mail, Lock, User, Calendar } from 'lucide-react';
 import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import type { MBTIType } from '../types';
@@ -8,9 +9,10 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  notice?: string; // 카카오 로그인에서 돌아온 안내(취소·실패 등)
 }
 
-export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
+export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,6 +40,24 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     }
   });
   const [registerMbti, setRegisterMbti] = useState<MBTIType | ''>('');
+  const [kakaoEnabled, setKakaoEnabled] = useState(false);
+
+  // 서버에 카카오 키가 설정돼 있을 때만 카카오 버튼을 보여 준다
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    authApi
+      .getProviders()
+      .then((providers) => {
+        if (active) setKakaoEnabled(providers.kakao);
+      })
+      .catch(() => {
+        if (active) setKakaoEnabled(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -117,9 +137,29 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
           </button>
         </div>
 
+        {notice && !error && (
+          <div className="bg-white/5 border border-white/20 rounded-lg p-3 mb-4" role="status">
+            <p className="text-white/80 text-sm">{notice}</p>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-500/20 border border-red-500 rounded-lg p-3 mb-4">
             <p className="text-red-200 text-sm">{error}</p>
+          </div>
+        )}
+
+        {kakaoEnabled && (
+          <div className="mb-5">
+            <KakaoLoginButton />
+            <p className="mt-2 text-center text-xs text-white/50 break-keep">
+              {mode === 'login' ? '처음이면 카카오 계정으로 바로 가입할 수 있어요.' : '이메일·비밀번호 없이 카카오 계정으로 가입해요.'}
+            </p>
+            <div className="mt-5 flex items-center gap-3 text-xs text-white/40">
+              <span className="h-px flex-1 bg-white/10" />
+              또는 이메일로
+              <span className="h-px flex-1 bg-white/10" />
+            </div>
           </div>
         )}
 

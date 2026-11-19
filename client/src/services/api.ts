@@ -54,6 +54,15 @@ if (savedToken) {
   setAuthToken(savedToken);
 }
 
+// 카카오에서는 닉네임만 받는다(동의하지 않았으면 빈 문자열). 생년월일은 가입 화면에서 직접 입력
+export interface KakaoSignupProfile {
+  nickname: string;
+}
+
+export type KakaoSessionResult =
+  | { type: 'login' }
+  | { type: 'signup'; profile: KakaoSignupProfile };
+
 // 인증 API
 export const authApi = {
   register: async (data: {
@@ -89,6 +98,36 @@ export const authApi = {
 
   updateMbti: async (mbti: string | null) => {
     const response = await api.put('/auth/mbti', { mbti });
+    return response.data;
+  },
+
+  // 키가 설정된 소셜 로그인만 true
+  getProviders: async (): Promise<{ kakao: boolean }> => {
+    const response = await api.get('/auth/providers');
+    return { kakao: response.data?.data?.kakao === true };
+  },
+
+  // 카카오 로그인 시작 주소. 끝나면 서버가 returnTo(지금 화면 주소)로 돌려보낸다
+  // bindHash: 이 브라우저에 둔 무작위 값의 해시. 돌아온 표는 원래 값이 있어야 쓸 수 있다
+  kakaoStartUrl: (returnTo: string, bindHash: string): string =>
+    `${API_BASE_URL}/auth/kakao/start?returnTo=${encodeURIComponent(returnTo)}&bind=${bindHash}`,
+
+  // 카카오에서 돌아온 표를 로그인(기존 회원) 또는 가입 정보(새 회원)로 바꾼다
+  kakaoSession: async (ticket: string, bind: string): Promise<KakaoSessionResult> => {
+    const response = await api.post('/auth/kakao/session', { ticket, bind });
+    const data = response.data.data;
+    if (data.type === 'login') {
+      setAuthToken(data.token);
+      return { type: 'login' };
+    }
+    return { type: 'signup', profile: data.profile };
+  },
+
+  kakaoComplete: async (data: { ticket: string; bind: string; name: string; birthInfo: BirthInfo; mbti?: string }) => {
+    const response = await api.post('/auth/kakao/complete', data);
+    if (response.data.success && response.data.data.token) {
+      setAuthToken(response.data.data.token);
+    }
     return response.data;
   },
 };

@@ -17,7 +17,7 @@ last_modified: 2026-11-19
 | 사주, 팔자, 오행, 음양, 천간, 지지 | docs/features/saju-analysis.md | `saju.service.ts`, `SajuResult.tsx` |
 | 타로, 카드, 스프레드, 리딩, 드로우 | docs/features/tarot-reading.md | `tarot.service.ts`, `TarotReading.tsx`, `CardSelection.tsx` |
 | AI, 해석, Gemini, Claude, 프롬프트 | docs/features/ai-interpretation.md | `ai.service.ts`, `interpretation.service.ts` |
-| 로그인, 회원가입, 인증, JWT, 비밀번호 | docs/features/auth.md | `auth.routes.ts`, `auth.controller.ts`, `AuthModal.tsx` |
+| 로그인, 회원가입, 인증, JWT, 비밀번호, 카카오, 소셜 로그인 | docs/features/auth.md | `auth.routes.ts`, `auth.controller.ts`, `kakao-auth.controller.ts`, `AuthModal.tsx`, `KakaoSignupPage.tsx` |
 | 히스토리, 기록, 리딩 목록, 저장 | docs/features/reading-history.md | `reading.routes.ts`, `reading.controller.ts`, `HistoryPage.tsx` |
 | 포인트, 결제, 충전, 잔액 | docs/features/point-system.md | `schema.prisma` (PointTransaction) |
 | 챗봇, 채팅, 대화, 후속질문 | docs/features/chatbot.md | `chat.controller.ts`, `ChatBot.tsx` |

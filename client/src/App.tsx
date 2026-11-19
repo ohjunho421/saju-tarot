@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import type { IntegratedReading } from './types';
 import HomePage from './pages/HomePage';
 import ReadingPage from './pages/ReadingPage';
@@ -6,15 +7,19 @@ import IntegratedResult from './components/IntegratedResult';
 import AuthModal from './components/AuthModal';
 import MyPage from './pages/MyPage';
 import HistoryPage from './pages/HistoryPage';
-import { authApi } from './services/api';
+import KakaoSignupPage from './pages/KakaoSignupPage';
+import { authApi, type KakaoSignupProfile } from './services/api';
+import { takeKakaoRedirect, kakaoErrorMessage } from './services/kakaoRedirect';
 import { LogIn, LogOut, User, BookOpen } from 'lucide-react';
 
 function App() {
-  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history'>('home');
+  const [currentStep, setCurrentStep] = useState<'home' | 'reading' | 'result' | 'mypage' | 'history' | 'kakaoSignup'>('home');
   const [reading, setReading] = useState<IntegratedReading | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [authNotice, setAuthNotice] = useState('');
+  const [kakaoSignup, setKakaoSignup] = useState<{ ticket: string; bind: string; profile: KakaoSignupProfile } | null>(null);
 
   useEffect(() => {
     // 페이지 로드 시 로그인 상태 확인
@@ -33,6 +38,33 @@ function App() {
       }
     };
     checkLoginStatus();
+  }, []);
+
+  // 카카오 로그인에서 돌아왔을 때: 기존 회원은 로그인, 새 회원은 생년월일 확인 화면으로
+  useEffect(() => {
+    const redirect = takeKakaoRedirect();
+    if (!redirect) return;
+    if (redirect.kind === 'error') {
+      setAuthNotice(kakaoErrorMessage(redirect.reason));
+      setShowAuthModal(true);
+      return;
+    }
+    authApi
+      .kakaoSession(redirect.ticket, redirect.bind)
+      .then((result) => {
+        if (result.type === 'login') {
+          handleAuthSuccess();
+          return;
+        }
+        setKakaoSignup({ ticket: redirect.ticket, bind: redirect.bind, profile: result.profile });
+        setCurrentStep('kakaoSignup');
+      })
+      .catch((error) => {
+        // 서버 안내(이미 가입한 계정 등)가 있으면 그대로, 없으면 시간 초과 안내
+        const serverMessage = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+        setAuthNotice(typeof serverMessage === 'string' ? serverMessage : kakaoErrorMessage('expired'));
+        setShowAuthModal(true);
+      });
   }, []);
 
   // 페이지 이동 시 맨 위로 스크롤
@@ -61,6 +93,7 @@ function App() {
 
   const handleAuthSuccess = async () => {
     setShowAuthModal(false);
+    setAuthNotice('');
     try {
       const user = await authApi.getMe();
       setIsLoggedIn(true);
@@ -68,6 +101,18 @@ function App() {
     } catch (error) {
       console.error('사용자 정보 로드 실패:', error);
     }
+  };
+
+  // 가입을 마치면 저장된 생년월일로 바로 리딩을 시작한다
+  const handleKakaoSignupDone = async () => {
+    await handleAuthSuccess();
+    setKakaoSignup(null);
+    setCurrentStep('reading');
+  };
+
+  const handleKakaoSignupCancel = () => {
+    setKakaoSignup(null);
+    setCurrentStep('home');
   };
 
   const handleLogout = () => {
@@ -164,6 +209,16 @@ function App() {
           />
         )}
 
+        {currentStep === 'kakaoSignup' && kakaoSignup && (
+          <KakaoSignupPage
+            ticket={kakaoSignup.ticket}
+            bind={kakaoSignup.bind}
+            profile={kakaoSignup.profile}
+            onDone={handleKakaoSignupDone}
+            onCancel={handleKakaoSignupCancel}
+          />
+        )}
+
       </main>
 
       <footer className="py-8 text-center text-white/30 text-xs border-t border-white/[0.06] mt-16">
@@ -173,8 +228,12 @@ function App() {
       {/* 로그인/회원가입 모달 */}
       <AuthModal
         isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
+        onClose={() => {
+          setShowAuthModal(false);
+          setAuthNotice('');
+        }}
         onSuccess={handleAuthSuccess}
+        notice={authNotice}
       />
 
     </div>
