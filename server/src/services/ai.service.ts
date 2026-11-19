@@ -7,6 +7,7 @@ import { sanitizeCustomPositions, cleanSpreadText } from '../utils/custom-spread
 import { DateHelper } from '../utils/date-helper';
 import { ZodiacService } from './zodiac.service';
 import { getDayMasterTrait, formatDayMasterTrait } from '../data/day-master-traits';
+import { findEchoedInstructionFields } from '../utils/prompt-echo';
 
 // 최근 리딩 기록 (리딩 흐름 연결용). cards·headline은 저장된 기록에 있을 때만 채워진다
 interface PreviousReading {
@@ -37,6 +38,15 @@ const PLAIN_LANGUAGE_RULES = `⚠️ 쉬운 말 규칙 (가장 중요! 타로를
 - "에너지가 흐르고 있어요", "여정", "중요한 전환점", "우주가", "깊은 울림" 같은 붕 뜬 상투어는 쓰지 마세요.
 - 과장, 이모지, 대시(—, –) 기호, 겹친 얼버무림("~일 수도 있을 것 같아요"), "좋은 일만 가득할 거예요" 같은 뻔한 긍정 마무리는 금지입니다.
 - "마음을 열어보세요" 같은 막연한 조언 대신 "이번 주 안에 먼저 연락을 한 번 해보세요"처럼 바로 할 수 있는 행동으로 말하세요.`;
+
+// JSON 양식의 값 자리에 적은 작성 지침을 AI가 내용 대신 그대로 돌려주는 일이 있어 미리 못 박는다.
+// 그래도 섞여 오면 findEchoedInstructionFields로 걸러 다시 요청한다
+const JSON_GUIDE_RULES = `⚠️ JSON 작성법 (매우 중요!):
+- 아래 JSON에서 각 값 자리에 적힌 글은 무엇을 어떻게 쓸지 알려 주는 작성 지침이에요. 지침 문장을 그대로 옮기지 말고, 지침대로 쓴 실제 리딩 글로 바꿔 넣으세요.
+- "(300~350자)" 같은 글자 수 표시, "[작성 지침]" 표시, "~을 넣으세요" 같은 지시 문장은 응답에 쓰지 마세요.`;
+
+// 본 해석 요청 횟수. 지침이 그대로 섞여 오면 한 번 더 요청한다
+const LONG_READING_MAX_ATTEMPTS = 2;
 
 // Gemini 2.5 thinking 예산 (pro는 0으로 끌 수 없어 최소 128). 짧은 분석·추천·챗봇 기본값
 const GEMINI_DEFAULT_THINKING_BUDGET = 1024;
@@ -655,6 +665,7 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
 문장: 모두 "~해요"체, 한 문장 50자 안팎, 마크다운 기호(**, #) 금지.
 카드 해석: (1) 카드 그림/상징 묘사 먼저 (2) 질문과의 연결 (3) 이 사람 성향에 비춘 의미 (4) 사주 용어 연결은 자연스러울 때만.
 
+${JSON_GUIDE_RULES}
 {
   "summary": "인사 + 공감(이 상황에서 느꼈을 마음 짧은 문장 2개) + 줄바꿈 + 핵심 결론 + 이유 + 줄바꿈 + 오늘이나 이번 주에 해볼 구체적인 행동 (300~350자)",
   "cardReadings": "각 카드: 그림/상징 묘사 → 질문 연결 → 이 사람에게 맞춘 의미 한 문장(성향 설명 없이) → 사주 연결(선택). 카드당 300~400자. 카드 사이 줄바꿈(\\n\\n)",
@@ -663,31 +674,18 @@ ${adviceCard ? `조언: ${adviceCard.card.nameKo}(${adviceCard.isReversed ? '역
   "adviceCardReading": "조언 카드 그림/상징 설명 + 실천 조언 (250자)"` : ''}
 }`;
 
-    let response = '';
     const cardCount = drawnCards.length;
     let maxTokens = cardCount >= 6 ? 10000 : cardCount >= 4 ? 7000 : 5000;
     if (includeAdviceCard) maxTokens += 1000;
 
-    if (this.gemini) {
-      try {
-        response = await this.tryGeminiWithFallback(prompt, maxTokens, { thinkingBudget: GEMINI_LONG_READING_THINKING_BUDGET });
-      } catch (geminiError) {
-        console.warn('⚠️ [Legacy] Gemini 실패, Claude fallback:', (geminiError as Error).message);
-      }
-    }
-    if (!response && this.claude) {
-      const message = await this.claude.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: maxTokens,
-        messages: [{ role: 'user', content: prompt }]
-      });
-      response = message.content[0].type === 'text' ? message.content[0].text : '';
-    }
-    if (!response) {
-      throw new Error('AI 서비스를 사용할 수 없습니다.');
-    }
-
+    const response = await this.requestLongReading(prompt, maxTokens, '[Legacy]');
     console.log(`📊 [Legacy] 카드 ${cardCount}장, 응답 길이: ${response.length}자`);
+
+    // 마지막 단계라 다시 요청하지 않는다. 지침이 섞였으면 화면에 보여 주지 않고 실패로 돌린다
+    if (this.findEchoedReadingFields({ text: response }).length > 0) {
+      console.warn('⚠️ [Legacy] 응답에 작성 지침이 그대로 들어옴');
+      throw new Error('해석을 만들지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
 
     // JSON 파싱 시도 (제어문자 정리 후)
     const sanitizedLegacy = this.sanitizeJsonResponse(response);
@@ -1241,6 +1239,8 @@ ${isChoiceQuestion ? `\n⚠️ 선택지 질문 해석 방식:\n- 각 카드가 
 ${isDailyFortune
   ? '- 별자리·MBTI 유형 이름이나 "~한 성격이에요" 같은 성향 설명은 쓰지 마세요. 오늘 절기와 일간 기운의 관계를 짚는 것은 괜찮아요.'
   : '- summary·cardReadings·easyReading에 일간·별자리·MBTI 이름이나 "~한 성격이에요" 같은 성향 설명이 없어야 해요.'}
+
+${JSON_GUIDE_RULES}
 {
   "summary": "${isDailyFortune
     ? `${userName ? userName + '님' : ''}에게 전하는 오늘(${dateContext.solarDate} ${dateContext.weekday})의 인사 + 오늘의 절기(${dateContext.jieqi})와 사주의 관계를 간단히 언급 + 오늘의 전체적인 운세 핵심 한 줄 요약 + 오늘 이 사람이 느낄 법한 마음을 알아주는 한 문장 + 오늘 해볼 일 한 가지 (성향 설명 없이, 300~350자).${analysisContext.previousLink ? ` 사전 분석에서 찾은 이전 상담 연결(${analysisContext.previousLink})을 오늘의 운세와 자연스럽게 이어가세요.` : ''} 예: "안녕하세요! 오늘은 절기상 ${dateContext.jieqi} 시기로, ${seasonalElement}. ${userName ? userName + '님의' : '당신의'} ${userElement} 기운과 [상생/상극] 관계를 이루어..." 인사와 결론 사이에 줄바꿈을 넣으세요.`
@@ -1253,7 +1253,7 @@ ${easyCardTemplate}
     ]
   },
   "cardReadings": "${isDailyFortune
-    ? `오늘의 운세를 총운/금전운/연애운 순서로 해석합니다. 각 운에 대해: (0) 이 운세의 결론 한 문장 (1) 카드 그림/상징 묘사 1~2문장 (2) 이 카드가 오늘의 해당 운세에서 의미하는 바를 일상 비유로 (3) 사주의 ${userElement} 기운과 오늘 절기(${dateContext.jieqi})의 영향을 연결 (4) 신살 중 관련 있는 것 언급 ${userMbti ? '(5) 이 사람에게 맞는 구체적 조언(유형 이름 없이)' : ''}. 각 운세별 400~500자. 각 운세 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.`
+    ? `[작성 지침] 총운, 금전운, 연애운 순서로 각 운을 풀어 쓰세요. 운마다 이 운의 결론 한 문장, 카드 그림/상징 묘사 1~2문장, 이 카드가 오늘 이 운에서 뜻하는 바를 일상 비유로, 사주의 ${userElement} 기운과 오늘 절기(${dateContext.jieqi})의 관계, 관련 있는 신살${userMbti ? ', 이 사람에게 맞는 구체적 조언(유형 이름 없이)' : ''}을 담으세요. 운마다 400~500자, 운 사이에 줄바꿈(\\n\\n).`
     : `${mainCards.map((dc, i) => `${i + 1}. ${dc.card.nameKo}(${dc.positionMeaning})${isChoiceQuestion && i < parsedChoices.length ? ` → "${parsedChoices[i]}"` : ''}`).join(', ')} 각 카드를 해석하되, 반드시 이 순서를 따르세요: (1) 이 카드가 지금 말하는 것 한 문장 (2) 카드 그림/상징 묘사 1~2문장 (3) 이 상징이 질문에 어떤 의미인지 일상 비유와 함께 해석 ${isChoiceQuestion ? '(해당 선택지와 연결하여 장단점 분석)' : ''} (4) '${callName}에게는'으로 시작하는, 지금 이 사람에게 맞춘 짧은 한 문장(성향 설명 없이) (5) 신살·오행 관계는 정말 자연스러울 때만 한 문장. 카드당 300~400자. 각 카드 해석 사이에 반드시 줄바꿈(\\n\\n)을 넣으세요.${isChoiceQuestion ? ' 마지막에 선택지 간 비교 총평을 추가하세요.' : ''}`}",
   "elementalHarmony": "${isDailyFortune
     ? `오늘(${dateContext.solarDate})은 절기상 ${dateContext.jieqi} 시기로 ${seasonalElement}. 이 계절 기운이 사용자의 ${userElement} 일간과 어떻게 작용하는지 자연 비유로 설명.${zodiacInfo ? ` 별자리(${zodiacInfo.sign}, ${zodiacInfo.element} 원소)와 사주 오행의 동서양 에너지 조화도 함께 설명.` : ''} 오늘 하루 특히 주의할 오행 에너지와 활용할 에너지를 구체적으로 안내 (300자).`
@@ -1293,33 +1293,25 @@ ${easyCardTemplate}
       maxTokens += cardCount * 250; // easyReading 카드별 요약
       maxTokens += 400 + cardCount * 150; // 공감·해볼 행동 문단 + 카드별 이 사람에게 맞춘 해석
 
-      if (this.gemini) {
-        try {
-          response = await this.tryGeminiWithFallback(prompt, maxTokens, { thinkingBudget: GEMINI_LONG_READING_THINKING_BUDGET });
-        } catch (geminiError) {
-          console.warn('⚠️ Step 2 Gemini 실패, Claude fallback:', (geminiError as Error).message);
+      // AI가 작성 지침을 내용 대신 그대로 돌려주면(화면에 지침이 보이는 오류) 한 번 더 요청한다
+      let parsed: Record<string, unknown> | null = null;
+      for (let attempt = 1; attempt <= LONG_READING_MAX_ATTEMPTS && !parsed; attempt++) {
+        response = await this.requestLongReading(prompt, maxTokens, 'Step 2');
+        console.log(`📊 Step 2 해석 생성 완료 - 카드 ${cardCount}장, max_tokens: ${maxTokens}, 응답 길이: ${response.length}자`);
+
+        // JSON 파싱 (제어문자 정리 후)
+        const jsonText = this.extractFirstJsonObject(this.sanitizeJsonResponse(response));
+        if (!jsonText) throw new Error('Step 2 JSON 파싱 실패');
+        const candidate = JSON.parse(jsonText);
+
+        const echoed = this.findEchoedReadingFields(candidate);
+        if (echoed.length === 0) {
+          parsed = candidate;
+        } else {
+          console.warn(`⚠️ Step 2 응답에 작성 지침이 그대로 들어옴 (필드: ${echoed.join(', ')}) ${attempt}/${LONG_READING_MAX_ATTEMPTS}`);
         }
       }
-      if (!response && this.claude) {
-        const message = await this.claude.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
-          max_tokens: maxTokens,
-          messages: [{ role: 'user', content: prompt }]
-        });
-        response = message.content[0].type === 'text' ? message.content[0].text : '';
-      }
-      if (!response) {
-        throw new Error('AI 서비스를 사용할 수 없습니다.');
-      }
-
-      console.log(`📊 Step 2 해석 생성 완료 - 카드 ${cardCount}장, max_tokens: ${maxTokens}, 응답 길이: ${response.length}자`);
-
-      // JSON 파싱 (제어문자 정리 후)
-      const sanitized = this.sanitizeJsonResponse(response);
-      const jsonText = this.extractFirstJsonObject(sanitized);
-      if (!jsonText) throw new Error('Step 2 JSON 파싱 실패');
-
-      const parsed = JSON.parse(jsonText);
+      if (!parsed) throw new Error('Step 2 응답에 작성 지침이 섞여 있음');
 
       // 구조화된 JSON → 기존 반환 형식으로 변환
       const summary = this.toPlainText(parsed.summary);
@@ -1371,6 +1363,39 @@ ${easyCardTemplate}
       console.error('❌ Step 2 해석 생성 실패:', error);
       throw error;
     }
+  }
+
+  // 긴 해석 요청: Gemini 먼저, 실패하면 Claude
+  private async requestLongReading(prompt: string, maxTokens: number, label: string): Promise<string> {
+    let response = '';
+    if (this.gemini) {
+      try {
+        response = await this.tryGeminiWithFallback(prompt, maxTokens, { thinkingBudget: GEMINI_LONG_READING_THINKING_BUDGET });
+      } catch (geminiError) {
+        console.warn(`⚠️ ${label} Gemini 실패, Claude fallback:`, (geminiError as Error).message);
+      }
+    }
+    if (!response && this.claude) {
+      const message = await this.claude.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: maxTokens,
+        messages: [{ role: 'user', content: prompt }]
+      });
+      response = message.content[0].type === 'text' ? message.content[0].text : '';
+    }
+    if (!response) {
+      throw new Error('AI 서비스를 사용할 수 없습니다.');
+    }
+    return response;
+  }
+
+  // 작성 지침이 그대로 섞여 온 필드 이름. 배열·객체 필드(easyReading 등)는 안의 글만 꺼내 검사한다
+  private findEchoedReadingFields(parsed: Record<string, unknown>): string[] {
+    const fields: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      fields[key] = this.toPlainText(value);
+    }
+    return findEchoedInstructionFields(fields);
   }
 
   // AI가 글 필드를 문자열 대신 배열·객체로 돌려줄 때가 있다(예: cardReadings를 카드별 [{...}]로).
