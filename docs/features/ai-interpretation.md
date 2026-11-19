@@ -1,10 +1,11 @@
 ---
 feature: AI 해석
 status: active
-last_modified: 2026-11-18
+last_modified: 2026-11-19
 files:
   - server/src/services/ai.service.ts
   - server/src/data/day-master-traits.ts
+  - server/src/utils/prompt-echo.ts
   - server/src/services/interpretation.service.ts
   - server/src/controllers/ai-interpretation.controller.ts
   - server/src/routes/ai-interpretation.routes.ts
@@ -46,6 +47,7 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 - `/api/ai/ai-reading`: 질문은 문자열 1~200자(화면 입력창 maxLength와 동일), 사용자별 10분 10회(메모리 기반, 서버 재시작 시 초기화). 입력 검증을 통과한 요청만 횟수에 센다. 한도를 바꾸면 컨트롤러의 429 안내 문구도 함께 바꿀 것.
 - 화면은 서버가 4xx로 거절한 리딩(ReadingRejectedError)이면 화면 꺼짐 복구를 건너뛰고 서버 안내를 바로 보여준다. 5xx·네트워크 오류는 기존대로 복구를 시도한다.
 - AI 응답의 글 필드(summary, cardReadings, elementalHarmony, practiceAdvice, mbtiAdvice, adviceCardReading, compatibilityReading)는 반드시 toPlainText()를 거친다. 모델이 문자열 대신 배열·객체를 돌려주면 템플릿 문자열에서 "[object Object]"가 되어 그대로 DB에 저장된다.
+- JSON 양식의 값 자리에 적은 작성 지침을 AI가 내용 대신 그대로 돌려줄 때가 있다(예: 오늘의 운세 cardReadings에 "총운/금전운/연애운 순서로 해석합니다 … 400~500자"가 그대로 표시됨). 프롬프트에 `JSON_GUIDE_RULES`를 넣고, 응답은 `utils/prompt-echo.ts`의 `findEchoedInstructionFields`로 검사한다. Step 2는 섞여 오면 한 번 더 요청(`LONG_READING_MAX_ATTEMPTS`=2), 두 번 다 섞이면 레거시로, 레거시도 섞이면 실패로 돌려 지침이 화면에 보이지 않게 한다. 새 필드 지침을 쓸 때는 분량 표시("(300자)", "400~500자")를 남겨 두면 검사에 걸린다
 
 ## 쉽게 보기 (easyReading, 2026-10-10~)
 
@@ -88,3 +90,4 @@ Gemini(primary)와 Claude(fallback) 두 AI를 사용해 타로 카드를 해석�
 | 2026-10-11 | 맞춤 배치 보안 리뷰 반영: 사용자별 호출 제한(10분 20회, 429), 서버에서 수정 5회 상한, 탈퇴 계정 확인, 이 기능은 Gemini flash만 사용(실패 유도로 pro까지 호출되는 비용 증폭 차단), 질문·대화의 줄바꿈·따옴표 정리, 자리 이름의 보이지 않는 유니코드 문자 제거 | ai-interpretation.controller.ts, ai.service.ts, utils/custom-spread.ts, utils/user-rate-limit.ts(신규), api.ts, CustomSpreadBuilder.tsx | 보안 리뷰(MEDIUM 1, LOW 3) |
 | 2026-11-16 | AI 글 필드를 toPlainText()로 문자열화(배열은 문단, 객체는 값만 줄 단위로). Step 2·레거시 두 경로 모두 적용 | ai.service.ts | 레거시 경로에서 cardReadings가 객체 배열로 와 히스토리에 "[object Object]"가 저장·표시됨 |
 | 2026-11-18 | 리딩 흐름을 공감 → 카드 → 구체적 행동으로 변경. 페르소나는 리딩에서 말하지 않고 공감·조언 맞춤에만 사용. Step 1 worryRoot → feeling(느꼈을 마음), summary 세 문단(공감·카드의 답·해볼 것), 카드 해석·쉽게 보기에서 일간·별자리·MBTI 이름과 성격 설명 금지, 오늘의 운세의 "INFJ 타입은 ~" 예시를 유형 이름 없는 조언으로. 오행 조화·MBTI 조언 항목은 유지. 로컬 키(Gemini 크레딧 소진 402, Claude 키 무효 401)로 실제 출력 확인은 못 하고 조립된 프롬프트만 확인 | ai.service.ts | 페르소나를 굳이 말하지 말고 공감 → 카드 해석 → 구체적 행동 흐름으로 해 달라는 요청 |
+| 2026-11-19 | AI가 JSON 양식의 작성 지침을 내용 대신 그대로 돌려주면 걸러내기: 프롬프트에 JSON 작성법(지침을 옮기지 말 것) 추가, 오늘의 운세 cardReadings 지침을 지시문으로 바꿈, 응답 검사(분량·줄바꿈·순서 지시 표현) 후 Step 2 한 번 재요청 → 레거시 → 실패. 긴 해석 요청은 requestLongReading 하나로 합침. 운영 키로 오늘의 운세 1회 생성해 정상 응답이 걸리지 않음 확인 | ai.service.ts, utils/prompt-echo.ts | 오늘의 운세 화면에 프롬프트 지시문이 그대로 출력됨 |
