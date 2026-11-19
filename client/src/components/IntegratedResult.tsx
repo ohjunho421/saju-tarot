@@ -3,6 +3,7 @@ import type { IntegratedReading } from '../types';
 import { RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import ChatBot from './ChatBot';
 import EasyReadingView from './EasyReadingView';
+import ReadingVoicePlayer from './ReadingVoicePlayer';
 
 interface IntegratedResultProps {
   reading: IntegratedReading;
@@ -96,6 +97,9 @@ export default function IntegratedResult({ reading, onReset }: IntegratedResultP
             : '사주 만세력과 타로의 조화'}
         </p>
       </div>
+
+      {/* 상담사 목소리로 듣기 (서버에 목소리 기능이 켜져 있을 때만 보임) */}
+      {reading.readingId && <ReadingVoicePlayer key={reading.readingId} readingId={reading.readingId} />}
 
       {/* 요약 섹션 */}
       <div className="card bg-gradient-to-br from-mystical-gold/20 to-primary-600/20 border-2 border-mystical-gold/50">

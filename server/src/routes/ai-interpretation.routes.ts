@@ -7,6 +7,7 @@ import {
   getReadingById
 } from '../controllers/ai-interpretation.controller';
 import { chatWithReading } from '../controllers/chat.controller';
+import { getVoiceStatus, createReadingVoice } from '../controllers/reading-voice.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -31,5 +32,9 @@ router.get('/my-readings', getMyReadings);
 
 // 특정 리딩 조회
 router.get('/readings/:id', getReadingById);
+
+// 리딩을 상담사 목소리로 듣기 (Fish 음성 합성, 키가 없으면 available: false)
+router.get('/voice-status', getVoiceStatus);
+router.post('/readings/:id/voice', createReadingVoice);
 
 export default router;

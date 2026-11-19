@@ -41,6 +41,7 @@ Railway 서비스 하나가 API와 클라이언트 화면을 같은 주소에서
 - 화면 전환은 클라이언트 상태로 하므로 모든 경로가 `index.html`로 가야 한다. 화면 규칙은 API 라우트 뒤, 오류 처리 앞에 둔다.
 - 같은 주소에서 부르는 요청은 CORS 대상이 아니다. CORS 허용 목록(`*.vercel.app`)은 Vercel 화면용으로 남겨 둔다.
 - 루트 `.dockerignore`의 `node_modules`·`dist`는 루트에만 적용된다. Railway는 git 소스로 빌드하므로 문제없지만, 로컬에서 `docker build`를 하면 `client/node_modules` 등이 함께 올라간다.
+- 리딩 음성 듣기 변수(`FISH_API_KEY`, 선택 `FISH_VOICE_ID`)는 `docs/features/ai-interpretation.md` 참고. 키가 없으면 듣기 버튼이 숨겨진다
 - 카카오 로그인 변수(`KAKAO_REST_API_KEY`, `KAKAO_CLIENT_SECRET`, `KAKAO_REDIRECT_URI`)는 `docs/features/auth.md` 참고. 콜백 주소의 origin(이 Railway 주소)은 카카오 로그인 뒤 돌아갈 화면 주소로도 허용된다
 - 키·비밀값은 Railway 변수에만 둔다. 이미지나 `VITE_*` 빌드 변수에 넣지 않는다(`VITE_*`는 화면 번들에 그대로 들어간다).
 
