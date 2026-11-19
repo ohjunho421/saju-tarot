@@ -34,6 +34,19 @@ api.interceptors.response.use(
   }
 );
 
+// responseType: 'blob' 요청이 실패하면 서버 안내({ error })도 Blob으로 온다. 글로 꺼내 본다
+const readBlobError = async (error: unknown): Promise<string | undefined> => {
+  if (!axios.isAxiosError(error) || !(error.response?.data instanceof Blob)) return undefined;
+  try {
+    const body: unknown = JSON.parse(await error.response.data.text());
+    return typeof body === 'object' && body !== null && typeof (body as { error?: unknown }).error === 'string'
+      ? (body as { error: string }).error
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 // 서버가 리딩 요청을 거절함(4xx: 호출 한도, 잘못된 질문 등). 저장된 리딩이 없어 복구할 것도 없다
 export class ReadingRejectedError extends Error {}
 
@@ -216,6 +229,30 @@ export const aiApi = {
   getMyReadings: async (page = 1, limit = 10) => {
     const response = await api.get('/ai/my-readings', { params: { page, limit } });
     return response.data.data;
+  },
+
+  // 서버에 목소리 기능(Fish 키)이 켜져 있으면 true
+  getVoiceStatus: async (): Promise<boolean> => {
+    const response = await api.get('/ai/voice-status');
+    return response.data?.data?.available === true;
+  },
+
+  // 리딩을 상담사가 말로 들려주는 음성(mp3). 처음엔 대본과 음성을 만드느라 20초쯤 걸린다
+  getReadingVoice: async (readingId: string, signal?: AbortSignal): Promise<Blob> => {
+    try {
+      const response = await api.post(`/ai/readings/${encodeURIComponent(readingId)}/voice`, {}, {
+        responseType: 'blob',
+        signal,
+        timeout: 150_000, // 대본(약 10초) + 무료 모델 음성 합성(40초 이상)
+      });
+      const blob = response.data as Blob;
+      if (!blob.type.startsWith('audio/')) throw new Error('목소리를 만들지 못했어요. 잠시 후 다시 시도해 주세요.');
+      return blob;
+    } catch (error) {
+      if (axios.isCancel(error)) throw error;
+      if (error instanceof Error && !axios.isAxiosError(error)) throw error;
+      throw new Error(await readBlobError(error) ?? '목소리를 만들지 못했어요. 잠시 후 다시 시도해 주세요.');
+    }
   },
 
   getReadingById: async (id: string): Promise<IntegratedReading> => {

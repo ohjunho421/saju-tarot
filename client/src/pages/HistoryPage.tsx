@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BookOpen, Trash2, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import EasyReadingView from '../components/EasyReadingView';
+import ReadingVoicePlayer from '../components/ReadingVoicePlayer';
 
 const CARD_DETAILS_SEPARATOR = '===CARD_DETAILS===';
 
@@ -178,6 +179,7 @@ export default function HistoryPage({ onBack }: HistoryPageProps) {
                   {/* 상세 내용 */}
                   {expandedId === reading.id && (
                     <div className="mt-4 pt-4 border-t border-white/10 space-y-4">
+                      <ReadingVoicePlayer key={String(reading.id)} readingId={String(reading.id)} />
                       {(() => {
                         const [summary, details] = String(reading.interpretation || '').split(CARD_DETAILS_SEPARATOR);
                         return (

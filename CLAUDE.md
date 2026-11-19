@@ -27,6 +27,7 @@ saju-tarot-service/
 │   │   │   ├── ElementGuide.tsx
 │   │   │   ├── IntegratedResult.tsx
 │   │   │   ├── SajuResult.tsx
+│   │   │   ├── ReadingVoicePlayer.tsx   # 리딩을 상담사 목소리로 듣기
 │   │   │   └── TarotReading.tsx
 │   │   ├── pages/
 │   │   │   ├── HomePage.tsx
@@ -45,6 +46,7 @@ saju-tarot-service/
 │   │   ├── controllers/
 │   │   ├── services/
 │   │   │   ├── ai.service.ts       # Gemini/Claude AI 연동
+│   │   │   ├── fish-tts.service.ts # Fish Audio 음성 합성 (리딩 듣기)
 │   │   │   ├── saju.service.ts     # 사주 분석
 │   │   │   ├── tarot.service.ts    # 타로 카드
 │   │   │   ├── zodiac.service.ts   # 띠/운세
@@ -80,6 +82,7 @@ cd server && npm start        # prisma migrate deploy + node dist/index.js
 |------|-----------|
 | 사주 분석 | `server/src/services/saju.service.ts`, `client/src/components/SajuResult.tsx` |
 | 타로 리딩 (AI 해석) | `server/src/services/ai.service.ts`, `client/src/components/TarotReading.tsx` |
+| 리딩 음성 듣기 (상담사 목소리) | `server/src/controllers/reading-voice.controller.ts`, `server/src/services/fish-tts.service.ts`, `client/src/components/ReadingVoicePlayer.tsx` |
 | 회원 인증 (JWT, 카카오 로그인) | `server/src/routes/auth.routes.ts`, `server/src/controllers/kakao-auth.controller.ts`, `client/src/components/AuthModal.tsx`, `client/src/pages/KakaoSignupPage.tsx` |
 | 리딩 히스토리 | `server/src/routes/reading.routes.ts`, `client/src/pages/HistoryPage.tsx` |
 | 포인트 시스템 | `server/prisma/schema.prisma` (PointTransaction 모델) |
@@ -91,7 +94,7 @@ cd server && npm start        # prisma migrate deploy + node dist/index.js
 |------|------|
 | 프론트엔드 | React 19, TypeScript 5.9, Vite (rolldown), Tailwind CSS 3, shadcn/ui, Zustand, Framer Motion |
 | 백엔드 | Express 4, TypeScript, Prisma (PostgreSQL) |
-| AI | Google Gemini (gemini-2.5-flash/pro), Anthropic Claude |
+| AI | Google Gemini (gemini-2.5-flash/pro), Anthropic Claude, Fish Audio (음성 합성, s2.1-pro-free) |
 | 인증 | JWT (jsonwebtoken), bcryptjs, 카카오 로그인 (REST API) |
 | 배포 | Railway (Docker, API + 화면) / Vercel (화면, 병행) |
 
