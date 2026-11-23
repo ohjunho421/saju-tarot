@@ -15,6 +15,7 @@ model User {
   email         String?  @unique // 카카오로 가입한 사용자는 없음
   password      String?  // 카카오로 가입한 사용자는 없음 (이메일 로그인 불가)
   kakaoId       String?  @unique // 카카오 회원번호
+  googleId      String?  @unique // 구글 계정 식별번호(sub)
   name          String
   birthInfo     Json     // BirthInfo 객체 저장
   sajuAnalysis  Json     // SajuAnalysis 객체 저장

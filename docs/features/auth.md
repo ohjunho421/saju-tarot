@@ -63,7 +63,8 @@ tags: [로그인, 회원가입, 인증, JWT, bcrypt, MBTI, 카카오, 소셜 로
 - 가입 창(이메일 가입, 카카오 가입 마무리)의 필수 동의(만 14세 이상, 이용약관, 개인정보 수집·이용)를 체크해야 가입된다. 약관·방침 본문은 `client/src/data/legal.ts`이며, 수집 항목이나 AI에 보내는 정보가 바뀌면 방침도 같이 고친다
 - 이메일 가입은 같은 IP에서 1시간 5회로 제한한다(가입마다 포인트가 나가므로)
 - **탈퇴 기능이 없다.** 약관과 방침은 이메일 요청으로 처리한다고 안내한다. 사용자를 삭제하면 결제 주문·포인트 내역도 함께 지워지므로(Cascade), 법정 보관 기간이 있는 결제 기록은 삭제 전에 따로 보관해야 한다
-- 구글 로그인은 아직 없다. 붙일 때는 카카오(`kakao-auth.controller.ts`)와 같은 방식(돌아갈 주소 허용 목록, bind 해시, 가입 표)을 따르고, 같은 이메일의 기존 계정에 자동 연결하지 않는다(이메일 가입에 인증이 없어 계정 선점 위험)
+- 구글 로그인은 카카오와 같은 흐름을 `kakao-auth.controller.ts`의 공급자별 공장 함수(`PROVIDERS`)로 함께 쓴다. 쿠키·표 종류·주소 # 키는 `{provider}_` 접두어로 나뉜다. 구글에서는 식별번호(sub)와 이름만 받고 이메일은 요청하지 않으며, 같은 이메일의 기존 계정에 자동 연결하지 않는다(이메일 가입에 인증이 없어 계정 선점 위험)
+- 구글 로그인을 켜려면 Railway에 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`(`https://saju-tarot-production.up.railway.app/api/auth/google/callback`, 구글 콘솔에도 같은 주소 등록)를 넣는다. 셋 중 하나라도 없으면 버튼이 숨겨진다
 
 ## 변경 이력
 
@@ -73,4 +74,5 @@ tags: [로그인, 회원가입, 인증, JWT, bcrypt, MBTI, 카카오, 소셜 로
 | 2026-11-19 | 카카오 로그인 추가. 생년월일을 직접 입력하고 별자리를 보여 준 뒤 MBTI만 묻는 가입 마무리 화면(카카오 생년월일 가져오기는 비즈 앱·심사가 필요해 제외), email·password nullable과 kakaoId 추가, 비밀번호 없는 계정의 이메일 로그인 거절 | `kakao-auth.controller.ts`, `kakao.service.ts`, `jwt.ts`, `auth.routes.ts`, `auth.controller.ts`, `schema.prisma`, `KakaoSignupPage.tsx`, `KakaoLoginButton.tsx`, `kakaoRedirect.ts`, `AuthModal.tsx`, `BirthInfoForm.tsx`, `App.tsx`, `api.ts`, `MyPage.tsx` | 사용자 요청(카카오 로그인) |
 | 2026-11-16 | 가입 시 포인트 지급, 같은 IP 가입 횟수 제한, 응답에 points 추가 | `auth.controller.ts` | 포인트 결제 도입 |
 | 2026-11-17 | 가입 필수 동의와 동의 시각 기록, 이용약관·개인정보처리방침 페이지 추가 | `auth.controller.ts`, `AuthModal.tsx`, `legal.ts`, `LegalPage.tsx`, `App.tsx`, `schema.prisma` | 결제사 심사 요건, 개인정보 처리방침 공개 의무 |
+| 2026-11-23 | 구글 로그인 추가(카카오 흐름 공용화, `User.googleId`, 구글 버튼, 방침에 구글 수집 항목) | `google.service.ts`, `kakao-auth.controller.ts`, `auth.routes.ts`, `schema.prisma`, `kakaoRedirect.ts`, `GoogleLoginButton.tsx`, `AuthModal.tsx`, `KakaoSignupPage.tsx`, `App.tsx`, `legal.ts` | 키가 없으면 비활성 |
 | 2026-11-23 | 결제 작업 병합: 카카오 가입에도 필수 약관 동의·동의 시각·가입 포인트 적용, 개인정보처리방침에 카카오 수집 항목 반영 | `kakao-auth.controller.ts`, `KakaoSignupPage.tsx`, `api.ts`, `legal.ts` | 이메일 가입과 같은 기준 |
