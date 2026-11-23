@@ -36,7 +36,8 @@ tags: [포인트, 결제, 충전, 사용, 잔액, 가격, 요금, 무료]
 | 궁합 리딩, 상대 정보를 넣은 모든 리딩 | 3,900P |
 | 사주 분석, 조언 카드 추가, 리딩 뒤 챗봇 | 무료 |
 
-- 가입 시 1,000P 지급(`SIGNUP_BONUS_POINTS`). 유료 전환 시점의 기존 회원에게는 마이그레이션이 1,000P를 한 번 지급했다.
+- 가입 시 1,000P 지급(`SIGNUP_BONUS_POINTS`).
+- **기존 회원 1,000P는 아직 지급되지 않았다.** Railway는 시작할 때 `prisma db push`로 스키마만 맞추고 마이그레이션 SQL은 실행하지 않는다(`Dockerfile`). `server/prisma/migrations/20261123000000_point_payments/migration.sql`의 지급 부분(`INSERT INTO "PointTransaction" ... '유료 전환 안내 포인트'`와 `UPDATE "User" SET "points" = "points" + 1000`)과 잔액 0 이상 제약(`User_points_nonnegative`)은 **`PAID_MODE=on`으로 바꾸기 전에 운영 DB에 직접 한 번 실행**해야 한다. 두 번 실행하면 두 번 지급된다(지급 내역 id가 `bonus_<userId>`라 INSERT가 중복 오류로 막히므로 같은 트랜잭션으로 묶어 실행할 것).
 - 충전 단위: 3,000 / 5,000 / 10,000원 (결제 금액 = 지급 포인트).
 - **가격을 바꿀 때**: `pricing.ts`만 고치면 화면(스프레드 카드, 요금 안내 페이지, 충전 창)은 `GET /api/points/prices`로 받아 따라온다. 이 문서의 표도 같이 고친다.
 - 하루 기준은 한국 시간 날짜(`todayKst`).
