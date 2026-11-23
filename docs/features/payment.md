@@ -50,6 +50,10 @@ tags: [결제, 포트원, PortOne, 충전, 웹훅, 환불, 금액검증]
 - 화면은 `GET /api/points/me`의 `paid`로 표시를 켜고 끈다. 가격표(`/points/prices`)의 `paidMode`는 요금 안내 페이지의 "준비 중" 문구에 쓴다.
 - 테스트 채널 키로 `PAID_MODE=on`을 켜면 누구나 가짜 결제로 포인트를 받을 수 있다. **`on`은 실연동 키를 넣은 뒤에만 켠다.**
 
+## 운영 DB 반영 방식 (2026-11-23 확인)
+
+Railway는 `prisma db push`로 스키마를 맞춘다. 새 테이블·칸(`PaymentOrder`, `DailyFreeUse`, `termsAgreedAt`, `shortfall`)은 배포 때 만들어졌지만, 마이그레이션 SQL에만 있는 **기존 회원 1,000P 지급과 잔액 0 이상 CHECK 제약은 적용되지 않았다.** 유료 전환 전에 직접 실행한다 — [point-system.md](./point-system.md) 참고.
+
 ## 결제사 심사 준비 (2026-11-17 포트원 콘솔·안내 문서 기준)
 
 - **KG이니시스는 사주·운세 업종을 받지 않는다.** 블로그치트키의 이니시스 채널은 쓸 수 없다. 운세는 여러 결제사에서 유의업종이라 개별 심사를 받는다.
