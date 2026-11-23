@@ -38,6 +38,33 @@ export function getPortOneConfig(): PortOneConfig | null {
   return { apiSecret, storeId, channelKey, payMethod };
 }
 
+/**
+ * 결제마다 지정하는 웹훅 주소(noticeUrls). 같은 포트원 상점을 블로그치트키와 함께 쓰므로
+ * 콘솔의 상점 공통 웹훅에 기대지 않고 결제 요청에 직접 넣는다.
+ * PORTONE_WEBHOOK_URL이 없으면 카카오·구글 콜백 주소의 서버에서 만든다. 운영에서는 https만
+ */
+export function getWebhookUrl(): string | null {
+  const explicit = process.env.PORTONE_WEBHOOK_URL;
+  const base = explicit ?? [process.env.KAKAO_REDIRECT_URI, process.env.GOOGLE_REDIRECT_URI]
+    .map((value) => {
+      try {
+        return value ? new URL(value).origin : null;
+      } catch {
+        return null;
+      }
+    })
+    .find((value): value is string => Boolean(value));
+  if (!base) return null;
+  let url: URL;
+  try {
+    url = new URL(explicit ? base : `${base}/api/payments/webhook`);
+  } catch {
+    return null;
+  }
+  if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') return null;
+  return url.toString();
+}
+
 export interface PortOnePayment {
   status: string; // 'READY' | 'PAID' | 'FAILED' | 'CANCELLED' | 'PARTIAL_CANCELLED' | 'PAY_PENDING' | 'VIRTUAL_ACCOUNT_ISSUED'
   amount: number;

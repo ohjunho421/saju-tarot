@@ -1,7 +1,7 @@
 ---
 feature: 포인트 충전 결제 (포트원 V2)
 status: active
-last_modified: 2026-11-17
+last_modified: 2026-11-23
 files:
   - server/src/controllers/payment.controller.ts
   - server/src/routes/payment.routes.ts
@@ -35,6 +35,7 @@ tags: [결제, 포트원, PortOne, 충전, 웹훅, 환불, 금액검증]
 - `PORTONE_WEBHOOK_SECRET`이 없으면 웹훅을 받지 않는다(503). 로컬 개발에서만 `ALLOW_UNSIGNED_WEBHOOK=1`로 서명 없이 받을 수 있다 — 운영에는 절대 넣지 않는다.
 - 상점 ID·채널 키는 서버가 결제 준비 응답으로 내려 주므로 화면(Vercel) 환경변수는 필요 없다.
 - 포트원 콘솔 웹훅 주소: `https://<서버 주소>/api/payments/webhook`
+- 포트원 상점을 블로그치트키와 함께 쓰므로, 웹훅 주소는 결제 요청마다 `noticeUrls`로 직접 지정한다(`getWebhookUrl()` — `PORTONE_WEBHOOK_URL`, 없으면 카카오·구글 콜백 서버 주소 + `/api/payments/webhook`). 웹훅 서명 시크릿은 상점 공용이라 블로그치트키와 같은 `whsec_` 값을 쓴다
 - 블로그치트키의 실연동 채널은 그 가맹점 계약 전용이다. 별사탕은 별도 전자결제 심사 후 자기 채널을 쓴다. 개발은 테스트 채널로 한다.
 
 ## 유료 전환 스위치 — `server/src/services/paid-mode.ts`
@@ -116,6 +117,7 @@ Railway는 `prisma db push`로 스키마를 맞춘다. 새 테이블·칸(`Payme
 
 | 날짜 | 변경 내용 | 수정 파일 | 이유 |
 |------|-----------|-----------|------|
+| 2026-11-23 | 결제 요청에 `noticeUrls`(별사탕 웹훅 주소) 지정 | `portone.ts`, `payment.controller.ts`, `ChargeModal.tsx`, `api.ts` | 같은 포트원 상점의 블로그치트키와 웹훅이 섞이지 않게 |
 | 2026-11-16 | 포트원 결제 준비·확인·웹훅, 충전 창, 모바일 결제 복귀 처리 신규 | 위 files 전체 | 수익화 — 포인트 충전 도입 |
 | 2026-11-17 | 유료 전환 스위치(`PAID_MODE`, `PAID_MODE_TEST_EMAILS`) 추가 | `paid-mode.ts`, `ai-interpretation.controller.ts`, `payment.controller.ts`, `point.controller.ts`, 화면 표시 조건 | 심사 전에 배포해도 기존 회원의 리딩이 막히지 않게 |
 | 2026-11-17 | 결제사 심사 준비 사항 기록 | `payment.md` | 포트원 콘솔의 가입비·요건, 운세 업종 안내 확인 |

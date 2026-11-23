@@ -24,6 +24,7 @@ import { failOrder, revokeOrder, settleOrder } from '../services/point.service';
 import {
   cancelPayment,
   getPortOneConfig,
+  getWebhookUrl,
   getWebhookSecrets,
   lookupPayment,
   verifyWebhookSignature,
@@ -146,6 +147,7 @@ export const preparePayment = async (req: Request, res: Response): Promise<void>
         storeId: config.storeId,
         channelKey: config.channelKey,
         payMethod: config.payMethod,
+        noticeUrl: getWebhookUrl(),
       },
     });
   } catch (error) {

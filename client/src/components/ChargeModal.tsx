@@ -96,6 +96,7 @@ export default function ChargeModal({ onShowPolicy }: ChargeModalProps) {
         totalAmount: prepared.amount,
         currency: 'KRW',
         payMethod: prepared.payMethod,
+        ...(prepared.noticeUrl ? { noticeUrls: [prepared.noticeUrl] } : {}),
         // 휴대폰에서는 결제 후 이 주소로 돌아온다 — App이 paymentId를 읽어 이어서 확인한다
         redirectUrl: `${window.location.origin}${window.location.pathname}`,
       });

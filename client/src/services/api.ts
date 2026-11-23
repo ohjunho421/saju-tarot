@@ -419,6 +419,7 @@ export interface PreparedPayment {
   storeId: string;
   channelKey: string;
   payMethod: 'CARD' | 'EASY_PAY';
+  noticeUrl: string | null; // 이 결제의 웹훅 주소(같은 상점의 다른 서비스와 섞이지 않게)
 }
 
 export type VerifyResult =
