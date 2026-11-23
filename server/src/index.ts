@@ -14,6 +14,9 @@ import interpretationRoutes from './routes/interpretation.routes';
 import authRoutes from './routes/auth.routes';
 import aiInterpretationRoutes from './routes/ai-interpretation.routes';
 import readingRoutes from './routes/reading.routes';
+import pointRoutes from './routes/point.routes';
+import paymentRoutes from './routes/payment.routes';
+import { captureWebhookRawBody } from './services/portone';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
@@ -33,7 +36,8 @@ app.use(cors({
   exposedHeaders: ['Authorization']
 }));
 
-app.use(express.json());
+// 웹훅 서명 검증에 본문 원문이 필요해, 웹훅 경로만 원문을 따로 남긴다
+app.use(express.json({ verify: captureWebhookRawBody }));
 
 // 타로 카드 이미지 제공 (빌드 후 dist/public/tarot-images에 위치)
 app.use('/tarot-images', express.static(path.join(__dirname, 'public/tarot-images')));
@@ -50,6 +54,8 @@ app.use('/api/tarot', tarotRoutes);
 app.use('/api/interpretation', interpretationRoutes);
 app.use('/api/ai', aiInterpretationRoutes);
 app.use('/api/readings', readingRoutes);
+app.use('/api/points', pointRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 클라이언트 화면 (Docker 빌드에서 client/dist를 만든다. 로컬 개발처럼 빌드가 없으면 API만 동작)
 const clientDist = path.join(__dirname, '../../client/dist');

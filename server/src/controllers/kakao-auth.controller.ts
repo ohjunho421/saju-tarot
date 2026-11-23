@@ -23,6 +23,7 @@ import {
 } from '../services/kakao.service';
 import { createUserRateLimiter } from '../utils/user-rate-limit';
 import type { BirthInfo } from '../models/saju.model';
+import { grantSignupBonus } from '../services/point.service';
 
 const sajuService = new SajuService();
 
@@ -305,6 +306,12 @@ export const completeKakaoSignup = async (req: Request, res: Response): Promise<
       return;
     }
 
+    // 이용약관·개인정보 수집·이용 동의(필수). 이메일 가입과 같다
+    if (body.agreeTerms !== true) {
+      res.status(400).json({ error: '이용약관과 개인정보 수집·이용에 동의해 주세요.' });
+      return;
+    }
+
     const name = cleanName(body.name);
     if (!name) {
       res.status(400).json({ error: `이름을 ${NAME_MAX_LENGTH}자 이내로 입력해 주세요.` });
@@ -333,15 +340,21 @@ export const completeKakaoSignup = async (req: Request, res: Response): Promise<
     }
 
     try {
-      const user = await prisma.user.create({
-        data: {
-          kakaoId,
-          name,
-          birthInfo: birthInfo as unknown as Prisma.InputJsonValue,
-          sajuAnalysis: sajuAnalysis as unknown as Prisma.InputJsonValue,
-          ...(mbti ? { mbti } : {}),
-          lastLoginAt: new Date(),
-        },
+      // 회원 생성과 가입 축하 포인트를 한 트랜잭션으로 (이메일 가입과 같다)
+      const user = await prisma.$transaction(async (tx) => {
+        const created = await tx.user.create({
+          data: {
+            kakaoId,
+            name,
+            birthInfo: birthInfo as unknown as Prisma.InputJsonValue,
+            sajuAnalysis: sajuAnalysis as unknown as Prisma.InputJsonValue,
+            termsAgreedAt: new Date(),
+            ...(mbti ? { mbti } : {}),
+            lastLoginAt: new Date(),
+          },
+        });
+        await grantSignupBonus(tx, created.id);
+        return tx.user.findUniqueOrThrow({ where: { id: created.id } });
       });
       res.status(201).json({ success: true, message: '회원가입이 완료되었습니다.', data: loginResponse(user) });
     } catch (error) {

@@ -4,6 +4,7 @@ import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import { Sparkles, Wand2, Loader2, ChevronDown, ChevronUp, Heart, MessagesSquare } from 'lucide-react';
 import { aiApi } from '../services/api';
 import CustomSpreadBuilder from './CustomSpreadBuilder';
+import { formatPoints, readingPrice, usePointsStore } from '../stores/points';
 
 interface TarotReadingProps {
   onComplete: (spreadType: SpreadType, question?: string, includeAdviceCard?: boolean, partnerBirthInfo?: BirthInfo, partnerMbti?: MBTIType, customPositions?: CustomPosition[]) => void;
@@ -24,6 +25,15 @@ function spreadForShortQuestion(question: string): SpreadType | null {
 
 export default function TarotReading({ onComplete }: TarotReadingProps) {
   const [selectedSpread, setSelectedSpread] = useState<SpreadType>('one-card');
+  // 가격 안내용 (실제 차감은 서버가 한다)
+  // 유료 전환 전(paid=false)에는 요금을 표시하지 않는다
+  const prices = usePointsStore((state) => (state.paid ? state.prices : null));
+  const usedFreeToday = usePointsStore((state) => state.usedFreeToday);
+  const priceLabel = (type: SpreadType, hasPartner = false): string | null => {
+    const price = readingPrice(prices, type, hasPartner, usedFreeToday);
+    if (price === null) return null;
+    return price === 0 ? '오늘 무료' : formatPoints(price);
+  };
   const [spreadSource, setSpreadSource] = useState<SpreadSource>('default');
   // 대화로 만든 맞춤 배치
   const [customDesign, setCustomDesign] = useState<CustomSpreadDesign | null>(null);
@@ -552,6 +562,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
                     </span>
                   </div>
                   <p className="text-white/70 break-keep">{customDesign.positions.map(p => p.label).join(' · ')}</p>
+                  {priceLabel('custom') && (
+                    <p className="mt-2 text-sm font-semibold text-mystical-gold">{priceLabel('custom')}</p>
+                  )}
                 </button>
               )}
               {spreads.map((spread) => (
@@ -575,6 +588,9 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
                     </span>
                   </div>
                   <p className="text-white/70">{spread.description}</p>
+                  {priceLabel(spread.type) && (
+                    <p className="mt-2 text-sm font-semibold text-mystical-gold">{priceLabel(spread.type)}</p>
+                  )}
                 </button>
               ))}
             </div>
@@ -643,6 +659,11 @@ export default function TarotReading({ onComplete }: TarotReadingProps) {
               ? '질문에 맞는 카드 배치를 고르는 중...'
               : !question.trim() ? '✨ 오늘의 운세 보기' : `카드 뽑기 ${includeAdviceCard ? '+ 조언 카드' : ''}`}
           </button>
+          {showPartnerInfo && priceLabel(selectedSpread, true) && (
+            <p className="-mt-6 text-center text-xs text-mystical-gold">
+              상대 정보를 넣은 궁합 리딩은 {priceLabel(selectedSpread, true)}예요.
+            </p>
+          )}
           {question.trim() && spreadSource === 'default' && (
             <p className="-mt-6 text-center text-xs text-white/60">
               스프레드를 직접 고르지 않으면 질문에 맞는 배치를 자동으로 골라 드려요.

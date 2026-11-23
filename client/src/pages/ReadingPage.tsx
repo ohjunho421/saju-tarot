@@ -4,7 +4,8 @@ import BirthInfoForm from '../components/BirthInfoForm';
 import SajuResult from '../components/SajuResult';
 import TarotReading from '../components/TarotReading';
 import CardSelection from '../components/CardSelection';
-import { sajuApi, authApi, aiApi, ReadingRejectedError } from '../services/api';
+import { sajuApi, authApi, aiApi, ReadingRejectedError, InsufficientPointsError } from '../services/api';
+import { formatPoints, readingPrice, usePointsStore } from '../stores/points';
 import { Loader2 } from 'lucide-react';
 
 interface ReadingPageProps {
@@ -153,6 +154,14 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
   };
 
   const handleTarotComplete = async (spreadType: SpreadType, userQuestion?: string, includeAdvice?: boolean, partnerInfo?: BirthInfo, mbti?: string, positions?: CustomPosition[]) => {
+    // 카드를 다 고른 뒤에 포인트 부족을 알게 되지 않도록 여기서 먼저 확인한다 (최종 판단·차감은 서버)
+    const { prices, points, usedFreeToday, openCharge, paid } = usePointsStore.getState();
+    const price = paid ? readingPrice(prices, spreadType, !!partnerInfo, usedFreeToday) : null;
+    if (price !== null && points !== null && price > points) {
+      openCharge(`이 리딩은 ${formatPoints(price)}가 필요해요. 지금 ${formatPoints(points)} 있어서 ${formatPoints(price - points)}가 모자랍니다.`);
+      return;
+    }
+
     // State를 먼저 모두 설정한 후 다음 렌더링에서 step 변경
     setSelectedSpread(spreadType);
     setQuestion(userQuestion || '');
@@ -204,6 +213,10 @@ export default function ReadingPage({ onComplete, onBack }: ReadingPageProps) {
       if (err instanceof ReadingRejectedError) {
         localStorage.removeItem('pendingReading');
         pendingReadingRef.current = false;
+        if (err instanceof InsufficientPointsError) {
+          usePointsStore.getState().setPoints(err.balance);
+          usePointsStore.getState().openCharge(err.message);
+        }
         setError(err.message);
         setLoading(false);
         return;

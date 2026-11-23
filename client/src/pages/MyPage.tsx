@@ -4,6 +4,8 @@ import type { SajuAnalysis, BirthInfo, MBTIType } from '../types';
 import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import { authApi } from '../services/api';
 import SajuResult from '../components/SajuResult';
+import PointsCard from '../components/PointsCard';
+import { usePointsStore } from '../stores/points';
 
 interface MyPageProps {
   onLogout: () => void;
@@ -11,6 +13,7 @@ interface MyPageProps {
 }
 
 export default function MyPage({ onLogout, onBack }: MyPageProps) {
+  const paid = usePointsStore((state) => state.paid);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -72,6 +75,18 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
     );
   }
 
+  // 소셜 가입 직후(생년월일 입력 전)에는 가입 마무리 창이 먼저 뜨지만, 혹시 여기 오면 빈 화면 대신 안내한다
+  if (!user.birthInfo || !user.sajuAnalysis) {
+    return (
+      <div className="max-w-2xl mx-auto card text-center">
+        <p className="text-white/80 mb-6">생년월일을 입력하면 사주와 별자리를 볼 수 있어요.</p>
+        <button onClick={onBack} className="btn-primary">
+          돌아가기
+        </button>
+      </div>
+    );
+  }
+
   const birthInfo = user.birthInfo as BirthInfo;
   const sajuAnalysis = user.sajuAnalysis as SajuAnalysis;
 
@@ -99,6 +114,9 @@ export default function MyPage({ onLogout, onBack }: MyPageProps) {
           </button>
         </div>
       </div>
+
+      {/* 포인트 (유료 전환 전에는 숨긴다) */}
+      {paid && <PointsCard />}
 
       {/* 생년월일 정보 */}
       <div className="card">

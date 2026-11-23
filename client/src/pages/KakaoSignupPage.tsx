@@ -28,6 +28,7 @@ export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCance
   const [mbti, setMbti] = useState<MBTIType | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const zodiacRequest = useRef(0); // 이전으로 돌아가 다시 고르면 늦게 온 예전 결과를 버린다
 
   const handleBirthSubmit = (info: BirthInfo) => {
@@ -49,10 +50,14 @@ export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCance
 
   const handleComplete = async () => {
     if (!birthInfo) return;
+    if (!agreed) {
+      setError('이용약관과 개인정보 수집·이용에 동의해 주세요.');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
-      await authApi.kakaoComplete({ ticket, bind, name: name.trim(), birthInfo, mbti: mbti || undefined });
+      await authApi.kakaoComplete({ ticket, bind, name: name.trim(), birthInfo, mbti: mbti || undefined, agreeTerms: true });
       onDone();
     } catch (err) {
       setError(errorMessage(err));
@@ -147,6 +152,31 @@ export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCance
         <p className="mt-2 min-h-[1.25rem] text-sm text-primary-400">
           {mbti ? `선택됨: ${mbti} (${MBTI_DESCRIPTIONS[mbti].name})` : ''}
         </p>
+
+        {/* 필수 동의 — 약관과 방침은 새 탭으로 열어 입력하던 내용이 사라지지 않게 한다 */}
+        <div className="mt-6 flex items-start gap-2 rounded-lg bg-white/5 p-3">
+          <input
+            type="checkbox"
+            id="kakaoAgree"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded"
+          />
+          <label htmlFor="kakaoAgree" className="flex-1 cursor-pointer text-sm text-white/90 break-keep">
+            만 14세 이상이며,{' '}
+            <a href="/?page=terms" target="_blank" rel="noopener" className="underline hover:text-white">
+              이용약관
+            </a>
+            과{' '}
+            <a href="/?page=privacy" target="_blank" rel="noopener" className="underline hover:text-white">
+              개인정보 수집·이용
+            </a>
+            에 동의합니다. (필수)
+            <span className="mt-1 block text-xs text-white/60">
+              리딩을 만들기 위해 이름·사주 분석 결과·질문이 해외의 인공지능 서비스로 전송됩니다.
+            </span>
+          </label>
+        </div>
 
         {error && (
           <div className="mt-4 rounded-lg border border-red-500 bg-red-500/20 p-3" role="alert">

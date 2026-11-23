@@ -1,7 +1,7 @@
 ---
 feature: 회원 인증
 status: active
-last_modified: 2026-11-19
+last_modified: 2026-11-23
 files:
   - server/src/routes/auth.routes.ts
   - server/src/controllers/auth.controller.ts
@@ -28,7 +28,7 @@ tags: [로그인, 회원가입, 인증, JWT, bcrypt, MBTI, 카카오, 소셜 로
 
 ## 핵심 로직
 
-- `POST /auth/register` — 이메일 중복 체크 → bcrypt 해싱 → 사주 분석 → User 생성 → JWT 발급
+- `POST /auth/register` — 약관 동의 확인(`agreeTerms: true` 필수, 아니면 400) → 이메일 중복 체크 → 가입 횟수 제한(같은 IP 1시간 5회) → bcrypt 해싱 → 사주 분석 → User 생성(`termsAgreedAt` 기록) + 가입 축하 포인트 지급 → JWT 발급
 - `POST /auth/login` — 이메일 조회 → bcrypt 비교 → JWT 발급
 - `GET /auth/me` — authMiddleware 필수, 토큰 기반 사용자 정보 반환
 - `PUT /auth/mbti` — MBTI 업데이트 (16가지 유효값 검증)
@@ -59,7 +59,11 @@ tags: [로그인, 회원가입, 인증, JWT, bcrypt, MBTI, 카카오, 소셜 로
 - 카카오 환경변수(`server/.env.example`): `KAKAO_REST_API_KEY`, `KAKAO_CLIENT_SECRET`(콘솔에서 켜 둔 경우), `KAKAO_REDIRECT_URI`(콘솔에 똑같이 등록), 선택 `SOCIAL_LOGIN_RETURN_ORIGINS`. 키가 없으면 카카오 버튼이 숨겨진다
 - 돌아갈 주소 허용 목록에 CORS의 `*.vercel.app` 패턴을 쓰지 않는다. 기본값은 운영 `saju-tarot.vercel.app`, 로컬 `localhost:5173·3001`, 그리고 콜백 주소의 서버. Vercel 미리보기 주소에서 카카오 로그인을 쓰려면 `SOCIAL_LOGIN_RETURN_ORIGINS`에 넣는다
 - 카카오 개발자 콘솔 설정(비즈 앱 불필요): 앱 생성 → 카카오 로그인 켜기 → Redirect URI 등록 → 동의항목 닉네임(profile_nickname) 켜기 → (선택) Client Secret 켜기. 카카오의 생일·출생 연도·성별은 비즈 앱 전환과 동의항목 심사가 필요해 쓰지 않기로 했다(2026-11-19). 나중에 미리 채우려면 `parseKakaoUser`에서 `kakao_account.birthday`·`birthyear`·`birthday_type`·`gender`를 읽어 가입 표에 실으면 된다
-- 결제(포트원) 작업을 합칠 때: 그쪽 이메일 가입에 있는 필수 약관 동의·동의 시각 기록·가입 포인트 지급을 카카오 가입(`completeKakaoSignup`, `KakaoSignupPage`)에도 똑같이 넣고, 개인정보처리방침의 수집 항목에 카카오에서 받는 값(회원번호, 닉네임)을 적는다
+- 약관 동의·동의 시각(`termsAgreedAt`)·가입 포인트는 이메일 가입(`register`)과 카카오 가입(`completeKakaoSignup`) 모두에 있다. 둘 다 `agreeTerms: true`가 없으면 400이고, 회원 생성과 가입 포인트 지급은 한 트랜잭션이다(2026-11-23 결제 작업 병합)
+- 가입 창(이메일 가입, 카카오 가입 마무리)의 필수 동의(만 14세 이상, 이용약관, 개인정보 수집·이용)를 체크해야 가입된다. 약관·방침 본문은 `client/src/data/legal.ts`이며, 수집 항목이나 AI에 보내는 정보가 바뀌면 방침도 같이 고친다
+- 이메일 가입은 같은 IP에서 1시간 5회로 제한한다(가입마다 포인트가 나가므로)
+- **탈퇴 기능이 없다.** 약관과 방침은 이메일 요청으로 처리한다고 안내한다. 사용자를 삭제하면 결제 주문·포인트 내역도 함께 지워지므로(Cascade), 법정 보관 기간이 있는 결제 기록은 삭제 전에 따로 보관해야 한다
+- 구글 로그인은 아직 없다. 붙일 때는 카카오(`kakao-auth.controller.ts`)와 같은 방식(돌아갈 주소 허용 목록, bind 해시, 가입 표)을 따르고, 같은 이메일의 기존 계정에 자동 연결하지 않는다(이메일 가입에 인증이 없어 계정 선점 위험)
 
 ## 변경 이력
 
@@ -67,3 +71,6 @@ tags: [로그인, 회원가입, 인증, JWT, bcrypt, MBTI, 카카오, 소셜 로
 |------|-----------|-----------|------|
 | 2026-05-25 | 초기 문서화 | - | harness-init |
 | 2026-11-19 | 카카오 로그인 추가. 생년월일을 직접 입력하고 별자리를 보여 준 뒤 MBTI만 묻는 가입 마무리 화면(카카오 생년월일 가져오기는 비즈 앱·심사가 필요해 제외), email·password nullable과 kakaoId 추가, 비밀번호 없는 계정의 이메일 로그인 거절 | `kakao-auth.controller.ts`, `kakao.service.ts`, `jwt.ts`, `auth.routes.ts`, `auth.controller.ts`, `schema.prisma`, `KakaoSignupPage.tsx`, `KakaoLoginButton.tsx`, `kakaoRedirect.ts`, `AuthModal.tsx`, `BirthInfoForm.tsx`, `App.tsx`, `api.ts`, `MyPage.tsx` | 사용자 요청(카카오 로그인) |
+| 2026-11-16 | 가입 시 포인트 지급, 같은 IP 가입 횟수 제한, 응답에 points 추가 | `auth.controller.ts` | 포인트 결제 도입 |
+| 2026-11-17 | 가입 필수 동의와 동의 시각 기록, 이용약관·개인정보처리방침 페이지 추가 | `auth.controller.ts`, `AuthModal.tsx`, `legal.ts`, `LegalPage.tsx`, `App.tsx`, `schema.prisma` | 결제사 심사 요건, 개인정보 처리방침 공개 의무 |
+| 2026-11-23 | 결제 작업 병합: 카카오 가입에도 필수 약관 동의·동의 시각·가입 포인트 적용, 개인정보처리방침에 카카오 수집 항목 반영 | `kakao-auth.controller.ts`, `KakaoSignupPage.tsx`, `api.ts`, `legal.ts` | 이메일 가입과 같은 기준 |
