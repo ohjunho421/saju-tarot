@@ -1,5 +1,8 @@
 import { Request, Response } from 'express';
 import prisma from '../utils/prisma';
+import { getReadingPrice, isDailyFreeSpread } from '../services/pricing';
+import { isPaidFor } from '../services/paid-mode';
+import { claimDailyFree, InsufficientPointsError, linkSpendToReading, refundSpend, releaseDailyFree, spendPoints } from '../services/point.service';
 import { TarotService } from '../services/tarot.service';
 import aiService from '../services/ai.service';
 import { SPREAD_POSITIONS, type SpreadType, type CustomPosition } from '../models/tarot.model';
@@ -132,8 +135,15 @@ export const designSpread = async (req: Request, res: Response): Promise<void> =
   }
 };
 
+// 상대방 정보로 사주를 계산하지 못함 (궁합 리딩)
+class PartnerInfoError extends Error {}
+
 // AI 기반 통합 해석
 export const getAIIntegratedReading = async (req: Request, res: Response): Promise<void> => {
+  // 포인트를 차감한 뒤 리딩이 실패하면 catch에서 되돌린다
+  let spent: { userId: string; cost: number; transactionId: string } | null = null;
+  // 오늘의 무료를 차지한 뒤 리딩이 실패하면 catch에서 되돌린다
+  let freeClaim: { userId: string; spreadType: string } | null = null;
   try {
     if (!req.user) {
       res.status(401).json({ error: '인증이 필요합니다.' });
@@ -194,6 +204,41 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       return;
     }
 
+    // 요금 계산과 차감 (가격표: services/pricing.ts). AI를 부르기 전에 차감해 잔액 없이 비용이 나가지 않게 한다.
+    // 상대 정보는 객체일 때만 궁합으로 본다 — 아래 사주 분석도 같은 값을 쓴다
+    const hasPartner = !!partnerBirthInfo && typeof partnerBirthInfo === 'object' && !Array.isArray(partnerBirthInfo);
+    // 유료 전환 전(PAID_MODE off)에는 요금을 받지 않는다 — 무료 사용 기록도 남기지 않는다
+    const paid = isPaidFor(req.user.email);
+    // 하루 1회 무료는 "확인 후 기록"이 아니라 기록을 먼저 차지한다 — 동시에 여러 번 요청해도 하나만 무료
+    let usedFreeToday = false;
+    if (paid && !hasPartner && isDailyFreeSpread(spreadType)) {
+      if (await claimDailyFree(user.id, spreadType)) {
+        freeClaim = { userId: user.id, spreadType };
+      } else {
+        usedFreeToday = true;
+      }
+    }
+    const cost = paid ? getReadingPrice(spreadType, hasPartner, usedFreeToday) : 0;
+    let pointsAfter: number = user.points ?? 0;
+    if (cost > 0) {
+      try {
+        const result = await spendPoints(user.id, cost, `리딩 이용 (${spreadType}${hasPartner ? ', 궁합' : ''})`);
+        spent = { userId: user.id, cost, transactionId: result.transactionId };
+        pointsAfter = result.balance;
+      } catch (e) {
+        if (e instanceof InsufficientPointsError) {
+          res.status(402).json({
+            error: `포인트가 부족해요. 이 리딩은 ${e.required.toLocaleString('ko-KR')}P가 필요합니다.`,
+            code: 'INSUFFICIENT_POINTS',
+            required: e.required,
+            balance: e.balance
+          });
+          return;
+        }
+        throw e;
+      }
+    }
+
     // 최근 리딩 내역 조회 (리딩 흐름 연결용)
     // 오늘의 운세는 고민 흐름이 없고 매일 쌓이면 실제 고민 리딩을 밀어내므로 제외
     const recentReadings = await prisma.reading.findMany({
@@ -244,14 +289,16 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
 
     // 상대방 사주 분석 (partnerBirthInfo가 있는 경우)
     let partnerSajuData: any = null;
-    if (partnerBirthInfo) {
+    if (hasPartner) {
       try {
         const { SajuService } = require('../services/saju.service');
         const sajuSvc = new SajuService();
         partnerSajuData = sajuSvc.analyzeSaju(partnerBirthInfo);
         console.log('✅ 상대방 사주 분석 완료:', partnerSajuData.dayMaster, partnerSajuData.dayMasterElement);
       } catch (e) {
-        console.error('상대방 사주 분석 오류:', e);
+        console.error('상대방 사주 분석 오류:', e instanceof Error ? e.message : e);
+        // 궁합 요금을 받고 궁합 없는 리딩을 내보내지 않는다 — 아래 catch가 포인트를 돌려준다
+        throw new PartnerInfoError();
       }
     }
 
@@ -287,10 +334,22 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
       }
     });
 
+    // 여기까지 왔으면 리딩이 저장된 것 — 이후 오류로 환불되지 않게 차감 상태를 비운다
+    freeClaim = null;
+    if (spent) {
+      const { transactionId } = spent;
+      spent = null;
+      linkSpendToReading(transactionId, reading.id).catch((e: unknown) =>
+        console.error('포인트 내역-리딩 연결 실패:', e instanceof Error ? e.message : e)
+      );
+    }
+
     res.json({
       success: true,
       data: {
         readingId: reading.id,
+        pointsCharged: cost,
+        points: pointsAfter,
         sajuAnalysis: user.sajuAnalysis,
         drawnCards,
         spreadType,
@@ -301,7 +360,34 @@ export const getAIIntegratedReading = async (req: Request, res: Response): Promi
     });
   } catch (error) {
     console.error('AI 해석 생성 오류:', error);
-    res.status(500).json({ error: 'AI 해석 생성 중 오류가 발생했습니다.' });
+    let refunded = false;
+    if (freeClaim) {
+      await releaseDailyFree(freeClaim.userId, freeClaim.spreadType).catch((e: unknown) =>
+        console.error('무료 리딩 기록 되돌리기 실패:', e instanceof Error ? e.message : e)
+      );
+    }
+    if (spent) {
+      try {
+        await refundSpend(spent.userId, spent.cost, '리딩 실패로 포인트 환불');
+        refunded = true;
+      } catch (refundError) {
+        console.error(`리딩 실패 후 포인트 환불 실패 — 수동 환불 필요: userId=${spent.userId}, cost=${spent.cost}`, refundError instanceof Error ? refundError.message : refundError);
+      }
+    }
+    if (res.headersSent) return;
+    if (error instanceof PartnerInfoError) {
+      res.status(400).json({
+        error: refunded
+          ? '상대방 생년월일을 다시 확인해 주세요. 차감된 포인트는 돌려드렸어요.'
+          : '상대방 생년월일을 다시 확인해 주세요.'
+      });
+      return;
+    }
+    res.status(500).json({
+      error: refunded
+        ? 'AI 해석 생성 중 오류가 발생했습니다. 차감된 포인트는 돌려드렸어요.'
+        : 'AI 해석 생성 중 오류가 발생했습니다.'
+    });
   }
 };
 

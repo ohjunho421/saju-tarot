@@ -85,7 +85,8 @@ cd server && npm start        # prisma migrate deploy + node dist/index.js
 | 리딩 음성 듣기 (상담사 목소리) | `server/src/controllers/reading-voice.controller.ts`, `server/src/services/fish-tts.service.ts`, `client/src/components/ReadingVoicePlayer.tsx` |
 | 회원 인증 (JWT, 카카오 로그인) | `server/src/routes/auth.routes.ts`, `server/src/controllers/kakao-auth.controller.ts`, `client/src/components/AuthModal.tsx`, `client/src/pages/KakaoSignupPage.tsx` |
 | 리딩 히스토리 | `server/src/routes/reading.routes.ts`, `client/src/pages/HistoryPage.tsx` |
-| 포인트 시스템 | `server/prisma/schema.prisma` (PointTransaction 모델) |
+| 포인트 시스템 (리딩 요금·차감) | `server/src/services/pricing.ts`(가격표 — 유일한 기준), `server/src/services/point.service.ts` |
+| 포인트 충전 결제 (포트원 V2) | `server/src/controllers/payment.controller.ts`, `server/src/services/portone.ts`, `client/src/components/ChargeModal.tsx` |
 | 챗봇 | `server/src/controllers/chat.controller.ts`, `client/src/components/ChatBot.tsx` |
 
 ## 기술 스택
@@ -148,10 +149,10 @@ cd server && npm start        # prisma migrate deploy + node dist/index.js
 | shadcn, 폼, 다이얼로그 | `ccpp:shadcn-ui` | shadcn/ui 컴포넌트 |
 | 랜딩페이지, 프리미엄 UI | `ccpp:ui-ux-pro-max` | 빅테크 스타일 UI |
 | API, 엔드포인트, REST | `ccpp:api-design-principles` | API 설계 원칙 |
-| 로그인, 인증, JWT, 세션 | `everything-claude-code:security-review` | 보안 체크리스트 |
-| DB, 스키마, 마이그레이션 | `everything-claude-code:database-migrations` | DB 마이그레이션 |
+| 로그인, 인증, JWT, 세션 | `ecc:security-review` | 보안 체크리스트 |
+| DB, 스키마, 마이그레이션 | `ecc:database-migrations` | DB 마이그레이션 |
 | 테스트, TDD | `ccpp:tdd` | TDD 워크플로우 |
-| Docker, 배포 | `everything-claude-code:docker-patterns` | Docker 패턴 |
+| Docker, 배포 | `ecc:docker-patterns` | Docker 패턴 |
 | TypeScript 타입, 제네릭 | `ccpp:typescript-advanced-types` | TS 고급 타입 |
 | 라이브러리 사용법 | context7 MCP | 최신 문서 조회 |
 | 리팩토링, 단순화 | `ccpp:simplify` | 코드 단순화 |

@@ -50,6 +50,18 @@ const readBlobError = async (error: unknown): Promise<string | undefined> => {
 // 서버가 리딩 요청을 거절함(4xx: 호출 한도, 잘못된 질문 등). 저장된 리딩이 없어 복구할 것도 없다
 export class ReadingRejectedError extends Error {}
 
+// 포인트가 모자라 리딩을 시작하지 못함 (402). 화면이 충전 창을 연다
+export class InsufficientPointsError extends ReadingRejectedError {
+  readonly required: number;
+  readonly balance: number;
+
+  constructor(message: string, required: number, balance: number) {
+    super(message);
+    this.required = required;
+    this.balance = balance;
+  }
+}
+
 // 인증 토큰 관리
 export const setAuthToken = (token: string | null) => {
   if (token) {
@@ -84,6 +96,7 @@ export const authApi = {
     name: string;
     birthInfo: BirthInfo;
     mbti?: string;
+    agreeTerms: true;
   }) => {
     const response = await api.post('/auth/register', data);
     if (response.data.success && response.data.data.token) {
@@ -136,7 +149,7 @@ export const authApi = {
     return { type: 'signup', profile: data.profile };
   },
 
-  kakaoComplete: async (data: { ticket: string; bind: string; name: string; birthInfo: BirthInfo; mbti?: string }) => {
+  kakaoComplete: async (data: { ticket: string; bind: string; name: string; birthInfo: BirthInfo; mbti?: string; agreeTerms: true }) => {
     const response = await api.post('/auth/kakao/complete', data);
     if (response.data.success && response.data.data.token) {
       setAuthToken(response.data.data.token);
@@ -202,6 +215,10 @@ export const aiApi = {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status ?? 0;
         const message = error.response?.data?.error;
+        if (status === 402 && typeof message === 'string') {
+          const { required, balance } = error.response?.data ?? {};
+          throw new InsufficientPointsError(message, Number(required) || 0, Number(balance) || 0);
+        }
         if (status >= 400 && status < 500 && typeof message === 'string') throw new ReadingRejectedError(message);
       }
       throw error;
@@ -358,3 +375,92 @@ export const readingApi = {
 };
 
 export default api;
+
+// ---------- 포인트·결제 ----------
+
+export interface ChargePackage {
+  id: string;
+  amount: number;
+  points: number;
+}
+
+// 서버 가격표 (server/src/services/pricing.ts) — 화면에는 가격을 따로 적어 두지 않는다
+export interface PriceTable {
+  signupBonus: number;
+  extraDailyPrice: number;
+  compatibilityPrice: number;
+  dailyFreeSpreads: SpreadType[];
+  spreadPrices: Partial<Record<SpreadType, number>>;
+  chargePackages: ChargePackage[];
+  /** 요금이 모든 회원에게 적용 중인가 */
+  paidMode: boolean;
+}
+
+export interface PointTransaction {
+  id: string;
+  type: 'charge' | 'use' | 'refund';
+  amount: number;
+  balance: number;
+  description: string;
+  createdAt: string;
+}
+
+export interface PreparedPayment {
+  paymentId: string;
+  amount: number;
+  points: number;
+  orderName: string;
+  storeId: string;
+  channelKey: string;
+  payMethod: 'CARD' | 'EASY_PAY';
+}
+
+export type VerifyResult =
+  | { status: 'paid'; points: number; charged: number }
+  | { status: 'pending' }
+  /** 다시 물어도 같은 판정 */
+  | { status: 'failed'; message: string }
+  /** 일시 오류 — 잠시 후 다시 확인 */
+  | { status: 'retry'; message: string };
+
+export const pointsApi = {
+  getPrices: async (): Promise<PriceTable> => {
+    const response = await api.get<ApiResponse<PriceTable>>('/points/prices');
+    if (!response.data.data) throw new Error('가격표를 불러오지 못했습니다.');
+    return response.data.data;
+  },
+
+  getMine: async (): Promise<{ points: number; usedFreeToday: SpreadType[]; paid: boolean }> => {
+    const response = await api.get('/points/me');
+    return response.data.data;
+  },
+
+  getHistory: async (): Promise<PointTransaction[]> => {
+    const response = await api.get('/points/history');
+    return response.data.data;
+  },
+};
+
+export const paymentApi = {
+  prepare: async (packageId: string): Promise<PreparedPayment> => {
+    try {
+      const response = await api.post('/payments/prepare', { packageId });
+      return response.data.data;
+    } catch (error) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+      throw new Error(typeof message === 'string' ? message : '결제를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+  },
+
+  verify: async (paymentId: string): Promise<VerifyResult> => {
+    try {
+      const response = await api.post('/payments/verify', { paymentId }, { validateStatus: (s) => s === 200 || s === 202 });
+      if (response.status === 202) return { status: 'pending' };
+      return { status: 'paid', points: response.data.data.points, charged: response.data.data.charged };
+    } catch (error) {
+      const data = axios.isAxiosError(error) ? error.response?.data : undefined;
+      const message = typeof data?.error === 'string' ? data.error : '결제를 확인하지 못했습니다.';
+      return data?.final ? { status: 'failed', message } : { status: 'retry', message };
+    }
+  },
+};

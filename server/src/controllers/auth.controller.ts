@@ -4,18 +4,34 @@ import prisma from '../utils/prisma';
 import { SajuService } from '../services/saju.service';
 import { generateToken } from '../utils/jwt';
 import type { BirthInfo } from '../models/saju.model';
+import { grantSignupBonus } from '../services/point.service';
+import { createUserRateLimiter } from '../utils/user-rate-limit';
+
+// 가입할 때마다 포인트가 나가므로 같은 주소에서의 가입 횟수를 제한한다 (1시간에 5번)
+const allowRegister = createUserRateLimiter(5, 60 * 60 * 1000);
+
+/** 요청한 쪽 IP. 프록시(Railway)가 덧붙인 X-Forwarded-For의 마지막 값을 쓴다 — 앞쪽 값은 요청자가 지어낼 수 있다 */
+function clientIp(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  const chain = (Array.isArray(forwarded) ? forwarded.join(',') : forwarded ?? '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+  return chain[chain.length - 1] || req.ip || 'unknown';
+}
 
 const sajuService = new SajuService();
 
 // 회원가입
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, name, birthInfo, mbti }: {
+    const { email, password, name, birthInfo, mbti, agreeTerms }: {
       email: string;
       password: string;
       name: string;
       birthInfo: BirthInfo;
       mbti?: string;
+      agreeTerms?: unknown;
     } = req.body;
 
     const validMbtis = [
@@ -31,6 +47,12 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 이용약관·개인정보 수집·이용 동의(필수). 동의한 시각을 남긴다
+    if (agreeTerms !== true) {
+      res.status(400).json({ error: '이용약관과 개인정보 수집·이용에 동의해 주세요.' });
+      return;
+    }
+
     // 이메일 중복 체크
     const existingUser = await prisma.user.findUnique({
       where: { email }
@@ -41,22 +63,33 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // 입력·중복 확인을 통과한 요청만 횟수에 센다
+    if (!allowRegister(clientIp(req))) {
+      res.status(429).json({ error: '가입 요청이 너무 많아요. 잠시 후 다시 시도해주세요.' });
+      return;
+    }
+
     // 비밀번호 해싱
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 사주 분석
     const sajuAnalysis = sajuService.analyzeSaju(birthInfo);
 
-    // 사용자 생성
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        birthInfo: birthInfo as any,
-        sajuAnalysis: sajuAnalysis as any,
-        ...(mbti && validMbtis.includes(mbti.toUpperCase()) ? { mbti: mbti.toUpperCase() } : {})
-      }
+    // 사용자 생성 + 가입 축하 포인트 지급 (둘 중 하나만 되는 일이 없도록 한 트랜잭션)
+    const { user, points } = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name,
+          birthInfo: birthInfo as any,
+          sajuAnalysis: sajuAnalysis as any,
+          termsAgreedAt: new Date(),
+          ...(mbti && validMbtis.includes(mbti.toUpperCase()) ? { mbti: mbti.toUpperCase() } : {})
+        }
+      });
+      const balance = await grantSignupBonus(tx, created.id);
+      return { user: created, points: balance };
     });
 
     // JWT 토큰 생성
@@ -75,7 +108,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           name: user.name,
           birthInfo: user.birthInfo,
-          sajuAnalysis: user.sajuAnalysis
+          sajuAnalysis: user.sajuAnalysis,
+          points
         }
       }
     });
@@ -152,7 +186,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           name: user.name,
           birthInfo: user.birthInfo,
-          sajuAnalysis
+          sajuAnalysis,
+          points: user.points
         }
       }
     });
@@ -179,6 +214,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
         birthInfo: true,
         sajuAnalysis: true,
         mbti: true,
+        points: true,
         createdAt: true,
         lastLoginAt: true
       }
@@ -248,6 +284,7 @@ export const updateMbti = async (req: Request, res: Response): Promise<void> => 
         birthInfo: true,
         sajuAnalysis: true,
         mbti: true,
+        points: true,
         createdAt: true,
         lastLoginAt: true
       }

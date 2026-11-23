@@ -1,6 +1,6 @@
 ---
 type: index
-last_modified: 2026-11-19
+last_modified: 2026-11-23
 ---
 
 # 별사탕 문서 인덱스
@@ -17,9 +17,10 @@ last_modified: 2026-11-19
 | 사주, 팔자, 오행, 음양, 천간, 지지 | docs/features/saju-analysis.md | `saju.service.ts`, `SajuResult.tsx` |
 | 타로, 카드, 스프레드, 리딩, 드로우 | docs/features/tarot-reading.md | `tarot.service.ts`, `TarotReading.tsx`, `CardSelection.tsx` |
 | AI, 해석, Gemini, Claude, 프롬프트, 음성, 목소리, TTS, Fish | docs/features/ai-interpretation.md | `ai.service.ts`, `interpretation.service.ts`, `fish-tts.service.ts`, `reading-voice.controller.ts`, `ReadingVoicePlayer.tsx` |
-| 로그인, 회원가입, 인증, JWT, 비밀번호, 카카오, 소셜 로그인 | docs/features/auth.md | `auth.routes.ts`, `auth.controller.ts`, `kakao-auth.controller.ts`, `AuthModal.tsx`, `KakaoSignupPage.tsx` |
+| 로그인, 회원가입, 인증, JWT, 비밀번호, 카카오, 소셜 로그인, 약관, 개인정보처리방침, 동의 | docs/features/auth.md | `auth.routes.ts`, `auth.controller.ts`, `kakao-auth.controller.ts`, `AuthModal.tsx`, `KakaoSignupPage.tsx`, `data/legal.ts` |
 | 히스토리, 기록, 리딩 목록, 저장 | docs/features/reading-history.md | `reading.routes.ts`, `reading.controller.ts`, `HistoryPage.tsx` |
-| 포인트, 결제, 충전, 잔액 | docs/features/point-system.md | `schema.prisma` (PointTransaction) |
+| 포인트, 요금, 가격, 무료, 잔액, 차감 | docs/features/point-system.md | `pricing.ts`, `point.service.ts`, `stores/points.ts` |
+| 결제, 충전, 포트원, 웹훅, 환불 | docs/features/payment.md | `payment.controller.ts`, `portone.ts`, `ChargeModal.tsx` |
 | 챗봇, 채팅, 대화, 후속질문 | docs/features/chatbot.md | `chat.controller.ts`, `ChatBot.tsx` |
 | 띠, 운세, 별자리, 궁합 | docs/features/zodiac.md | `zodiac.service.ts` |
 | 랜딩, 홈, 마이페이지, 내 정보, 문구 | docs/features/home-mypage.md | `HomePage.tsx`, `MyPage.tsx` |
@@ -53,7 +54,8 @@ docs/
 │   ├── ai-interpretation.md     AI 해석
 │   ├── auth.md                  회원 인증
 │   ├── reading-history.md       리딩 히스토리
-│   ├── point-system.md          포인트 시스템
+│   ├── point-system.md          포인트 시스템 (요금·차감)
+│   ├── payment.md               포인트 충전 결제 (포트원)
 │   ├── chatbot.md               챗봇
 │   ├── zodiac.md                띠/별자리 운세
 │   └── home-mypage.md           랜딩·마이페이지

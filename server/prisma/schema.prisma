@@ -20,10 +20,13 @@ model User {
   sajuAnalysis  Json     // SajuAnalysis 객체 저장
   mbti          String?  // MBTI 성격 유형 (예: ENFJ, INTP 등)
   points        Int      @default(0) // 보유 포인트 (1포인트 = 1원)
+  termsAgreedAt DateTime? // 이용약관·개인정보 수집·이용에 동의한 시각 (2026-11-17 이전 가입자는 null)
   createdAt     DateTime @default(now())
   lastLoginAt   DateTime?
   readings      Reading[]
   pointTransactions PointTransaction[]
+  paymentOrders PaymentOrder[]
+  dailyFreeUses DailyFreeUse[]
 
   @@index([email])
 }
@@ -37,12 +40,41 @@ model PointTransaction {
   amount          Int      // 변동 포인트 (양수: 충전, 음수: 사용)
   balance         Int      // 거래 후 잔액
   description     String   // 거래 설명
-  orderId         String?  // 레몬스퀴지 주문 ID (충전 시)
+  orderId         String?  // 결제 주문 ID = PaymentOrder.id (충전·결제 취소 시)
   readingId       String?  // 사용된 리딩 ID (사용 시)
   createdAt       DateTime @default(now())
 
   @@index([userId, createdAt])
   @@index([orderId])
+}
+
+// 포인트 충전 주문 (포트원 결제 1건 = 1행). id가 포트원 paymentId다.
+// 금액·주문자를 서버가 여기 적어 두고, 결제 검증 때 실제 결제 금액과 정확히 같은지 본다.
+model PaymentOrder {
+  id          String    @id // 포트원 paymentId (서버 발급, 40자 이하)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int       // 결제 금액(원)
+  points      Int       // 지급 포인트
+  status      String    @default("PENDING") // 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED'
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+  shortfall   Int       @default(0) // 결제 취소 때 이미 써서 회수하지 못한 포인트 (관리자 확인용)
+
+  @@index([userId, createdAt])
+}
+
+// 하루 1회 무료 리딩 사용 기록. (userId, spreadType, day) 유니크로 "오늘 첫 번째"를 한 요청만 차지한다.
+// 리딩 기록(Reading)과 따로 두어, 기록을 지워도 무료가 다시 열리지 않는다.
+model DailyFreeUse {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spreadType String
+  day        String   // 한국 시간 날짜 'YYYY-MM-DD'
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, spreadType, day])
 }
 
 model Reading {

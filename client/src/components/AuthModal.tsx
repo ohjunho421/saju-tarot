@@ -58,6 +58,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthMo
       active = false;
     };
   }, [isOpen]);
+  const [agreed, setAgreed] = useState(false);
 
   if (!isOpen) return null;
 
@@ -82,6 +83,12 @@ export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthMo
     setLoading(true);
     setError('');
 
+    if (!agreed) {
+      setError('이용약관과 개인정보 수집·이용에 동의해 주세요.');
+      setLoading(false);
+      return;
+    }
+
     if (registerData.password !== registerData.confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
       setLoading(false);
@@ -94,7 +101,8 @@ export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthMo
         password: registerData.password,
         name: registerData.name,
         birthInfo: registerData.birthInfo,
-        mbti: registerMbti || undefined
+        mbti: registerMbti || undefined,
+        agreeTerms: true
       });
       onSuccess();
       onClose();
@@ -439,6 +447,31 @@ export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthMo
                   선택됨: {registerMbti} ({MBTI_DESCRIPTIONS[registerMbti].name} {MBTI_DESCRIPTIONS[registerMbti].emoji})
                 </p>
               )}
+            </div>
+
+            {/* 필수 동의 — 약관과 방침은 새 탭으로 열어 입력하던 내용이 사라지지 않게 한다 */}
+            <div className="flex items-start gap-2 p-3 bg-white/5 rounded-lg">
+              <input
+                type="checkbox"
+                id="registerAgree"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="w-4 h-4 mt-0.5 rounded border-white/30 bg-white/10 text-primary-600"
+              />
+              <label htmlFor="registerAgree" className="text-sm text-white/90 cursor-pointer flex-1 break-keep">
+                만 14세 이상이며,{' '}
+                <a href="/?page=terms" target="_blank" rel="noopener" className="underline hover:text-white">
+                  이용약관
+                </a>
+                과{' '}
+                <a href="/?page=privacy" target="_blank" rel="noopener" className="underline hover:text-white">
+                  개인정보 수집·이용
+                </a>
+                에 동의합니다. (필수)
+                <span className="block text-xs text-white/60 mt-1">
+                  리딩을 만들기 위해 이름·사주 분석 결과·질문이 해외의 인공지능 서비스로 전송됩니다.
+                </span>
+              </label>
             </div>
 
             <button

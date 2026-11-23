@@ -158,6 +158,8 @@ export interface IntegratedReading {
   adviceCardInterpretation?: string;
   compatibilityReading?: string; // 궁합 분석 결과
   easyReading?: EasyReading; // 쉽게 보기 (옛 기록에는 없음)
+  points?: number; // 리딩 후 포인트 잔액 (새 리딩 응답에만)
+  pointsCharged?: number; // 이번 리딩에 차감된 포인트
 }
 
 // API 응답 타입
