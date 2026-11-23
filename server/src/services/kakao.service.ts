@@ -52,9 +52,14 @@ export const getReturnOrigins = (): string[] => {
     ? ['https://saju-tarot.vercel.app']
     : ['http://localhost:5173', 'http://localhost:3001'];
   // Railway 서버가 화면도 내려주므로(Dockerfile에서 client/dist 빌드) 콜백 주소와 같은 곳도 허용
-  const serverOrigin = originOf(process.env.KAKAO_REDIRECT_URI);
-  const all = [...(fromEnv.length > 0 ? fromEnv : defaults), ...(serverOrigin ? [serverOrigin] : [])];
-  return Array.from(new Set(all));
+  // 구글 콜백 주소의 서버도 같은 이유로 허용한다 (google.service.ts)
+  const serverOrigins = [process.env.KAKAO_REDIRECT_URI, process.env.GOOGLE_REDIRECT_URI]
+    .map((value) => originOf(value))
+    .filter((value): value is string => Boolean(value));
+  const all = [...(fromEnv.length > 0 ? fromEnv : defaults), ...serverOrigins];
+  // 운영에서는 https 주소만 허용한다(콜백 주소를 localhost 예시값으로 둔 채 배포해도 표가 평문 주소로 새지 않게)
+  const allowed = process.env.NODE_ENV === 'production' ? all.filter((origin) => origin.startsWith('https://')) : all;
+  return Array.from(new Set(allowed));
 };
 
 export const resolveReturnOrigin = (value: unknown): string | null => {

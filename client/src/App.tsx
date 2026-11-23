@@ -12,8 +12,8 @@ import PolicyPage from './pages/PolicyPage';
 import LegalPage from './pages/LegalPage';
 import { PRIVACY, TERMS } from './data/legal';
 import ChargeModal, { confirmPayment } from './components/ChargeModal';
-import { authApi, type KakaoSignupProfile } from './services/api';
-import { takeKakaoRedirect, kakaoErrorMessage } from './services/kakaoRedirect';
+import { authApi, type SocialSignupProfile } from './services/api';
+import { takeSocialRedirect, socialErrorMessage, type SocialProvider } from './services/kakaoRedirect';
 import { formatPoints, usePointsStore } from './stores/points';
 import { BUSINESS_LINES } from './data/business';
 import { LogIn, LogOut, User, BookOpen, Coins } from 'lucide-react';
@@ -34,7 +34,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [authNotice, setAuthNotice] = useState('');
-  const [kakaoSignup, setKakaoSignup] = useState<{ ticket: string; bind: string; profile: KakaoSignupProfile } | null>(null);
+  const [kakaoSignup, setKakaoSignup] = useState<{ provider: SocialProvider; ticket: string; bind: string; profile: SocialSignupProfile } | null>(null);
   const points = usePointsStore((state) => state.points);
   const paid = usePointsStore((state) => state.paid);
   const { refresh: refreshPoints, loadPrices, openCharge, closeCharge, setPoints, reset: resetPoints } = usePointsStore.getState();
@@ -86,29 +86,29 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 카카오 로그인에서 돌아왔을 때: 기존 회원은 로그인, 새 회원은 생년월일 확인 화면으로
+  // 카카오·구글 로그인에서 돌아왔을 때: 기존 회원은 로그인, 새 회원은 생년월일 확인 화면으로
   useEffect(() => {
-    const redirect = takeKakaoRedirect();
+    const redirect = takeSocialRedirect();
     if (!redirect) return;
     if (redirect.kind === 'error') {
-      setAuthNotice(kakaoErrorMessage(redirect.reason));
+      setAuthNotice(socialErrorMessage(redirect.provider, redirect.reason));
       setShowAuthModal(true);
       return;
     }
     authApi
-      .kakaoSession(redirect.ticket, redirect.bind)
+      .socialSession(redirect.provider, redirect.ticket, redirect.bind)
       .then((result) => {
         if (result.type === 'login') {
           handleAuthSuccess();
           return;
         }
-        setKakaoSignup({ ticket: redirect.ticket, bind: redirect.bind, profile: result.profile });
+        setKakaoSignup({ provider: redirect.provider, ticket: redirect.ticket, bind: redirect.bind, profile: result.profile });
         setCurrentStep('kakaoSignup');
       })
       .catch((error) => {
         // 서버 안내(이미 가입한 계정 등)가 있으면 그대로, 없으면 시간 초과 안내
         const serverMessage = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
-        setAuthNotice(typeof serverMessage === 'string' ? serverMessage : kakaoErrorMessage('expired'));
+        setAuthNotice(typeof serverMessage === 'string' ? serverMessage : socialErrorMessage(redirect.provider, 'expired'));
         setShowAuthModal(true);
       });
   }, []);
@@ -280,6 +280,7 @@ function App() {
 
         {currentStep === 'kakaoSignup' && kakaoSignup && (
           <KakaoSignupPage
+            provider={kakaoSignup.provider}
             ticket={kakaoSignup.ticket}
             bind={kakaoSignup.bind}
             profile={kakaoSignup.profile}

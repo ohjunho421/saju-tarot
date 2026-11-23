@@ -1,6 +1,16 @@
 import { Router } from 'express';
 import { register, login, getMe, updateMbti } from '../controllers/auth.controller';
-import { getProviders, startKakaoLogin, kakaoCallback, kakaoSession, completeKakaoSignup } from '../controllers/kakao-auth.controller';
+import {
+  getProviders,
+  startKakaoLogin,
+  kakaoCallback,
+  kakaoSession,
+  completeKakaoSignup,
+  startGoogleLogin,
+  googleCallback,
+  googleSession,
+  completeGoogleSignup,
+} from '../controllers/kakao-auth.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -23,5 +33,11 @@ router.get('/kakao/start', startKakaoLogin);
 router.get('/kakao/callback', kakaoCallback);
 router.post('/kakao/session', kakaoSession);
 router.post('/kakao/complete', completeKakaoSignup);
+
+// 소셜 로그인 (구글) — 카카오와 같은 흐름
+router.get('/google/start', startGoogleLogin);
+router.get('/google/callback', googleCallback);
+router.post('/google/session', googleSession);
+router.post('/google/complete', completeGoogleSignup);
 
 export default router;

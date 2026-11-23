@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { authApi } from '../services/api';
-import { prepareKakaoBind } from '../services/kakaoRedirect';
+import { prepareSocialBind } from '../services/kakaoRedirect';
 
 // 카카오 로그인 디자인 가이드: 노란 바탕(#FEE500), 85% 검정 글자, 말풍선 심볼
 export default function KakaoLoginButton() {
@@ -20,8 +20,8 @@ export default function KakaoLoginButton() {
     setStarting(true);
     setFailed(false);
     try {
-      const bindHash = await prepareKakaoBind();
-      window.location.href = authApi.kakaoStartUrl(window.location.origin, bindHash);
+      const bindHash = await prepareSocialBind('kakao');
+      window.location.href = authApi.socialStartUrl('kakao', window.location.origin, bindHash);
     } catch {
       // 저장소를 막아 둔 브라우저(일부 사생활 보호 모드) 등
       setStarting(false);

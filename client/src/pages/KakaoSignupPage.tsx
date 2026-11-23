@@ -2,14 +2,16 @@ import { useRef, useState } from 'react';
 import axios from 'axios';
 import { User } from 'lucide-react';
 import BirthInfoForm from '../components/BirthInfoForm';
-import { authApi, sajuApi, type KakaoSignupProfile } from '../services/api';
+import { authApi, sajuApi, type SocialSignupProfile } from '../services/api';
+import { PROVIDER_LABEL, type SocialProvider } from '../services/kakaoRedirect';
 import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import type { BirthInfo, MBTIType, ZodiacInfo } from '../types';
 
 interface KakaoSignupPageProps {
+  provider: SocialProvider;
   ticket: string;
   bind: string; // 로그인을 시작한 브라우저 표시 (서버가 표와 맞춰 본다)
-  profile: KakaoSignupProfile;
+  profile: SocialSignupProfile;
   onDone: () => void;
   onCancel: () => void;
 }
@@ -19,7 +21,8 @@ const errorMessage = (error: unknown): string => {
   return typeof serverMessage === 'string' ? serverMessage : '가입을 마치지 못했어요. 잠시 후 다시 시도해 주세요.';
 };
 
-export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCancel }: KakaoSignupPageProps) {
+// 카카오·구글 가입 마무리 화면 (파일 이름은 카카오만 있던 때 그대로)
+export default function KakaoSignupPage({ provider, ticket, bind, profile, onDone, onCancel }: KakaoSignupPageProps) {
   const [step, setStep] = useState<'birth' | 'mbti'>('birth');
   const [name, setName] = useState(profile.nickname);
   // 2단계에서 이전으로 돌아오면 입력했던 값을 그대로 보여 준다
@@ -57,7 +60,7 @@ export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCance
     setSubmitting(true);
     setError('');
     try {
-      await authApi.kakaoComplete({ ticket, bind, name: name.trim(), birthInfo, mbti: mbti || undefined, agreeTerms: true });
+      await authApi.socialComplete(provider, { ticket, bind, name: name.trim(), birthInfo, mbti: mbti || undefined, agreeTerms: true });
       onDone();
     } catch (err) {
       setError(errorMessage(err));
@@ -79,7 +82,7 @@ export default function KakaoSignupPage({ ticket, bind, profile, onDone, onCance
         <BirthInfoForm
           initialValue={birthInfo}
           title="생년월일 입력"
-          intro={<p>카카오로 로그인했어요. 사주와 별자리를 볼 생년월일을 알려 주세요.</p>}
+          intro={<p>{PROVIDER_LABEL[provider]}로 로그인했어요. 사주와 별자리를 볼 생년월일을 알려 주세요.</p>}
           submitLabel="다음"
           note="생년월일은 사주와 별자리 계산에 쓰이고, 가입하면 내 정보에 저장돼요."
           onSubmit={handleBirthSubmit}

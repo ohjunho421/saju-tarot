@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { authApi } from '../services/api';
 import KakaoLoginButton from './KakaoLoginButton';
+import GoogleLoginButton from './GoogleLoginButton';
 import { X, Mail, Lock, User, Calendar } from 'lucide-react';
 import { MBTI_TYPES, MBTI_DESCRIPTIONS } from '../types';
 import type { MBTIType } from '../types';
@@ -40,19 +41,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthMo
     }
   });
   const [registerMbti, setRegisterMbti] = useState<MBTIType | ''>('');
-  const [kakaoEnabled, setKakaoEnabled] = useState(false);
+  const [providers, setProviders] = useState({ kakao: false, google: false });
 
-  // 서버에 카카오 키가 설정돼 있을 때만 카카오 버튼을 보여 준다
+  // 서버에 키가 설정된 소셜 로그인 버튼만 보여 준다
   useEffect(() => {
     if (!isOpen) return;
     let active = true;
     authApi
       .getProviders()
-      .then((providers) => {
-        if (active) setKakaoEnabled(providers.kakao);
+      .then((result) => {
+        if (active) setProviders(result);
       })
       .catch(() => {
-        if (active) setKakaoEnabled(false);
+        if (active) setProviders({ kakao: false, google: false });
       });
     return () => {
       active = false;
@@ -157,11 +158,14 @@ export default function AuthModal({ isOpen, onClose, onSuccess, notice }: AuthMo
           </div>
         )}
 
-        {kakaoEnabled && (
+        {(providers.kakao || providers.google) && (
           <div className="mb-5">
-            <KakaoLoginButton />
+            <div className="space-y-2">
+              {providers.kakao && <KakaoLoginButton />}
+              {providers.google && <GoogleLoginButton />}
+            </div>
             <p className="mt-2 text-center text-xs text-white/50 break-keep">
-              {mode === 'login' ? '처음이면 카카오 계정으로 바로 가입할 수 있어요.' : '이메일·비밀번호 없이 카카오 계정으로 가입해요.'}
+              {mode === 'login' ? '처음이면 소셜 계정으로 바로 가입할 수 있어요.' : '이메일·비밀번호 없이 소셜 계정으로 가입해요.'}
             </p>
             <div className="mt-5 flex items-center gap-3 text-xs text-white/40">
               <span className="h-px flex-1 bg-white/10" />

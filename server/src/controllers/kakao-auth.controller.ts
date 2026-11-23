@@ -1,4 +1,4 @@
-// 카카오 로그인
+// 카카오·구글 로그인 (흐름은 같고 제공자 설정만 다르다 — PROVIDERS)
 // 1) /kakao/start: state를 만들어 쿠키(브라우저 묶기)와 함께 카카오로 보낸다.
 //    화면은 무작위 값(bind)을 자기 저장소에 두고 그 해시만 보낸다
 // 2) /kakao/callback: state를 확인하고 카카오 정보를 받아 짧은 표를 화면 주소의 # 뒤에 실어 돌려보낸다
@@ -21,18 +21,17 @@ import {
   isRecord,
   resolveReturnOrigin,
 } from '../services/kakao.service';
+import { buildGoogleAuthorizeUrl, fetchGoogleProfile, isGoogleConfigured } from '../services/google.service';
 import { createUserRateLimiter } from '../utils/user-rate-limit';
 import type { BirthInfo } from '../models/saju.model';
 import { grantSignupBonus } from '../services/point.service';
 
 const sajuService = new SajuService();
 
-// 콜백은 요청마다 서버가 카카오에 토큰을 요청한다. 한 곳에서 반복해 카카오 앱 한도를 쓰지 못하게 막는다
+// 콜백은 요청마다 서버가 카카오·구글에 토큰을 요청한다. 한 곳에서 반복해 앱 한도를 쓰지 못하게 막는다
 const allowCallback = createUserRateLimiter(30, 10 * 60 * 1000);
 const allowComplete = createUserRateLimiter(20, 10 * 60 * 1000);
 
-const STATE_COOKIE = 'kakao_oauth_state';
-const STATE_COOKIE_PATH = '/api/auth/kakao';
 const STATE_TTL_SECONDS = 10 * 60;
 const LOGIN_TICKET_TTL_SECONDS = 2 * 60; // 화면이 돌아오자마자 바꾸므로 짧게
 const SIGNUP_TICKET_TTL_SECONDS = 30 * 60;
@@ -66,7 +65,44 @@ const consumeStateNonce = (nonce: string): boolean => {
   return true;
 };
 
-const ALREADY_JOINED = '이미 가입한 카카오 계정이에요. 카카오로 다시 로그인해 주세요.';
+type Provider = 'kakao' | 'google';
+
+interface ProviderConfig {
+  label: string; // 안내 문구에 쓰는 이름
+  isConfigured: () => boolean;
+  buildAuthorizeUrl: (state: string) => string | null;
+  fetchProfile: (code: string) => Promise<{ id: string; nickname: string }>;
+}
+
+const PROVIDERS: Record<Provider, ProviderConfig> = {
+  kakao: {
+    label: '카카오',
+    isConfigured: isKakaoConfigured,
+    buildAuthorizeUrl,
+    fetchProfile: async (code) => {
+      const profile = await fetchKakaoProfile(code);
+      return { id: profile.kakaoId, nickname: profile.nickname };
+    },
+  },
+  google: {
+    label: '구글',
+    isConfigured: isGoogleConfigured,
+    buildAuthorizeUrl: buildGoogleAuthorizeUrl,
+    fetchProfile: async (code) => {
+      const profile = await fetchGoogleProfile(code);
+      return { id: profile.googleId, nickname: profile.nickname };
+    },
+  },
+};
+
+const stateCookie = (provider: Provider) => `${provider}_oauth_state`;
+const stateCookiePath = (provider: Provider) => `/api/auth/${provider}`;
+const alreadyJoined = (provider: Provider) =>
+  `이미 가입한 ${PROVIDERS[provider].label} 계정이에요. ${PROVIDERS[provider].label}로 다시 로그인해 주세요.`;
+
+// 제공자 회원번호로 찾는 조건 (회원번호 칸은 제공자마다 따로 있다)
+const whereProviderId = (provider: Provider, id: string): Prisma.UserWhereUniqueInput =>
+  provider === 'kakao' ? { kakaoId: id } : { googleId: id };
 
 const redirectWithHash = (res: Response, origin: string, key: string, value: string): void => {
   res.redirect(`${origin}/#${key}=${encodeURIComponent(value)}`);
@@ -160,40 +196,40 @@ const cleanName = (value: unknown): string | null => {
 
 // 사용할 수 있는 소셜 로그인 (키가 설정된 것만)
 export const getProviders = (req: Request, res: Response): void => {
-  res.json({ success: true, data: { kakao: isKakaoConfigured() } });
+  res.json({ success: true, data: { kakao: isKakaoConfigured(), google: isGoogleConfigured() } });
 };
 
-export const startKakaoLogin = (req: Request, res: Response): void => {
+const startLogin = (provider: Provider) => (req: Request, res: Response): void => {
   const returnTo = resolveReturnOrigin(req.query.returnTo);
   const bindHash = req.query.bind;
   if (!returnTo || typeof bindHash !== 'string' || !BIND_HASH_PATTERN.test(bindHash)) {
-    res.status(400).send('로그인 요청이 올바르지 않습니다. 화면에서 카카오 버튼을 다시 눌러 주세요.');
+    res.status(400).send(`로그인 요청이 올바르지 않습니다. 화면에서 ${PROVIDERS[provider].label} 버튼을 다시 눌러 주세요.`);
     return;
   }
 
   const nonce = crypto.randomBytes(16).toString('hex');
-  const authorizeUrl = buildAuthorizeUrl(
-    signTicket('kakao-state', { n: nonce, r: returnTo, bh: bindHash }, STATE_TTL_SECONDS)
+  const authorizeUrl = PROVIDERS[provider].buildAuthorizeUrl(
+    signTicket(`${provider}-state`, { n: nonce, r: returnTo, bh: bindHash }, STATE_TTL_SECONDS)
   );
   if (!authorizeUrl) {
-    redirectWithHash(res, returnTo, 'kakao_error', 'unavailable');
+    redirectWithHash(res, returnTo, `${provider}_error`, 'unavailable');
     return;
   }
 
-  res.cookie(STATE_COOKIE, nonce, {
+  res.cookie(stateCookie(provider), nonce, {
     httpOnly: true,
-    sameSite: 'lax', // 카카오에서 돌아오는 최상위 이동(GET)에는 실린다
+    sameSite: 'lax', // 카카오·구글에서 돌아오는 최상위 이동(GET)에는 실린다
     secure: process.env.NODE_ENV === 'production',
     maxAge: STATE_TTL_SECONDS * 1000,
-    path: STATE_COOKIE_PATH,
+    path: stateCookiePath(provider),
   });
   res.redirect(authorizeUrl);
 };
 
-export const kakaoCallback = async (req: Request, res: Response): Promise<void> => {
-  const state = typeof req.query.state === 'string' ? verifyTicket(req.query.state, 'kakao-state') : null;
-  const cookieNonce = readCookie(req, STATE_COOKIE);
-  res.clearCookie(STATE_COOKIE, { path: STATE_COOKIE_PATH });
+const handleCallback = (provider: Provider) => async (req: Request, res: Response): Promise<void> => {
+  const state = typeof req.query.state === 'string' ? verifyTicket(req.query.state, `${provider}-state`) : null;
+  const cookieNonce = readCookie(req, stateCookie(provider));
+  res.clearCookie(stateCookie(provider), { path: stateCookiePath(provider) });
 
   const returnTo = state ? resolveReturnOrigin(state.r) : null;
   // state가 없거나 이 브라우저에서 시작한 요청이 아니면(로그인 CSRF), 이미 쓴 state면 진행하지 않는다
@@ -201,48 +237,47 @@ export const kakaoCallback = async (req: Request, res: Response): Promise<void> 
     !state || !returnTo || typeof state.n !== 'string' || typeof state.bh !== 'string' ||
     !cookieNonce || !safeEqual(state.n, cookieNonce) || !consumeStateNonce(state.n)
   ) {
-    redirectWithHash(res, returnTo ?? getReturnOrigins()[0], 'kakao_error', 'expired');
+    redirectWithHash(res, returnTo ?? getReturnOrigins()[0], `${provider}_error`, 'expired');
     return;
   }
-  if (!allowCallback(clientIp(req))) {
-    redirectWithHash(res, returnTo, 'kakao_error', 'failed');
+  if (!allowCallback(`${provider}:${clientIp(req)}`)) { // 공급자별로 따로 센다
+    redirectWithHash(res, returnTo, `${provider}_error`, 'failed');
     return;
   }
   if (typeof req.query.error === 'string') {
-    redirectWithHash(res, returnTo, 'kakao_error', req.query.error === 'access_denied' ? 'cancelled' : 'failed');
+    redirectWithHash(res, returnTo, `${provider}_error`, req.query.error === 'access_denied' ? 'cancelled' : 'failed');
     return;
   }
   const code = req.query.code;
   if (typeof code !== 'string' || code.length === 0) {
-    redirectWithHash(res, returnTo, 'kakao_error', 'failed');
+    redirectWithHash(res, returnTo, `${provider}_error`, 'failed');
     return;
   }
 
   try {
-    const profile = await fetchKakaoProfile(code);
-    const existing = await prisma.user.findUnique({ where: { kakaoId: profile.kakaoId }, select: { id: true } });
+    const profile = await PROVIDERS[provider].fetchProfile(code);
+    const existing = await prisma.user.findUnique({ where: whereProviderId(provider, profile.id), select: { id: true } });
     if (existing) {
       redirectWithHash(
-        res, returnTo, 'kakao_login',
-        signTicket('kakao-login', { uid: existing.id, bh: state.bh }, LOGIN_TICKET_TTL_SECONDS)
+        res, returnTo, `${provider}_login`,
+        signTicket(`${provider}-login`, { uid: existing.id, bh: state.bh }, LOGIN_TICKET_TTL_SECONDS)
       );
       return;
     }
     const ticket = signTicket(
-      'kakao-signup',
-      { kid: profile.kakaoId, nick: profile.nickname, bh: state.bh },
+      `${provider}-signup`,
+      { kid: profile.id, nick: profile.nickname, bh: state.bh },
       SIGNUP_TICKET_TTL_SECONDS
     );
-    redirectWithHash(res, returnTo, 'kakao_signup', ticket);
+    redirectWithHash(res, returnTo, `${provider}_signup`, ticket);
   } catch (error) {
-    console.error('카카오 로그인 오류:', error instanceof Error ? error.message : 'unknown');
-    redirectWithHash(res, returnTo, 'kakao_error', 'failed');
+    console.error(`${PROVIDERS[provider].label} 로그인 오류:`, error instanceof Error ? error.message : 'unknown');
+    redirectWithHash(res, returnTo, `${provider}_error`, 'failed');
   }
 };
 
-
 // 표를 로그인 토큰(기존 회원) 또는 가입 정보(새 회원)로 바꾼다
-export const kakaoSession = async (req: Request, res: Response): Promise<void> => {
+const handleSession = (provider: Provider) => async (req: Request, res: Response): Promise<void> => {
   try {
     const ticket = req.body?.ticket;
     const bind = req.body?.bind;
@@ -251,7 +286,7 @@ export const kakaoSession = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const login = verifyTicket(ticket, 'kakao-login');
+    const login = verifyTicket(ticket, `${provider}-login`);
     if (login && typeof login.uid === 'string' && isBoundToCaller(login, bind)) {
       const user = await prisma.user.findUnique({ where: { id: login.uid } });
       if (!user) {
@@ -263,13 +298,13 @@ export const kakaoSession = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const signup = verifyTicket(ticket, 'kakao-signup');
+    const signup = verifyTicket(ticket, `${provider}-signup`);
     if (signup && typeof signup.kid === 'string' && isBoundToCaller(signup, bind)) {
       // 다른 탭에서 이미 가입을 마쳤다면 가입 표로 로그인시키지 않고 다시 로그인하게 한다
       // (가입 표는 30분짜리라 로그인 수단으로 쓰이면 안 된다)
-      const existing = await prisma.user.findUnique({ where: { kakaoId: signup.kid }, select: { id: true } });
+      const existing = await prisma.user.findUnique({ where: whereProviderId(provider, signup.kid), select: { id: true } });
       if (existing) {
-        res.status(409).json({ error: ALREADY_JOINED });
+        res.status(409).json({ error: alreadyJoined(provider) });
         return;
       }
       res.json({
@@ -286,21 +321,22 @@ export const kakaoSession = async (req: Request, res: Response): Promise<void> =
 
     res.status(401).json({ error: '로그인 시간이 지났어요. 다시 시도해 주세요.' });
   } catch (error) {
-    console.error('카카오 로그인 확인 오류:', error instanceof Error ? error.message : 'unknown');
+    console.error(`${PROVIDERS[provider].label} 로그인 확인 오류:`, error instanceof Error ? error.message : 'unknown');
     res.status(500).json({ error: '로그인 중 오류가 발생했습니다.' });
   }
 };
 
 // 확인·수정한 생년월일과 MBTI로 가입을 마친다
-export const completeKakaoSignup = async (req: Request, res: Response): Promise<void> => {
+const handleComplete = (provider: Provider) => async (req: Request, res: Response): Promise<void> => {
+  const label = PROVIDERS[provider].label;
   try {
     const body: unknown = req.body;
-    const signup = isRecord(body) && typeof body.ticket === 'string' ? verifyTicket(body.ticket, 'kakao-signup') : null;
+    const signup = isRecord(body) && typeof body.ticket === 'string' ? verifyTicket(body.ticket, `${provider}-signup`) : null;
     if (!isRecord(body) || !signup || typeof signup.kid !== 'string' || !isBoundToCaller(signup, body.bind)) {
-      res.status(401).json({ error: '가입 시간이 지났어요. 카카오로 다시 시작해 주세요.' });
+      res.status(401).json({ error: `가입 시간이 지났어요. ${label}로 다시 시작해 주세요.` });
       return;
     }
-    const kakaoId = signup.kid;
+    const providerId = signup.kid;
     if (!allowComplete(clientIp(req))) {
       res.status(429).json({ error: '잠시 후 다시 시도해 주세요.' });
       return;
@@ -325,9 +361,9 @@ export const completeKakaoSignup = async (req: Request, res: Response): Promise<
     const mbtiUpper = typeof body.mbti === 'string' ? body.mbti.toUpperCase() : '';
     const mbti = VALID_MBTIS.includes(mbtiUpper) ? mbtiUpper : null;
 
-    const existing = await prisma.user.findUnique({ where: { kakaoId }, select: { id: true } });
+    const existing = await prisma.user.findUnique({ where: whereProviderId(provider, providerId), select: { id: true } });
     if (existing) {
-      res.status(409).json({ error: ALREADY_JOINED });
+      res.status(409).json({ error: alreadyJoined(provider) });
       return;
     }
 
@@ -344,7 +380,7 @@ export const completeKakaoSignup = async (req: Request, res: Response): Promise<
       const user = await prisma.$transaction(async (tx) => {
         const created = await tx.user.create({
           data: {
-            kakaoId,
+            ...(provider === 'kakao' ? { kakaoId: providerId } : { googleId: providerId }),
             name,
             birthInfo: birthInfo as unknown as Prisma.InputJsonValue,
             sajuAnalysis: sajuAnalysis as unknown as Prisma.InputJsonValue,
@@ -358,15 +394,25 @@ export const completeKakaoSignup = async (req: Request, res: Response): Promise<
       });
       res.status(201).json({ success: true, message: '회원가입이 완료되었습니다.', data: loginResponse(user) });
     } catch (error) {
-      // 같은 카카오 계정으로 동시에 가입한 경우
+      // 같은 계정으로 동시에 가입한 경우
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        res.status(409).json({ error: ALREADY_JOINED });
+        res.status(409).json({ error: alreadyJoined(provider) });
         return;
       }
       throw error;
     }
   } catch (error) {
-    console.error('카카오 가입 오류:', error instanceof Error ? error.message : 'unknown');
+    console.error(`${label} 가입 오류:`, error instanceof Error ? error.message : 'unknown');
     res.status(500).json({ error: '회원가입 중 오류가 발생했습니다.' });
   }
 };
+
+export const startKakaoLogin = startLogin('kakao');
+export const kakaoCallback = handleCallback('kakao');
+export const kakaoSession = handleSession('kakao');
+export const completeKakaoSignup = handleComplete('kakao');
+
+export const startGoogleLogin = startLogin('google');
+export const googleCallback = handleCallback('google');
+export const googleSession = handleSession('google');
+export const completeGoogleSignup = handleComplete('google');
